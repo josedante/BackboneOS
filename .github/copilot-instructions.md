@@ -5,7 +5,7 @@
 Esta es una aplicación full-stack moderna que combina:
 
 - **Backend**: Django + Django REST Framework
-- **Frontend**: Nuxt.js 3 + TypeScript (migración en progreso desde Vue.js)
+- **Frontend**: Nuxt.js 3 + TypeScript (configuración desde cero)
 - **Base de Datos**: PostgreSQL
 - **Containerización**: Docker + Docker Compose
 
@@ -26,18 +26,15 @@ Proyecto-OpenSource/
 │       ├── views.py
 │       ├── urls.py
 │       └── serializers.py
-├── frontend/                  # Frontend Nuxt.js (migración desde Vue.js)
+├── frontend/                  # Frontend Nuxt.js (nueva configuración)
 │   ├── package.json
 │   ├── nuxt.config.ts         # Configuración Nuxt
 │   ├── Dockerfile
-│   └── src/
-│       ├── app.vue            # App principal Nuxt
-│       ├── components/
-│       ├── composables/       # Composables Nuxt
-│       ├── plugins/          # Plugins Nuxt
-│       ├── middleware/       # Middleware Nuxt
-│       ├── pages/            # Páginas con routing automático
-│       └── services/         # Servicios API
+│   ├── app.vue               # App principal Nuxt
+│   ├── composables/          # Composables Nuxt
+│   ├── components/           # Componentes Vue
+│   ├── pages/                # Páginas con routing automático
+│   └── assets/               # Assets (CSS, imágenes)
 ├── docker-compose.yml        # Orquestación Docker
 ├── .env                      # Variables de entorno
 ├── start.sh                  # Script de inicio
@@ -54,23 +51,22 @@ Proyecto-OpenSource/
 - **Autenticación**: Token-based authentication
 - **CORS**: django-cors-headers para comunicación frontend-backend
 
-### Frontend (Migración a Nuxt.js)
+### Frontend (Nuevo Nuxt.js)
 
-- **Framework**: Nuxt.js 3 (migración desde Vue.js 3.5.13)
-- **Lenguaje**: TypeScript 5.8.0
-- **Build Tool**: Vite integrado en Nuxt
-- **Estado**: Pinia 3.0.1 (compatible con Nuxt)
-- **Routing**: Auto-routing de Nuxt (migración desde Vue Router)
-- **HTTP Client**: $fetch nativo de Nuxt + Axios 1.9.0
-- **Testing**: Vitest + Playwright
-- **Linting**: ESLint + Prettier
-- **SSR/SPA**: Configuración híbrida con Nuxt
+- **Framework**: Nuxt.js 3.13.0
+- **Lenguaje**: TypeScript 5.6.3
+- **UI Framework**: Nuxt UI 2.18.4
+- **Estado**: Pinia 2.2.4 con @pinia/nuxt
+- **Routing**: Auto-routing de Nuxt
+- **HTTP Client**: $fetch nativo de Nuxt
+- **Linting**: ESLint 9.12.0
+- **SSR/SPA**: Configuración híbrida
 
 ### DevOps
 
 - **Containerización**: Docker + Docker Compose
-- **Proxy**: Configuración CORS para desarrollo
-- **Variables de Entorno**: python-decouple
+- **Proxy**: Nitro dev proxy para desarrollo
+- **Variables de Entorno**: Runtime config de Nuxt
 
 ## Características Principales
 
@@ -87,17 +83,17 @@ El backend expone endpoints para:
 
 ### Frontend Modular (Nuxt.js)
 
-- **Composables**: `useUser` y `useAuth` (migración desde services)
-- **Cliente API**: `$fetch` con interceptores para autenticación
-- **Componentes**: `UserList` para mostrar usuarios
-- **Store**: `useCounterStore` con Pinia
+- **Composables**: `useApi` para llamadas a la API
+- **Cliente API**: `$fetch` con configuración base
+- **Componentes**: Sistema de componentes Vue 3
+- **Store**: Pinia integrado
 - **Páginas**: Sistema de routing automático de Nuxt
-- **SSR**: Renderizado del lado del servidor opcional
+- **SSR**: Renderizado del lado del servidor
 
 ### Configuración Docker
 
 - **Backend Service**: Django en puerto 8000
-- **Frontend Service**: Nuxt.js en puerto 3000 (cambio desde 5173)
+- **Frontend Service**: Nuxt.js en puerto 3000
 - **Database Service**: PostgreSQL 14
 
 ## Inicio Rápido
@@ -105,7 +101,13 @@ El backend expone endpoints para:
 ### Con Docker (Recomendado)
 
 ```bash
-# Ejecutar script de inicio
+# 1. Eliminar carpeta frontend existente
+rm -rf frontend
+
+# 2. Crear nueva estructura
+# (Los archivos se crearán automáticamente)
+
+# 3. Ejecutar script de inicio
 chmod +x start.sh
 ./start.sh
 ```
@@ -122,8 +124,8 @@ docker-compose up --build -d
 # 3. Migrar base de datos
 docker-compose exec backend python manage.py migrate
 
-# 4. Crear superusuario (opcional)
-docker-compose exec backend python manage.py createsuperuser
+# 4. Instalar dependencias frontend
+docker-compose exec frontend npm install
 ```
 
 ## URLs de Acceso
@@ -132,33 +134,40 @@ docker-compose exec backend python manage.py createsuperuser
 - **Backend API**: http://localhost:8000/api/
 - **Django Admin**: http://localhost:8000/admin
 
-## Migración Vue.js → Nuxt.js
+## Configuración Nuxt.js
 
-### Estado de Migración
+### Características Implementadas
 
-- ✅ Configuración base de Nuxt.js
-- ✅ Migración de componentes principales
-- 🔄 Migración de servicios a composables
-- 🔄 Configuración de SSR/SPA
+- ✅ Configuración base de Nuxt.js 3
+- ✅ TypeScript con strict mode
+- ✅ Nuxt UI para componentes
+- ✅ Pinia para estado global
+- ✅ Composable useApi para API
+- ✅ Proxy para desarrollo
+- ✅ ESLint configurado
+- ✅ Docker containerizado
+
+### Próximos Pasos
+
+- ⏳ Crear páginas principales
+- ⏳ Implementar autenticación
+- ⏳ Crear componentes de usuario
+- ⏳ Configurar testing
 - ⏳ Optimización de performance
-- ⏳ Testing con Nuxt
-
-### Cambios Principales
-
-- **Routing**: De Vue Router a auto-routing de Nuxt
-- **Estado**: Pinia integrado con Nuxt
-- **API**: De Axios a $fetch nativo
-- **Build**: Vite integrado en Nuxt
-- **Estructura**: Carpeta `pages/` para routing automático
 
 ## Comandos Útiles
 
-Ver COMMANDS.md para comandos de desarrollo, Docker y solución de problemas.
+### Frontend
 
-## Scripts de Desarrollo
+- `npm run dev` - Servidor de desarrollo
+- `npm run build` - Build de producción
+- `npm run generate` - Generación estática
+- `npm run lint` - Linting
+- `npm run type-check` - Verificación de tipos
 
-- start.sh: Script automatizado de inicio
-- **Frontend**: `npm run dev`, `npm run build`, `npm run generate`
-- **Backend**: `python manage.py runserver`, `python manage.py migrate`
+### Backend
 
-Este proyecto está configurado para desarrollo con hot-reload tanto en frontend como backend, y usa Docker para un entorno consistente entre desarrolladores. La migración a Nuxt.js mejora el SEO, performance y experiencia de desarrollo.
+- `python manage.py runserver` - Servidor de desarrollo
+- `python manage.py migrate` - Migrar base de datos
+
+Este proyecto está configurado con Nuxt.js desde cero, proporcionando una base sólida para desarrollo full-stack moderno con SSR, TypeScript y una arquitectura escalable.

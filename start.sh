@@ -2,7 +2,7 @@
 
 # Script de inicio para el proyecto Django + Vue.js + PostgreSQL
 
-echo "🚀 Iniciando proyecto Django + Vue.js + PostgreSQL..."
+echo "🚀 Iniciando proyecto Django + Nuxt.js + PostgreSQL..."
 
 # Verificar si Docker está ejecutándose
 if ! docker info > /dev/null 2>&1; then
@@ -34,7 +34,7 @@ echo ""
 echo "✅ ¡Aplicación lista!"
 echo ""
 echo "🌐 Servicios disponibles:"
-echo "  - Frontend (Vue.js): http://localhost:5173"
+echo "  - Frontend (Nuxt.js): http://localhost:3000"
 echo "  - Backend (Django): http://localhost:8000"
 echo "  - Admin Django: http://localhost:8000/admin"
 echo ""

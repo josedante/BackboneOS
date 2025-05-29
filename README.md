@@ -1,9 +1,9 @@
-# Django + Vue.js + PostgreSQL Application
+# Django + Nuxt.js + PostgreSQL Application
 
 Este proyecto es una aplicación full-stack construida con:
 
 - **Backend**: Django + Django REST Framework
-- **Frontend**: Vue.js 3 + TypeScript + Vite
+- **Frontend**: Nuxt.js 3 + TypeScript
 - **Base de Datos**: PostgreSQL
 - **Containerización**: Docker + Docker Compose
 
@@ -24,15 +24,16 @@ proyecto-opensource/
 │       ├── views.py
 │       ├── urls.py
 │       └── serializers.py
-├── frontend/               # Frontend Vue.js
+├── frontend/               # Frontend Nuxt.js
 │   ├── package.json
-│   ├── vite.config.ts
+│   ├── nuxt.config.ts
 │   ├── Dockerfile
 │   └── src/
-│       ├── App.vue
+│       ├── app.vue
 │       ├── components/
-│       ├── services/       # Servicios API
-│       └── views/
+│       ├── composables/    # Composables Nuxt
+│       ├── pages/          # Páginas con routing automático
+│       └── stores/         # Pinia stores
 ├── docker-compose.yml      # Configuración Docker
 ├── .env                    # Variables de entorno
 └── README.md
@@ -68,7 +69,7 @@ proyecto-opensource/
    ```
 
 4. Accede a las aplicaciones:
-   - **Frontend Vue.js**: http://localhost:5173
+   - **Frontend Nuxt.js**: http://localhost:3000
    - **Backend Django**: http://localhost:8000
    - **Admin Django**: http://localhost:8000/admin
 
@@ -85,7 +86,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-#### Frontend (Vue.js)
+#### Frontend (Nuxt.js)
 
 ```bash
 cd frontend
@@ -129,16 +130,16 @@ docker-compose exec backend python manage.py createsuperuser
 
 ### 4. Verificar que Todo Funciona
 
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:3000
 - Backend: http://localhost:8000
 - Admin: http://localhost:8000/admin
 
 ## Tecnologías Utilizadas
 
 - **Backend**: Django 4.x, Django REST Framework, PostgreSQL
-- **Frontend**: Vue.js 3, TypeScript, Vite, Axios
+- **Frontend**: Nuxt.js 3, TypeScript, Pinia, $fetch
 - **Containerización**: Docker, Docker Compose
-- **Herramientas**: ESLint, Prettier, Vitest
+- **Herramientas**: ESLint, Prettier, Vitest, Playwright
 
 ## Estructura de la API
 

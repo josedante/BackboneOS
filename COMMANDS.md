@@ -1,4 +1,4 @@
-# Comandos Útiles para el Proyecto Django + Vue.js + PostgreSQL
+# Comandos Útiles para el Proyecto Django + Nuxt.js + PostgreSQL
 
 ## Docker Commands
 
@@ -68,13 +68,14 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-### Frontend (Vue.js)
+### Frontend (Nuxt.js)
 
 ```bash
 cd frontend
 npm install
 npm run dev
 npm run build
+npm run generate
 npm run preview
 npm run test:unit
 npm run lint
@@ -82,7 +83,7 @@ npm run lint
 
 ## URLs Importantes
 
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:3000
 - Backend API: http://localhost:8000/api/
 - Django Admin: http://localhost:8000/admin
 - Usuarios API: http://localhost:8000/api/users/
@@ -94,7 +95,7 @@ npm run lint
 ```bash
 # Verificar qué proceso usa el puerto
 lsof -ti:8000
-lsof -ti:5173
+lsof -ti:3000
 
 # Matar proceso en puerto específico
 kill -9 $(lsof -ti:8000)
