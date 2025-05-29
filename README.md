@@ -121,10 +121,10 @@ cp .env.example .env
 docker-compose up --build -d
 
 # 3. Ejecutar migraciones
-docker-compose exec web python manage.py migrate
+docker-compose exec backend python manage.py migrate
 
 # 4. Crear superusuario (opcional)
-docker-compose exec web python manage.py createsuperuser
+docker-compose exec backend python manage.py createsuperuser
 ```
 
 ### 4. Verificar que Todo Funciona
@@ -165,8 +165,8 @@ docker-compose up --build
 docker-compose logs -f
 
 # Ejecutar comandos en contenedores
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
+docker-compose exec backend python manage.py migrate
+docker-compose exec backend python manage.py createsuperuser
 
 # Detener servicios
 docker-compose down

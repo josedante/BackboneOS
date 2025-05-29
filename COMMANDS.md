@@ -21,7 +21,7 @@ docker-compose down
 docker-compose logs -f
 
 # Ver logs de un servicio específico
-docker-compose logs -f web
+docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f db
 ```
@@ -30,16 +30,16 @@ docker-compose logs -f db
 
 ```bash
 # Ejecutar comandos Django dentro del contenedor
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
-docker-compose exec web python manage.py collectstatic
-docker-compose exec web python manage.py shell
+docker-compose exec backend python manage.py migrate
+docker-compose exec backend python manage.py createsuperuser
+docker-compose exec backend python manage.py collectstatic
+docker-compose exec backend python manage.py shell
 
 # Crear migraciones
-docker-compose exec web python manage.py makemigrations
+docker-compose exec backend python manage.py makemigrations
 
 # Ejecutar tests
-docker-compose exec web python manage.py test
+docker-compose exec backend python manage.py test
 ```
 
 ### Base de Datos

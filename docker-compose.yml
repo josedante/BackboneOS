@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  web:
+  backend:
     build: ./backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -23,7 +23,7 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
     depends_on:
-      - web
+      - backend
 
   db:
     image: postgres:14

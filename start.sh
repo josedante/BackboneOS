@@ -24,11 +24,11 @@ echo "⏳ Esperando a que los servicios se inicien..."
 sleep 10
 
 echo "🔄 Ejecutando migraciones de Django..."
-docker-compose exec web python manage.py migrate
+docker-compose exec backend python manage.py migrate
 
 echo "👤 Creando superusuario de Django (opcional)..."
 echo "Si deseas crear un superusuario, ejecuta:"
-echo "docker-compose exec web python manage.py createsuperuser"
+echo "docker-compose exec backend python manage.py createsuperuser"
 
 echo ""
 echo "✅ ¡Aplicación lista!"
