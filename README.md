@@ -25,15 +25,6 @@ proyecto-opensource/
 │       ├── urls.py
 │       └── serializers.py
 ├── frontend/               # Frontend Nuxt.js
-│   ├── package.json
-│   ├── nuxt.config.ts
-│   ├── Dockerfile
-│   └── src/
-│       ├── app.vue
-│       ├── components/
-│       ├── composables/    # Composables Nuxt
-│       ├── pages/          # Páginas con routing automático
-│       └── stores/         # Pinia stores
 ├── docker-compose.yml      # Configuración Docker
 ├── .env                    # Variables de entorno
 └── README.md

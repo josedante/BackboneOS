@@ -27,14 +27,6 @@ Proyecto-OpenSource/
 │       ├── urls.py
 │       └── serializers.py
 ├── frontend/                  # Frontend Nuxt.js (nueva configuración)
-│   ├── package.json
-│   ├── nuxt.config.ts         # Configuración Nuxt
-│   ├── Dockerfile
-│   ├── app.vue               # App principal Nuxt
-│   ├── composables/          # Composables Nuxt
-│   ├── components/           # Componentes Vue
-│   ├── pages/                # Páginas con routing automático
-│   └── assets/               # Assets (CSS, imágenes)
 ├── docker-compose.yml        # Orquestación Docker
 ├── .env                      # Variables de entorno
 ├── start.sh                  # Script de inicio
