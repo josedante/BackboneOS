@@ -15,6 +15,15 @@ export default defineNuxtConfig({
   ],
   css: ["~/assets/css/main.css"],
 
+  ui: {
+    global: true,
+    icons: ["heroicons", "simple-icons"],
+  },
+
+  colorMode: {
+    preference: "light",
+  },
+
   runtimeConfig: {
     // Private keys (only available on server-side)
     apiBase: process.env.NUXT_PRIVATE_API_BASE || "http://localhost:8000",
@@ -24,5 +33,18 @@ export default defineNuxtConfig({
       apiBase: process.env.NUXT_PUBLIC_API_BASE || "http://localhost:8000",
       isDevelopment: process.env.NODE_ENV === "development",
     },
+  },
+
+  // Optimización para build
+  vite: {
+    css: {
+      devSourcemap: true,
+    },
+  },
+
+  // Configuración de desarrollo
+  sourcemap: {
+    server: false,
+    client: false,
   },
 });
