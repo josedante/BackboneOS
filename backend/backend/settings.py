@@ -129,8 +129,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -139,14 +140,47 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
+# JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vue.js development server
+    "http://localhost:3000",  # Nuxt.js development server
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite development server (fallback)
     "http://127.0.0.1:5173",
 ]
 
+# Add production origins from environment variables
+PRODUCTION_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
+if PRODUCTION_ORIGINS and PRODUCTION_ORIGINS[0]:  # Check if not empty
+    CORS_ALLOWED_ORIGINS.extend(PRODUCTION_ORIGINS)
+
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow all origins during development (cambiar en producción)
+# Security settings based on environment
 if DEBUG:
+    # Development settings - more permissive
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_ALL_HEADERS = True
+else:
+    # Production settings - more restrictive
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+    ]

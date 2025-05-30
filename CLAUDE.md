@@ -97,3 +97,12 @@ docker-compose exec db pg_dump -U myuser mydatabase > backup.sql
 - Django settings use python-decouple for configuration
 - CORS configured for frontend-backend communication
 - Database host is `db` within Docker network, `localhost` for local development
+
+## Authentication & Security
+
+- JWT authentication with access/refresh tokens
+- Environment-aware cookie security (secure/sameSite based on NODE_ENV)
+- Development: `secure: false`, `sameSite: 'lax'` for HTTP localhost
+- Production: `secure: true`, `sameSite: 'strict'` for HTTPS
+- CORS origins configurable via `CORS_ALLOWED_ORIGINS` environment variable
+- See `DEPLOYMENT.md` for production security checklist
