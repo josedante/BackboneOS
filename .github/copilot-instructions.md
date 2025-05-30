@@ -40,7 +40,7 @@ Proyecto-OpenSource/
 - **Framework**: Django 5.2.1
 - **API**: Django REST Framework 3.16.0
 - **Base de Datos**: PostgreSQL con psycopg2
-- **Autenticación**: Token-based authentication
+- **Autenticación**: Both JWT and Token-based authentication are supported
 - **CORS**: django-cors-headers para comunicación frontend-backend
 
 ### Frontend (Nuevo Nuxt.js)
