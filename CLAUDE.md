@@ -28,10 +28,13 @@ This is a full-stack application with a Django REST Framework backend and Nuxt.j
 
 ## Essential Commands
 
-### Docker Development (Primary workflow)
+### Development Workflow
 
+**Important**: The frontend section in docker-compose.yml is commented out. Frontend development takes place locally while backend runs in Docker.
+
+#### Backend + Database (Docker)
 ```bash
-# Start all services with rebuild
+# Start backend and database services (frontend is commented out)
 docker-compose up --build
 
 # Start in background
@@ -42,9 +45,13 @@ docker-compose logs -f
 
 # Stop services
 docker-compose down
+```
 
-# Quick start script
-./start.sh
+#### Frontend (Local Development - Required)
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ### Django Backend Commands

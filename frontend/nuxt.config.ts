@@ -15,6 +15,10 @@ export default defineNuxtConfig({
   ],
 
   runtimeConfig: {
+    // Private keys (only available on server-side)
+    apiBase: process.env.NUXT_PRIVATE_API_BASE || 'http://localhost:8000',
+    
+    // Public keys (exposed to client-side)
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000',
       isDevelopment: process.env.NODE_ENV === 'development'
