@@ -29,7 +29,7 @@
       <UAlert
         v-else-if="error"
         icon="i-heroicons-exclamation-triangle"
-        color="red"
+        color="error"
         variant="subtle"
         :title="error"
         class="mb-4"
@@ -96,7 +96,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <UBadge
-                    :color="user.is_active ? 'green' : 'red'"
+                    :color="user.is_active ? 'success' : 'error'"
                     variant="subtle"
                   >
                     {{ user.is_active ? "Active" : "Inactive" }}
@@ -104,7 +104,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <UBadge
-                    :color="user.is_staff ? 'blue' : 'gray'"
+                    :color="user.is_staff ? 'primary' : 'secondary'"
                     variant="subtle"
                   >
                     {{ user.is_staff ? "Staff" : "User" }}
