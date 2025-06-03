@@ -29,8 +29,8 @@ DEBUG=False
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 
 # Database
-DATABASE_NAME=myapp_prod
-DATABASE_USER=myapp_user
+DATABASE_NAME=backboneos_prod
+DATABASE_USER=backboneos_user
 DATABASE_PASSWORD=secure-password-here
 DATABASE_HOST=db.yourdomain.com
 DATABASE_PORT=5432

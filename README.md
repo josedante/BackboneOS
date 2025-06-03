@@ -15,11 +15,11 @@ proyecto-opensource/
 │   ├── manage.py
 │   ├── requirements.txt
 │   ├── Dockerfile
-│   ├── myproject/          # Configuración principal
+│   ├── backend/            # Configuración principal
 │   │   ├── settings.py
 │   │   ├── urls.py
 │   │   └── wsgi.py
-│   └── myapp/              # Aplicación Django
+│   └── users/              # Aplicación Django
 │       ├── models.py
 │       ├── views.py
 │       ├── urls.py

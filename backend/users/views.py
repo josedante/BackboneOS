@@ -14,7 +14,7 @@ def home(request):
     return JsonResponse({'message': 'Welcome to the Django + Vue.js + PostgreSQL App!'})
 
 def about(request):
-    return render(request, 'myapp/about.html')
+    return render(request, 'users/about.html')
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

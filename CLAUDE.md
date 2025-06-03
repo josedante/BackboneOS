@@ -11,7 +11,7 @@ This is a full-stack application with a Django REST Framework backend and Nuxt.j
 - **Backend**: Django 5.2.1 + DRF in `backend/` directory
 
   - Main Django project: `backend/backend/` (settings, urls, wsgi)
-  - Main application: `backend/myapp/` (models, views, serializers)
+  - Main application: `backend/users/` (models, views, serializers)
   - Uses PostgreSQL with django-cors-headers for CORS
   - JWT authentication with djangorestframework-simplejwt
   - Token-based authentication with DRF is available, too
