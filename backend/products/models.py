@@ -1,3 +1,215 @@
 from django.db import models
+from django.utils import timezone
+from decimal import Decimal
 
-# Create your models here.
+from backend.models import BaseUUIDModelWithActiveStatus
+from world.models import (
+    Industry,
+    FunctionOrResponsibility,
+    Skill,
+    WorldDescriptor,
+    MarketSegment,
+    Tag,
+    Country,
+)
+
+
+class ProductCategory(BaseUUIDModelWithActiveStatus):
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='subcategories'
+    )
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Categoría de Producto"
+        verbose_name_plural = "Categorías de Productos"
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
+            models.Index(fields=['parent']),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def full_path(self):
+        """Ruta completa de la categoría: Padre > Hijo > Nieto"""
+        path = [self.name]
+        parent = self.parent
+        while parent:
+            path.insert(0, parent.name)
+            parent = parent.parent
+        return ' > '.join(path)
+
+    @property
+    def level(self):
+        """Nivel de profundidad en la jerarquía"""
+        level = 0
+        parent = self.parent
+        while parent:
+            level += 1
+            parent = parent.parent
+        return level
+
+    def get_descendants(self):
+        """Obtiene todas las subcategorías activas"""
+        descendants = []
+        to_process = list(self.subcategories.filter(is_active=True))
+        
+        while to_process:
+            current = to_process.pop(0)
+            descendants.append(current)
+            to_process.extend(current.subcategories.filter(is_active=True))
+        
+        return descendants
+
+
+class Modality(BaseUUIDModelWithActiveStatus):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Modalidad"
+        verbose_name_plural = "Modalidades"
+
+    def __str__(self):
+        return self.name
+
+
+class Customization(BaseUUIDModelWithActiveStatus):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Personalización"
+        verbose_name_plural = "Personalizaciones"
+
+    def __str__(self):
+        return self.name
+
+
+class Product(BaseUUIDModelWithActiveStatus):
+    name = models.CharField(max_length=200, unique=True)
+    code = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+
+    category = models.ForeignKey(ProductCategory, null=True, blank=True, on_delete=models.SET_NULL)
+    modalities = models.ManyToManyField(Modality, blank=True)
+    customization = models.ForeignKey(Customization, null=True, blank=True, on_delete=models.SET_NULL)
+
+    duration = models.DurationField(null=True, blank=True)
+    base_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Precio base')
+    currency_code = models.CharField(max_length=3, default='PEN', verbose_name='Moneda')
+
+    target_segments = models.ManyToManyField(MarketSegment, blank=True)
+    related_industries = models.ManyToManyField(Industry, blank=True)
+    related_functions = models.ManyToManyField(FunctionOrResponsibility, blank=True)
+    related_skills = models.ManyToManyField(Skill, blank=True)
+    descriptors = models.ManyToManyField(WorldDescriptor, blank=True)
+
+    tags = models.ManyToManyField(Tag, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Producto"
+        verbose_name_plural = "Productos"
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
+            models.Index(fields=['category', 'is_active']),
+            models.Index(fields=['base_price']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(base_price__gte=0) | models.Q(base_price__isnull=True),
+                name='positive_base_price'
+            ),
+            models.CheckConstraint(
+                check=models.Q(currency_code__in=['PEN', 'USD', 'EUR']),
+                name='valid_currency_code'
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        """Validaciones de negocio"""
+        super().clean()
+        
+        # Validar precio positivo
+        if self.base_price is not None and self.base_price <= Decimal('0'):
+            from django.core.exceptions import ValidationError
+            raise ValidationError({'base_price': 'El precio debe ser mayor a 0'})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    @property
+    def is_customizable(self):
+        """Verifica si el producto permite personalización"""
+        return self.customization is not None
+
+    @property
+    def price_display(self):
+        """Precio formateado con moneda"""
+        if self.base_price:
+            return f"{self.currency_code} {self.base_price:,.2f}"
+        return "Precio por consultar"
+
+    @property
+    def duration_display(self):
+        """Duración en formato legible"""
+        if not self.duration:
+            return None
+        
+        total_seconds = int(self.duration.total_seconds())
+        days = total_seconds // 86400
+        hours = (total_seconds % 86400) // 3600
+        
+        if days > 0:
+            return f"{days} día{'s' if days > 1 else ''}"
+        elif hours > 0:
+            return f"{hours} hora{'s' if hours > 1 else ''}"
+        else:
+            return "Menos de 1 hora"
+
+    def get_target_audience(self):
+        """Descripción del público objetivo"""
+        segments = list(self.target_segments.values_list('name', flat=True))
+        return ', '.join(segments) if segments else 'General'
+
+    def get_modalities_display(self):
+        """Modalidades disponibles como string"""
+        modalities = list(self.modalities.values_list('name', flat=True))
+        return ', '.join(modalities) if modalities else 'No especificada'
+
+    def get_related_skills_summary(self):
+        """Resumen de habilidades relacionadas por tipo"""
+        skills = self.related_skills.values('skill_type', 'name')
+        skill_types = {}
+        
+        for skill in skills:
+            skill_type = skill['skill_type']
+            if skill_type not in skill_types:
+                skill_types[skill_type] = []
+            skill_types[skill_type].append(skill['name'])
+        
+        return skill_types
