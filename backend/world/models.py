@@ -27,6 +27,13 @@ class Country(models.Model):
         verbose_name = "País"
         verbose_name_plural = "Países"
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+            models.Index(fields=['is_active', 'name']),
+            models.Index(fields=['timezone']),
+            models.Index(fields=['currency_code']),
+        ]
 
     def __str__(self):
         return self.name
@@ -57,6 +64,15 @@ class Industry(BaseUUIDModelWithActiveStatus):
         verbose_name = "Industria"
         verbose_name_plural = "Industrias"
         ordering = ['display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['parent']),
+            models.Index(fields=['is_active', 'parent']),
+            models.Index(fields=['display_order', 'name']),
+            models.Index(fields=['ciiu_code']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return self.name
@@ -109,6 +125,15 @@ class FunctionOrResponsibility(BaseUUIDModelWithActiveStatus):
         verbose_name = "Función o Responsabilidad"
         verbose_name_plural = "Funciones o Responsabilidades"
         ordering = ['display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['parent']),
+            models.Index(fields=['is_active', 'parent']),
+            models.Index(fields=['typical_level']),
+            models.Index(fields=['display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return self.name
@@ -164,6 +189,15 @@ class Skill(BaseUUIDModelWithActiveStatus):
         verbose_name = "Habilidad"
         verbose_name_plural = "Habilidades"
         ordering = ['skill_type', 'display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['skill_type']),
+            models.Index(fields=['typical_level_required']),
+            models.Index(fields=['skill_type', 'display_order', 'name']),
+            models.Index(fields=['is_active', 'skill_type']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.get_skill_type_display()})"
@@ -196,6 +230,14 @@ class PersonalIDType(BaseUUIDModelWithActiveStatus):
         verbose_name_plural = "Tipos de Documentos Personales"
         unique_together = ('country', 'code')
         ordering = ['country__name', 'display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['country']),
+            models.Index(fields=['is_active', 'country']),
+            models.Index(fields=['country', 'display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.country.name})"
@@ -251,6 +293,15 @@ class OrganizationType(BaseUUIDModelWithActiveStatus):
         verbose_name = "Tipo de Organización"
         verbose_name_plural = "Tipos de Organización"
         ordering = ['display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['ownership_type']),
+            models.Index(fields=['typical_size']),
+            models.Index(fields=['is_active', 'ownership_type']),
+            models.Index(fields=['display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return self.name
@@ -282,6 +333,14 @@ class OrganizationalIDType(BaseUUIDModelWithActiveStatus):
         verbose_name_plural = "Tipos de Documentos Organizacionales"
         unique_together = ('country', 'code')
         ordering = ['country__name', 'display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['country']),
+            models.Index(fields=['is_active', 'country']),
+            models.Index(fields=['country', 'display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.country.name})"
@@ -303,6 +362,11 @@ class DescriptorFamily(models.Model):
 
     class Meta:
         ordering = ["name"]
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),  # Para búsquedas y ordenamiento
+            models.Index(fields=['is_active', 'name']),
+        ]
 
     def __str__(self):
         return self.name
@@ -324,6 +388,16 @@ class WorldDescriptor(BaseUUIDModelWithActiveStatus):
     class Meta:
         unique_together = ("family", "name")
         ordering = ["family__name", "name"]
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['family']),
+            models.Index(fields=['parent']),
+            models.Index(fields=['is_active', 'family']),
+            models.Index(fields=['family', 'name']),
+            models.Index(fields=['family', 'parent']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.family.code})"
@@ -379,6 +453,14 @@ class MarketSegment(BaseUUIDModelWithActiveStatus):
         verbose_name = "Segmento de Mercado"
         verbose_name_plural = "Segmentos de Mercado"
         ordering = ['display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['segment_type']),
+            models.Index(fields=['is_active', 'segment_type']),
+            models.Index(fields=['display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
 
     def __str__(self):
         return self.name
@@ -432,6 +514,13 @@ class Tag(models.Model):
         verbose_name = "Etiqueta"
         verbose_name_plural = "Etiquetas"
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+            models.Index(fields=['is_active', 'name']),
+            models.Index(fields=['created_at']),  # Para actividad reciente
+            models.Index(fields=['updated_at']),  # Para cambios recientes
+        ]
 
     def __str__(self):
         return self.name
@@ -455,6 +544,12 @@ class AcademicDegree(BaseUUIDModelWithActiveStatus):
         ordering = [
             "code",
         ]
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['code']),
+            models.Index(fields=['name']),
+            models.Index(fields=['is_active', 'code']),
+        ]
 
 
 class Position(BaseUUIDModelWithActiveStatus):
@@ -468,4 +563,10 @@ class Position(BaseUUIDModelWithActiveStatus):
     class Meta:
         ordering = [
             "name",
+        ]
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
+            models.Index(fields=['is_active', 'name']),
         ]
