@@ -47,6 +47,29 @@ class Person(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         unique_together = ("id_type", "id_number")
+        indexes = [
+            # Índices básicos para búsquedas frecuentes
+            models.Index(fields=['first_name', 'fathers_name']),
+            models.Index(fields=['gender']),
+            models.Index(fields=['marital_status']),
+            models.Index(fields=['birthday']),
+            models.Index(fields=['country_of_nationality']),
+            models.Index(fields=['id_type']),
+            models.Index(fields=['id_type', 'id_number']),
+            models.Index(fields=['is_active']),
+            # Índices compuestos para analytics y filtrado
+            models.Index(fields=['is_active', 'country_of_nationality']),
+            models.Index(fields=['is_active', 'gender']),
+            models.Index(fields=['is_active', 'marital_status']),
+            models.Index(fields=['is_active', 'birthday']),
+            # Índices para búsquedas demográficas
+            models.Index(fields=['gender', 'country_of_nationality']),
+            models.Index(fields=['marital_status', 'gender']),
+            # Índices para ordenamiento frecuente
+            models.Index(fields=['created_at']),
+            models.Index(fields=['updated_at']),
+            models.Index(fields=['is_active', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.fathers_name}".strip()
@@ -74,70 +97,22 @@ class Person(BaseUUIDModelWithActiveStatus):
         primary = self.primary_contact
         return primary.phone if primary and primary.phone else None
 
-    @property
+    @property  
     def primary_address(self):
         """Dirección principal de la persona"""
         return self.physicaladdress_set.filter(
             is_primary=True, is_active=True
         ).first()
 
-    def get_semantic_profile(self):
-        """Perfil semántico completo de la persona"""
-        try:
-            profile = self.individualprofile
-            return {
-                'academic_degree': profile.academic_degree,
-                'industries': list(profile.industries.filter(is_active=True)),
-                'skills': list(profile.skills.filter(is_active=True)),
-                'functions': list(profile.functions.filter(is_active=True)),
-                'preferred_contact_medium': profile.preferred_contact_medium,
-                'allows_marketing': profile.allows_marketing
-            }
-        except IndividualProfile.DoesNotExist:
-            return None
+    def get_organizations(self):
+        """Organizaciones donde esta persona tiene membresía activa"""
+        # Esta relación se implementará cuando tengamos el modelo de membresías
+        return []
 
-    def has_complete_profile(self):
-        """Verifica si la persona tiene un perfil completo"""
-        try:
-            profile = self.individualprofile
-            return (
-                bool(self.first_name and self.fathers_name) and
-                bool(self.primary_contact) and
-                bool(profile.academic_degree) and
-                profile.industries.exists()
-            )
-        except IndividualProfile.DoesNotExist:
-            return False
-
-    @property
-    def full_name(self):
-        """Nombre completo de la persona"""
-        parts = [self.first_name, self.middle_name, self.fathers_name, self.mothers_name]
-        return " ".join(part for part in parts if part).strip()
-
-    @property
-    def primary_contact(self):
-        """Contacto principal de la persona"""
-        return self.contacts.filter(is_primary=True, is_active=True).first()
-
-    @property
-    def primary_email(self):
-        """Email principal de la persona"""
-        primary = self.primary_contact
-        return primary.email if primary and primary.email else None
-
-    @property
-    def primary_phone(self):
-        """Teléfono principal de la persona"""
-        primary = self.primary_contact
-        return primary.phone if primary and primary.phone else None
-
-    @property
-    def primary_address(self):
-        """Dirección principal de la persona"""
-        return self.physicaladdress_set.filter(
-            is_primary=True, is_active=True
-        ).first()
+    def get_recent_activities(self, limit=5):
+        """Actividades recientes relacionadas con esta persona"""
+        # Esta funcionalidad se implementará con el sistema de actividades
+        return []
 
     def get_semantic_profile(self):
         """Perfil semántico completo de la persona"""
@@ -169,17 +144,66 @@ class Person(BaseUUIDModelWithActiveStatus):
 
 
 class ContactDetail(BaseUUIDModelWithActiveStatus):
-    person = models.ForeignKey(Person, related_name="contacts", on_delete=models.CASCADE)
+    person = models.ForeignKey(Person, null=True, blank=True, related_name="contacts", on_delete=models.CASCADE)
+    organization = models.ForeignKey('Organization', null=True, blank=True, related_name="contacts", on_delete=models.CASCADE)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
     is_primary = models.BooleanField(default=False)
     verified = models.BooleanField(default=False)
 
     class Meta:
-        indexes = [models.Index(fields=["is_primary", "verified"])]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(person__isnull=False) | models.Q(organization__isnull=False),
+                name='contact_must_have_owner'
+            ),
+            models.CheckConstraint(
+                check=~(models.Q(person__isnull=False) & models.Q(organization__isnull=False)),
+                name='contact_single_owner_only'
+            )
+        ]
+        indexes = [
+            # Índices principales para consultas frecuentes
+            models.Index(fields=["person"]),
+            models.Index(fields=["organization"]),
+            models.Index(fields=["is_primary"]),
+            models.Index(fields=["verified"]),
+            models.Index(fields=["email"]),
+            models.Index(fields=["phone"]),
+            models.Index(fields=["is_active"]),
+            # Índices compuestos para filtrado común
+            models.Index(fields=["person", "is_primary"]),
+            models.Index(fields=["organization", "is_primary"]),
+            models.Index(fields=["person", "is_active"]),
+            models.Index(fields=["organization", "is_active"]),
+            models.Index(fields=["is_active", "is_primary"]),
+            models.Index(fields=["is_active", "verified"]),
+            models.Index(fields=["is_primary", "verified"]),
+            # Índices para búsquedas de contacto
+            models.Index(fields=["email", "verified"]),
+            models.Index(fields=["phone", "verified"]),
+            models.Index(fields=["email", "is_active"]),
+            models.Index(fields=["phone", "is_active"]),
+            # Índices para analytics de contacto
+            models.Index(fields=["person", "verified"]),
+            models.Index(fields=["organization", "verified"]),
+        ]
 
     def __str__(self):
         return self.email or self.phone or "Contacto"
+
+    @property
+    def owner(self):
+        """Propietario del contacto"""
+        return self.person or self.organization
+
+    def clean(self):
+        """Validación personalizada"""
+        if not self.person and not self.organization:
+            raise ValidationError("El contacto debe tener un propietario (persona u organización).")
+        
+        if self.person and self.organization:
+            raise ValidationError("El contacto no puede pertenecer a una persona y organización al mismo tiempo.")
 
 
 class IndividualProfile(BaseUUIDModelWithActiveStatus):
@@ -206,6 +230,29 @@ class IndividualProfile(BaseUUIDModelWithActiveStatus):
         default='NN'
     )
 
+    class Meta:
+        indexes = [
+            # Índices para consultas semánticas frecuentes
+            models.Index(fields=['person']),
+            models.Index(fields=['academic_degree']),
+            models.Index(fields=['preferred_contact_medium']),
+            models.Index(fields=['accepts_privacy_policy']),
+            models.Index(fields=['allows_marketing']),
+            models.Index(fields=['is_active']),
+            # Índices compuestos para filtrado común
+            models.Index(fields=['is_active', 'academic_degree']),
+            models.Index(fields=['is_active', 'allows_marketing']),
+            models.Index(fields=['is_active', 'preferred_contact_medium']),
+            models.Index(fields=['is_active', 'accepts_privacy_policy']),
+            # Índices para analytics y segmentación
+            models.Index(fields=['academic_degree', 'allows_marketing']),
+            models.Index(fields=['preferred_contact_medium', 'allows_marketing']),
+            models.Index(fields=['accepts_privacy_policy', 'allows_marketing']),
+            # Índices para perfilado semántico
+            models.Index(fields=['person', 'is_active']),
+            models.Index(fields=['academic_degree', 'preferred_contact_medium']),
+        ]
+
 
 class Organization(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=190)
@@ -221,6 +268,24 @@ class Organization(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         unique_together = ("id_type", "id_number")
+        indexes = [
+            # Índices para búsquedas frecuentes
+            models.Index(fields=['name']),
+            models.Index(fields=['legal_name']),
+            models.Index(fields=['org_type']),
+            models.Index(fields=['industry']),
+            models.Index(fields=['country']),
+            models.Index(fields=['id_type']),
+            models.Index(fields=['id_type', 'id_number']),
+            # Índices para consultas de analytics
+            models.Index(fields=['is_active', 'org_type']),
+            models.Index(fields=['is_active', 'industry']),
+            models.Index(fields=['is_active', 'country']),
+            # Índices compuestos para filtrado y analytics
+            models.Index(fields=['org_type', 'industry']),
+            models.Index(fields=['country', 'industry']),
+            models.Index(fields=['is_active']),
+        ]
 
     def __str__(self):
         return self.name
@@ -248,16 +313,6 @@ class Organization(BaseUUIDModelWithActiveStatus):
         """Todas las direcciones activas de la organización"""
         return self.physicaladdress_set.filter(is_active=True)
 
-    def has_complete_info(self):
-        """Verifica si la organización tiene información completa"""
-        return (
-            bool(self.name) and
-            bool(self.org_type) and
-            bool(self.industry) and
-            bool(self.country) and
-            bool(self.id_type and self.id_number)
-        )
-
     @property
     def primary_contact(self):
         """Contacto principal de la organización"""
@@ -274,13 +329,6 @@ class Organization(BaseUUIDModelWithActiveStatus):
         """Teléfono principal de la organización"""
         primary = self.primary_contact
         return primary.phone if primary and primary.phone else None
-
-    @property
-    def primary_address(self):
-        """Dirección principal de la organización"""
-        return self.physicaladdress_set.filter(
-            is_primary=True, is_active=True
-        ).first()
 
     def get_semantic_profile(self):
         """Perfil semántico completo de la organización"""
@@ -346,12 +394,23 @@ class PhysicalAddress(BaseUUIDModelWithActiveStatus):
             )
         ]
         indexes = [
+            # Índices principales para consultas frecuentes
             models.Index(fields=['is_primary']),
             models.Index(fields=['use_for_billing']),
             models.Index(fields=['owner_person']),
             models.Index(fields=['owner_org']),
             models.Index(fields=['country']),
             models.Index(fields=['city']),
+            # Índices para búsquedas geográficas
+            models.Index(fields=['country', 'city']),
+            models.Index(fields=['region_or_state', 'city']),
+            # Índices compuestos para filtrado común
+            models.Index(fields=['is_active', 'is_primary']),
+            models.Index(fields=['is_active', 'use_for_billing']),
+            models.Index(fields=['owner_person', 'is_primary']),
+            models.Index(fields=['owner_org', 'is_primary']),
+            models.Index(fields=['owner_person', 'is_active']),
+            models.Index(fields=['owner_org', 'is_active']),
         ]
 
     def __str__(self):
