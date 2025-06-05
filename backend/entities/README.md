@@ -1,91 +1,207 @@
-# BackboneOS: Aplicación `entities`
+# App Entities - Sistema de Gestión de Entidades
 
-## 🌟 Propósito
+## 🎯 **Propósito**
 
-La aplicación `entities` contiene los modelos base que representan **personas naturales** y **organizaciones**, concebidas como entidades del mundo real, no como clientes, usuarios o cuentas.
+La aplicación `entities` es el **núcleo semántico de gestión de personas y organizaciones** en BackboneOS. Proporciona la infraestructura fundamental para perfilado semántico, gestión de contactos, direcciones y análisis organizacional en el contexto CRM.
 
-Este enfoque busca preservar una perspectiva **humanista**, enfocada en las identidades en sí mismas, antes de considerar su participación en ciclos de vida comerciales.
+## 🏗️ **Arquitectura de Modelos**
 
----
+### **Entidades Principales**
 
-## 📁 Contenido
+#### **Person** - Personas Físicas
 
-### 👩 `Person`
+- **Propósito**: Gestión completa de individuos con perfilado semántico
+- **Características Clave**:
+  - Información demográfica completa (nombre, género, estado civil, nacionalidad)
+  - Sistema de identificación robusto con tipos de documento
+  - Integración semántica con app `world` (países, tipos de ID)
+  - Propiedades calculadas para contacto y dirección principal
+  - Método de perfilado semántico completo
 
-Representa una persona natural. Incluye:
+#### **Organization** - Entidades Organizacionales
 
-- Nombres y apellidos
-- Fecha de nacimiento
-- Género y estado civil
-- Nacionalidad
-- Documento de identidad
-- Fotografía opcional
+- **Propósito**: Gestión de empresas, instituciones y organizaciones
+- **Características Clave**:
+  - Información corporativa (nombre legal, tipo de organización)
+  - Clasificación semántica por industria (integración con `world`)
+  - Sistema de identificación organizacional
+  - Gestión de direcciones múltiples (principal, facturación)
+  - Perfilado semántico organizacional
 
-### 📢 `ContactDetail`
+#### **ContactDetail** - Gestión de Contactos
 
-Medios de contacto vinculados a una persona. Permite:
+- **Propósito**: Sistema unificado de contactos para personas y organizaciones
+- **Características Clave**:
+  - Soporte dual: personas y organizaciones
+  - Sistema de contacto principal y verificación
+  - Validaciones de integridad referencial
+  - Optimizado para comunicación y marketing
 
-- Múltiples emails o teléfonos
-- Marcar uno como principal
-- Indicar verificación
+#### **IndividualProfile** - Perfilado Semántico Personal
 
-### 🏫 `IndividualProfile`
+- **Propósito**: Extensión semántica de personas con capacidades CRM avanzadas
+- **Características Clave**:
+  - Relaciones semánticas con `world` (industrias, habilidades, funciones, grados académicos)
+  - Gestión de preferencias de comunicación
+  - Compliance de privacidad y marketing
+  - Perfilado multidimensional para segmentación
 
-Perfil semántico de la persona. Incluye:
+#### **PhysicalAddress** - Gestión de Direcciones
 
-- Industrias, funciones y habilidades relacionadas
-- Nivel académico
-- Preferencias de contacto y consentimiento
+- **Propósito**: Sistema flexible de direcciones para personas y organizaciones
+- **Características Clave**:
+  - Soporte dual con validaciones de integridad
+  - Configuración de dirección principal y facturación
+  - Información geográfica completa
+  - Integración con análisis geográfico
 
----
+## 🔍 **Características Semánticas**
 
-### 🏢 `Organization`
+### **Integración con Campo Semántico (World)**
 
-Representa una entidad jurídica u organización. Contempla:
+La aplicación está estrechamente integrada con `world` para proporcionar:
 
-- Nombre comercial y razón social
-- Tipo, industria y país
-- Documento legal
+- **Perfilado Semántico Personal**: Clasificación por industrias, habilidades y funciones
+- **Clasificación Organizacional**: Tipificación por industria y tipo de organización
+- **Contexto Geográfico**: Países, regiones y análisis territorial
+- **Identificación Regulatory**: Tipos de documentos personales y organizacionales
 
-### 📍 `PhysicalAddress`
+### **Métodos de Perfilado Semántico**
 
-Direcciones físicas, asociables tanto a personas como organizaciones. Soporta:
+```python
+# Perfil semántico de persona
+person_profile = person.get_semantic_profile()
+# Retorna: academic_degree, industries, skills, functions, comunicación
 
-- Varias direcciones por entidad
-- Marcado de principal y uso para facturación
+# Perfil semántico de organización
+org_profile = organization.get_semantic_profile()
+# Retorna: industry, org_type, country
+```
 
----
+## 📊 **Optimización de Performance**
 
-## 🔄 Relación con otras apps
+### **Índices Estratégicos**
 
-Esta app **no maneja cuentas de usuario ni roles de acceso**, lo cual se tratará en una capa distinta. La evolución de estas entidades como clientes también se definirá en otro espacio.
+La aplicación cuenta con **índices optimizados** para:
 
-La app `entities` se conecta con modelos semánticos definidos en la app `world`, como:
+- **Búsquedas Demográficas**: género, estado civil, nacionalidad
+- **Filtrado Semántico**: grado académico, industrias, habilidades
+- **Analytics Organizacionales**: tipo, industria, país
+- **Gestión de Contactos**: principal, verificado, activo
+- **Análisis Geográfico**: país-ciudad, región-ciudad
 
-- `Country`
-- `Industry`
-- `FunctionOrResponsibility`
-- `Skill`
-- `AcademicDegree`
+Ver [`INDEX_OPTIMIZATION.md`](./INDEX_OPTIMIZATION.md) para detalles completos.
 
----
+### **Patrones de Consulta Optimizados**
 
-## 📊 Ventajas
+```python
+# Perfilado semántico optimizado
+Person.objects.select_related('country_of_nationality', 'individualprofile__academic_degree')
+    .prefetch_related('individualprofile__industries', 'individualprofile__skills')
+    .filter(is_active=True, individualprofile__allows_marketing=True)
 
-- Evita ambigüedades con sistemas de autenticación (`accounts`, `users`, etc.)
-- Escalable hacia una representación rica de identidades
-- Alineado con un diseño centrado en personas
+# Analytics organizacional
+Organization.objects.select_related('industry', 'org_type', 'country')
+    .filter(is_active=True, industry__parent__name="Technology")
+    .values('country__name', 'org_type__name')
+    .annotate(count=Count('id'))
+```
 
----
+## 🚀 **Casos de Uso CRM**
 
-## 📚 Futuras extensiones sugeridas
+### **1. Perfilado de Clientes**
 
-- Agregar verificación documental o facial
-- Relacionar con eventos o interacciones
-- Enlazar con "clientes" u "oportunidades" en apps de ciclo de vida
+- Clasificación semántica multidimensional
+- Segmentación por industria, habilidades y demografía
+- Targeting personalizado basado en perfil
 
----
+### **2. Gestión de Contactos**
 
-## 🔗 Recomendado para
+- Comunicación omnicanal (email, teléfono, preferencias)
+- Verificación y validación de contactos
+- Compliance de privacidad y marketing
 
-Cualquier módulo que necesite referenciar a una persona o una organización sin suponer que son usuarios, cuentas, clientes o leads activos.
+### **3. Analytics Organizacional**
+
+- Análisis de mercado por industria y geografía
+- Segmentación de organizaciones por tipo y tamaño
+- Inteligencia competitiva y de mercado
+
+### **4. Gestión de Direcciones**
+
+- Direcciones múltiples por entidad (principal, facturación)
+- Análisis geográfico y distribución territorial
+- Logística y planificación de territorio
+
+## 🔗 **Integraciones**
+
+### **Con App World**
+
+- `Country` → Nacionalidad y ubicación
+- `Industry` → Clasificación industrial
+- `Skill`, `FunctionOrResponsibility` → Perfilado profesional
+- `AcademicDegree` → Nivel educativo
+- `PersonalIDType`, `OrganizationalIDType` → Identificación
+
+### **Con App Products** (Futuro)
+
+- Recomendaciones basadas en perfil semántico
+- Targeting de productos por industria y habilidades
+- Personalización de catálogo
+
+## 📈 **Métricas y KPIs**
+
+### **Métricas de Entidades**
+
+- Total de personas y organizaciones activas
+- Distribución demográfica por país y género
+- Perfiles completos vs. incompletos
+
+### **Métricas de Contacto**
+
+- Contactos verificados vs. no verificados
+- Distribución por medio de contacto preferido
+- Compliance de marketing (opt-in/opt-out)
+
+### **Métricas Semánticas**
+
+- Distribución por industria y grado académico
+- Cobertura de skills y funciones
+- Segmentación organizacional por tipo
+
+## 🔧 **Comandos de Gestión**
+
+```bash
+# Aplicar migraciones
+docker-compose exec backend python manage.py migrate entities
+
+# Verificar modelos
+docker-compose exec backend python manage.py shell -c "from entities.models import *"
+
+# Análisis de índices
+docker-compose exec backend python manage.py dbshell
+```
+
+## 🎯 **Roadmap**
+
+### **Próximas Funcionalidades**
+
+- [ ] Sistema de membresías (personas ↔ organizaciones)
+- [ ] Log de actividades y timeline
+- [ ] Scoring de perfiles y lead scoring
+- [ ] Integración con sistema de comunicaciones
+- [ ] Dashboard de analytics de entidades
+
+### **Optimizaciones Pendientes**
+
+- [ ] Cache de perfiles semánticos
+- [ ] Búsqueda full-text en nombres y direcciones
+- [ ] API GraphQL para consultas complejas
+- [ ] Webhooks para cambios de entidades
+
+## 🛡️ **Compliance y Seguridad**
+
+- **GDPR Ready**: Campos de consentimiento y privacidad
+- **Auditoría**: Tracking de cambios via `BaseUUIDModelWithActiveStatus`
+- **Integridad**: Constraints de base de datos para validación
+- **Soft Delete**: Sistema de `is_active` para preservar histórico

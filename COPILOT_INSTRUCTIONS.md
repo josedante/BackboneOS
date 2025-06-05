@@ -36,6 +36,15 @@ Proyecto-OpenSource/
 │   │   ├── views.py
 │   │   ├── urls.py
 │   │   └── serializers.py
+│   ├── entities/              # ✅ App de ENTIDADES COMPLETA
+│   │   ├── models.py          # Person, Organization, ContactDetail, IndividualProfile
+│   │   ├── views.py           # ViewSets con perfilado semántico
+│   │   ├── serializers.py     # Serializers optimizados para CRM
+│   │   ├── admin.py           # Admin interface completa
+│   │   ├── urls.py            # API endpoints de entidades
+│   │   ├── migrations/        # Migraciones con índices estratégicos
+│   │   ├── INDEX_OPTIMIZATION.md  # Documentación de performance
+│   │   └── README.md          # Documentación completa de la app
 │   ├── world/                 # ✅ App de datos globales COMPLETA
 │   │   ├── models.py          # 15+ modelos de referencia global
 │   │   ├── views.py           # ViewSets con filtrado/búsqueda
@@ -113,6 +122,7 @@ npm run dev
 - **CORS**: django-cors-headers configurado
 - **Aplicaciones**:
   - `users` (no `myapp`) con `ExampleModel`
+  - **`entities`** ✅ Sistema de gestión de entidades (COMPLETA)
   - **`world`** ✅ Datos globales de referencia (COMPLETA)
   - **`products`** ✅ Sistema de gestión de productos (COMPLETA)
 
@@ -147,6 +157,93 @@ npm run dev
 
 - **UserList**: Componente de lista de usuarios
 - **Páginas**: Index y login implementadas
+
+### ✅ Aplicación Entities - Sistema de Gestión de Entidades (COMPLETA)
+
+La aplicación `entities` es el **núcleo semántico de gestión de personas y organizaciones** en BackboneOS. Proporciona la infraestructura fundamental para perfilado semántico, gestión de contactos, direcciones y análisis organizacional en el contexto CRM.
+
+#### **Concepto de Sistema de Entidades en BackboneOS**
+
+Un **sistema de entidades** gestiona las identidades fundamentales del CRM antes de que participen en ciclos comerciales. La app `entities` actúa como:
+
+- **Registro Humanista**: Preserva la perspectiva centrada en personas e instituciones
+- **Núcleo Semántico**: Integración profunda con el campo semántico empresarial
+- **Base Relacional**: Fundamento para leads, clientes, oportunidades
+- **Centro de Contactos**: Gestión unificada de comunicación omnicanal
+- **Motor de Perfilado**: Clasificación semántica multidimensional
+
+#### **Modelos del Sistema de Entidades**
+
+**Entidades Centrales:**
+
+- `Person`: Personas físicas con información demográfica completa y perfilado semántico
+- `Organization`: Entidades corporativas con clasificación industrial y contexto geográfico
+- `ContactDetail`: Sistema unificado de contactos para personas y organizaciones
+- `IndividualProfile`: Extensión semántica personal con capacidades CRM avanzadas
+- `PhysicalAddress`: Gestión flexible de direcciones múltiples por entidad
+
+#### **Integración Semántica con World App**
+
+**Perfilado Semántico Personal:**
+
+- Clasificación por industrias, habilidades y funciones organizacionales
+- Nivel educativo y certificaciones académicas
+- Contexto geográfico y regulatorio (tipos de identificación)
+
+**Clasificación Organizacional:**
+
+- Tipificación por industria y tipo de organización
+- Análisis de mercado y segmentación estratégica
+- Compliance regulatorio y identificación empresarial
+
+#### **Características CRM Avanzadas**
+
+**Analytics Organizacional:**
+
+- Inteligencia de mercado por industria y geografía
+- Segmentación demográfica y empresarial
+- Métricas de penetración y oportunidades
+
+**Gestión de Contactos:**
+
+- Comunicación omnicanal con verificación
+- Compliance GDPR y gestión de consentimientos
+- Preferencias de comunicación personalizadas
+
+**Optimización de Performance:**
+
+- Índices estratégicos documentados para búsquedas semánticas
+- Consultas optimizadas con select_related y prefetch_related
+- Patrones de consulta para analytics empresariales
+
+#### **Casos de Uso en CRM**
+
+1. **Perfilado Semántico de Clientes**: Clasificación multidimensional usando vocabulario empresarial
+2. **Gestión de Contactos**: Sistema unificado de comunicación con verificación
+3. **Analytics Organizacional**: Inteligencia de mercado y análisis demográfico
+4. **Segmentación de Mercado**: Agrupación por contexto semántico empresarial
+5. **Compliance y Privacidad**: Gestión GDPR con consentimientos y preferencias
+
+#### **Endpoints API Disponibles**
+
+```
+/api/entities/people/              # Personas físicas
+/api/entities/people/{id}/profile/ # Perfil semántico personal
+/api/entities/organizations/       # Organizaciones
+/api/entities/organizations/{id}/analytics/ # Analytics organizacional
+/api/entities/contacts/            # Detalles de contacto
+/api/entities/addresses/           # Direcciones físicas
+```
+
+#### **Valor del Sistema de Entidades para la Organización**
+
+- **Base Humanista**: Perspectiva centrada en personas antes que en roles comerciales
+- **Perfilado Semántico**: Clasificación inteligente basada en ontología empresarial
+- **Contacto Unificado**: Gestión omnicanal con verificación y compliance
+- **Analytics de Mercado**: Inteligencia organizacional y demográfica
+- **Escalabilidad CRM**: Fundamento sólido para funcionalidades comerciales avanzadas
+- **Integridad Referencial**: Preservación del histórico con soft delete
+- **Performance Optimizada**: Consultas eficientes con índices estratégicos
 
 ### ✅ Aplicación World - Campo Semántico Empresarial (COMPLETA)
 
@@ -438,16 +535,18 @@ npm run preview  # Preview build
 
 1. **Backend**:
    - Crear en app `users` para funcionalidad de usuarios
+   - **Usar app `entities`** como núcleo semántico para gestión de personas y organizaciones
    - **Usar app `world`** como campo semántico para perfilado, segmentación y clasificación
    - **Usar app `products`** para gestión de catálogo, pricing y configuración comercial
-   - Aprovechar ontología empresarial existente (Industry, Skills, MarketSegments)
+   - Aprovechar perfilado semántico de entidades (Person, Organization)
    - Implementar lógica de negocio basada en contexto semántico
-   - Utilizar analytics de productos para insights comerciales
+   - Utilizar analytics de entidades y productos para insights comerciales
 2. **Frontend**: Usar composables existentes (`useAuth`)
 3. **API**: Extender servicios en `src/services/` con capacidades semánticas y de productos
 4. **Autenticación**: Ya implementada y funcional
-5. **Campo Semántico**: Utilizar endpoints `/api/world/` para construcción de perfiles conceptuales
-6. **Gestión de Productos**: Aprovechar endpoints `/api/products/` para catálogo y analytics comerciales
+5. **Sistema de Entidades**: Utilizar endpoints `/api/entities/` para gestión de personas y organizaciones
+6. **Campo Semántico**: Utilizar endpoints `/api/world/` para construcción de perfiles conceptuales
+7. **Gestión de Productos**: Aprovechar endpoints `/api/products/` para catálogo y analytics comerciales
 
 ### Para debugging:
 
@@ -461,6 +560,7 @@ npm run preview  # Preview build
 
 - Arquitectura Django + Nuxt.js
 - Sistema de autenticación completo
+- **Aplicación Entities**: **Sistema de gestión de entidades** (personas y organizaciones con perfilado semántico)
 - **Aplicación World**: **Campo semántico empresarial** (ontología y taxonomías para CRM)
 - **Aplicación Products**: **Sistema completo de gestión de productos** con analytics
 - Servicios API estructurados
@@ -482,13 +582,15 @@ npm run preview  # Preview build
 1. **El frontend NO está en Docker** - ejecutar localmente
 2. **Aplicaciones Django**:
    - `users`: Gestión de usuarios y autenticación
+   - **`entities`**: **Sistema de gestión de entidades** (personas y organizaciones con perfilado semántico)
    - **`world`**: **Campo semántico empresarial** (ontología y taxonomías para CRM)
    - **`products`**: **Sistema completo de gestión de productos** con analytics
-3. **Campo Semántico**: La app `world` define el vocabulario y contexto conceptual
-4. **Configuración**: Via python-decouple y runtime config
-5. **CORS**: Configurado para desarrollo local
-6. **Performance**: Consultar `world/INDEX_OPTIMIZATION.md` para queries semánticos eficientes
-7. **Ontología Empresarial**: Aprovechar taxonomías jerárquicas para clasificación semántica
+3. **Sistema de Entidades**: La app `entities` gestiona personas y organizaciones como base del CRM
+4. **Campo Semántico**: La app `world` define el vocabulario y contexto conceptual
+5. **Configuración**: Via python-decouple y runtime config
+6. **CORS**: Configurado para desarrollo local
+7. **Performance**: Consultar `entities/INDEX_OPTIMIZATION.md` y `world/INDEX_OPTIMIZATION.md` para queries optimizados
+8. **Ontología Empresarial**: Aprovechar taxonomías jerárquicas para clasificación semántica
 
 ## Patrones de Uso del Campo Semántico World
 
@@ -554,6 +656,149 @@ semantic_analytics = {
     'skill_demand': Skill.objects.annotate(demand_score=Count('client_profiles')),
     'market_trends': MarketSegment.objects.annotate(growth_rate=Avg('clients__revenue'))
 }
+```
+
+## Patrones de Uso del Sistema de Entidades
+
+### Para Perfilado Semántico de Personas
+
+```python
+# Backend - Construcción de perfil semántico completo
+from entities.models import Person, IndividualProfile
+from world.models import Industry, Skill, FunctionOrResponsibility, AcademicDegree
+
+# Crear persona con perfil semántico
+person = Person.objects.create(
+    first_name="Ana",
+    last_name="García",
+    country_of_nationality_id=1,  # País desde world app
+    gender="F"
+)
+
+# Perfil semántico extendido
+profile = IndividualProfile.objects.create(
+    person=person,
+    academic_degree_id=1,  # Desde world app
+    allows_marketing=True
+)
+profile.industries.set([1, 2])  # Industrias tech
+profile.skills.set([1, 2, 3])  # Python, Django, etc.
+
+# Obtener perfil semántico completo
+semantic_profile = person.get_semantic_profile()
+# Retorna: academic_degree, industries, skills, functions, comunicación
+
+# Frontend - Selector semántico
+const personProfile = {
+    industries: await $fetch('/api/world/industries/'),
+    skills: await $fetch('/api/world/skills/'),
+    functions: await $fetch('/api/world/functions/'),
+    degrees: await $fetch('/api/world/academic-degrees/')
+}
+```
+
+### Para Analytics Organizacional
+
+```python
+# Segmentación de organizaciones por contexto semántico
+from entities.models import Organization
+from world.models import Industry, OrganizationType
+
+# Analytics por industria y tipo
+tech_orgs = Organization.objects.select_related('industry', 'org_type', 'country')
+    .filter(industry__parent__name="Technology", is_active=True)
+    .values('country__name', 'org_type__name')
+    .annotate(count=Count('id'))
+
+# Distribución geográfica de organizaciones
+geo_analytics = Organization.objects.select_related('country')
+    .filter(is_active=True)
+    .values('country__name')
+    .annotate(org_count=Count('id'))
+    .order_by('-org_count')
+
+# Perfil semántico organizacional
+org_profile = organization.get_semantic_profile()
+# Retorna: industry, org_type, country
+
+# Frontend - Dashboard organizacional
+const orgAnalytics = await $fetch('/api/entities/organizations/analytics/')
+const geoDistribution = orgAnalytics.geographic_distribution
+```
+
+### Para Gestión de Contactos Unificada
+
+```python
+# Sistema de contactos para personas y organizaciones
+from entities.models import ContactDetail, Person, Organization
+
+# Contactos verificados para marketing
+verified_contacts = ContactDetail.objects.filter(
+    is_verified=True,
+    is_primary=True,
+    is_active=True
+).select_related('person', 'organization')
+
+# Contactos por tipo (personas vs organizaciones)
+person_contacts = ContactDetail.objects.filter(
+    person__isnull=False,
+    contact_type="email"
+).select_related('person')
+
+org_contacts = ContactDetail.objects.filter(
+    organization__isnull=False,
+    contact_type="phone"
+).select_related('organization')
+
+# Analytics de contactos
+contact_metrics = {
+    'verified_percentage': ContactDetail.objects.filter(is_verified=True).count() / ContactDetail.objects.count() * 100,
+    'marketing_allowed': ContactDetail.objects.filter(person__individualprofile__allows_marketing=True).count(),
+    'primary_contacts': ContactDetail.objects.filter(is_primary=True).count()
+}
+
+# Frontend - Gestión omnicanal
+const contactData = await $fetch('/api/entities/contacts/', {
+    params: { verified: true, primary: true }
+})
+```
+
+### Para Compliance y Privacidad GDPR
+
+```python
+# Gestión de consentimientos y privacidad
+from entities.models import IndividualProfile
+
+# Perfiles con consentimiento de marketing
+marketing_allowed = IndividualProfile.objects.filter(
+    allows_marketing=True,
+    person__is_active=True
+).select_related('person')
+
+# Análisis de compliance
+compliance_metrics = {
+    'opt_in_rate': IndividualProfile.objects.filter(allows_marketing=True).count(),
+    'privacy_compliant': IndividualProfile.objects.filter(
+        allows_marketing__isnull=False
+    ).count(),
+    'contact_preferences': IndividualProfile.objects.values('preferred_contact_method')
+        .annotate(count=Count('id'))
+}
+
+# Auditoría GDPR
+gdpr_audit = Person.objects.filter(
+    is_active=True,
+    individualprofile__allows_marketing=True
+).annotate(
+    has_consent=Case(
+        When(individualprofile__allows_marketing=True, then=Value(True)),
+        default=Value(False)
+    )
+)
+
+# Frontend - Centro de privacidad
+const privacySettings = await $fetch('/api/entities/people/privacy-settings/')
+const complianceReport = await $fetch('/api/entities/compliance/gdpr-audit/')
 ```
 
 ## Patrones de Uso del Sistema de Productos

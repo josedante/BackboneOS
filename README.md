@@ -5,22 +5,36 @@
 BackboneOS es una aplicación full-stack moderna que combina:
 
 - **Backend**: Django 5.x + Django REST Framework
-- **Frontend**: Nuxt.js 3.17.4 + TypeScript 5.8.3  
+- **Frontend**: Nuxt.js 3.17.4 + TypeScript 5.8.3
 - **Base de Datos**: PostgreSQL 14
 - **Containerización**: Docker + Docker Compose (desarrollo híbrido)
 
 ## 🏗️ Arquitectura del Sistema
 
 ### Campo Semántico Empresarial (World App)
+
 BackboneOS incluye un **sistema de ontología empresarial** que define el vocabulario y taxonomías organizacionales:
+
 - **Clasificación Geográfica**: Países, regiones y mercados
 - **Ontología Sectorial**: Industrias jerárquicas con sectores y subsectores
 - **Taxonomía de Competencias**: Skills, funciones y roles organizacionales
 - **Segmentación de Mercado**: Clasificación multi-dimensional de mercados
 - **Sistema de Descriptores**: Etiquetado semántico universal
 
+### Sistema de Gestión de Entidades (Entities App)
+
+Núcleo semántico de gestión de personas y organizaciones:
+
+- **Perfilado Semántico**: Clasificación multidimensional de personas y organizaciones
+- **Gestión de Contactos**: Sistema unificado de comunicación omnicanal
+- **Analytics Organizacional**: Inteligencia de mercado y demografía
+- **Direcciones Físicas**: Gestión flexible de ubicaciones múltiples
+- **Compliance**: GDPR ready con consentimientos y privacidad
+
 ### Sistema de Gestión de Productos (Products App)
+
 Sistema completo de catálogo comercial con:
+
 - **Estructura Divisional**: Organización por divisiones empresariales
 - **Clasificación Jerárquica**: Categorías y subcategorías de productos
 - **Motor de Personalización**: Configuración y adaptación de productos
@@ -44,6 +58,15 @@ BackboneOS/
 │   │   ├── views.py
 │   │   ├── urls.py
 │   │   └── serializers.py
+│   ├── entities/              # ✅ Sistema de Gestión de Entidades (COMPLETA)
+│   │   ├── models.py          # Person, Organization, ContactDetail, IndividualProfile
+│   │   ├── views.py           # ViewSets con perfilado semántico
+│   │   ├── serializers.py     # Serializers optimizados para CRM
+│   │   ├── admin.py           # Interface administrativa completa
+│   │   ├── urls.py            # API endpoints de entidades
+│   │   ├── migrations/        # Migraciones con índices estratégicos
+│   │   ├── INDEX_OPTIMIZATION.md  # Documentación de performance
+│   │   └── README.md          # Documentación completa de la app
 │   ├── world/                 # ✅ Campo Semántico Empresarial (COMPLETA)
 │   │   ├── models.py          # 15+ modelos de ontología empresarial
 │   │   ├── views.py           # ViewSets con filtrado/búsqueda semántica
@@ -97,6 +120,7 @@ BackboneOS/
 **IMPORTANTE**: BackboneOS utiliza una arquitectura híbrida donde el backend y la base de datos están containerizados, pero el frontend se ejecuta localmente para optimizar el desarrollo.
 
 ### URLs de Acceso
+
 - **Frontend**: http://localhost:3000 (Nuxt.js local)
 - **Backend API**: http://localhost:8000/api/ (Docker)
 - **Django Admin**: http://localhost:8000/admin (Docker)
@@ -139,6 +163,7 @@ chmod +x start.sh
 ## 🛠️ Stack Tecnológico
 
 ### Backend (Django)
+
 - **Framework**: Django 5.x
 - **API**: Django REST Framework
 - **Base de Datos**: PostgreSQL 14 (Docker)
@@ -147,6 +172,7 @@ chmod +x start.sh
 - **CORS**: django-cors-headers configurado
 
 ### Frontend (Nuxt.js)
+
 - **Framework**: Nuxt.js 3.17.4
 - **Lenguaje**: TypeScript 5.8.3
 - **UI Framework**: Nuxt UI 3.1.3
@@ -157,11 +183,13 @@ chmod +x start.sh
 ### Aplicaciones Django
 
 #### ✅ Users App
+
 - Gestión de usuarios y autenticación
 - Modelos de usuario extendidos
 - Sistema JWT implementado
 
 #### ✅ World App - Campo Semántico Empresarial
+
 **Ontología y taxonomías para CRM empresarial**
 
 - **🌍 Clasificación Geográfica**: `Country`, `Region`
@@ -172,12 +200,32 @@ chmod +x start.sh
 - **🏷️ Etiquetado**: `Tag` (sistema de folksonomía)
 
 **Características**:
+
 - **API REST Completa**: ViewSets con filtrado, búsqueda y ordenamiento
 - **Serializers Duales**: Completos y "choice" para formularios
 - **Optimización DB**: Índices estratégicos documentados
 - **Admin Interface**: Gestión eficiente de datos jerárquicos
 
+#### ✅ Entities App - Sistema de Gestión de Entidades
+
+**Núcleo semántico de personas y organizaciones**
+
+- **👤 Personas**: `Person` (información demográfica + perfilado semántico)
+- **🏢 Organizaciones**: `Organization` (entidades corporativas con clasificación)
+- **📞 Contactos**: `ContactDetail` (sistema unificado de comunicación)
+- **👔 Perfiles**: `IndividualProfile` (extensión semántica personal)
+- **📍 Direcciones**: `PhysicalAddress` (gestión flexible de ubicaciones)
+
+**Características CRM**:
+
+- **Perfilado Semántico**: Integración con World App para clasificación
+- **Analytics Organizacional**: Inteligencia de mercado y demografía
+- **Compliance GDPR**: Consentimientos y gestión de privacidad
+- **Contactos Verificados**: Sistema de validación omnicanal
+- **Optimización Performance**: Índices estratégicos documentados
+
 #### ✅ Products App - Sistema de Gestión de Productos
+
 **Catálogo comercial avanzado con analytics**
 
 - **🏢 Estructura Divisional**: `Division` (organización empresarial)
@@ -186,6 +234,7 @@ chmod +x start.sh
 - **⚙️ Configuración**: `Modality`, `Customization`
 
 **Características Avanzadas**:
+
 - **Analytics Dashboard**: Métricas comerciales y de rendimiento
 - **Pricing Multi-moneda**: Gestión avanzada de precios
 - **Búsqueda Semántica**: Integración con World App
@@ -197,6 +246,7 @@ chmod +x start.sh
 ### Endpoints Principales
 
 #### Autenticación
+
 ```
 POST /api/auth/login/          # Login JWT
 POST /api/auth/refresh/        # Refresh token
@@ -204,6 +254,7 @@ POST /api/auth/logout/         # Logout
 ```
 
 #### Usuarios
+
 ```
 GET    /api/users/             # Lista de usuarios
 GET    /api/users/{id}/        # Detalle de usuario
@@ -212,7 +263,19 @@ PUT    /api/users/{id}/        # Actualizar usuario
 DELETE /api/users/{id}/        # Eliminar usuario
 ```
 
+#### Gestión de Entidades
+
+```
+/api/entities/people/              # Personas físicas
+/api/entities/people/{id}/profile/ # Perfil semántico personal
+/api/entities/organizations/       # Organizaciones
+/api/entities/organizations/{id}/analytics/ # Analytics organizacional
+/api/entities/contacts/            # Detalles de contacto
+/api/entities/addresses/           # Direcciones físicas
+```
+
 #### Campo Semántico (World)
+
 ```
 /api/world/countries/          # Países
 /api/world/industries/         # Industrias (jerárquicas)
@@ -224,6 +287,7 @@ DELETE /api/users/{id}/        # Eliminar usuario
 ```
 
 #### Gestión de Productos
+
 ```
 /api/products/divisions/           # Divisiones organizacionales
 /api/products/divisions/{id}/categories/  # Categorías por división
@@ -238,6 +302,7 @@ DELETE /api/users/{id}/        # Eliminar usuario
 ## 💻 Comandos de Desarrollo
 
 ### Backend (Docker)
+
 ```bash
 # Migraciones
 docker-compose exec backend python manage.py makemigrations
@@ -263,6 +328,7 @@ docker-compose down
 ```
 
 ### Frontend (Local)
+
 ```bash
 cd frontend
 
@@ -283,6 +349,7 @@ npm run lint
 ```
 
 ### Base de Datos
+
 ```bash
 # Acceso directo a PostgreSQL
 docker-compose exec postgres psql -U postgres -d backboneos
@@ -299,6 +366,7 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
 ### Campo Semántico para CRM
 
 1. **Perfilado Semántico de Clientes**
+
    ```python
    # Construcción de perfil multidimensional
    client_profile = {
@@ -317,9 +385,36 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
    )
    ```
 
+### Gestión de Entidades para CRM
+
+1. **Perfilado Semántico de Personas**
+
+   ```python
+   # Perfil completo con clasificación semántica
+   person_profile = person.get_semantic_profile()
+   # Retorna: academic_degree, industries, skills, functions, comunicación
+   ```
+
+2. **Analytics Organizacional**
+
+   ```python
+   # Segmentación de organizaciones por contexto semántico
+   tech_orgs = Organization.objects.select_related('industry', 'country')
+       .filter(industry__parent__name="Technology", is_active=True)
+   ```
+
+3. **Gestión de Contactos Verificados**
+   ```python
+   # Contactos principales y verificados para marketing
+   verified_contacts = ContactDetail.objects.filter(
+       is_verified=True, is_primary=True, is_active=True
+   )
+   ```
+
 ### Sistema de Productos para Comercial
 
 1. **Catalogación Inteligente**
+
    ```python
    # Organización por divisiones y categorías
    tech_products = Product.objects.filter(
@@ -342,6 +437,7 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
 
 - ✅ **Arquitectura Full-Stack**: Django + Nuxt.js + PostgreSQL
 - ✅ **Sistema de Autenticación**: JWT + composables + middleware
+- ✅ **Sistema de Entidades**: Gestión de personas y organizaciones con perfilado semántico (Entities App)
 - ✅ **Campo Semántico Empresarial**: Ontología y taxonomías completas (World App)
 - ✅ **Sistema de Productos**: Gestión de catálogo con analytics (Products App)
 - ✅ **API REST Completa**: Endpoints estructurados con filtrado avanzado
@@ -368,6 +464,7 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
 ## 🛡️ Seguridad y Performance
 
 ### Características de Seguridad
+
 - **Autenticación JWT**: Tokens seguros con refresh automático
 - **CORS Configurado**: Políticas de origen cruzado
 - **Variables de Entorno**: Configuración sensible protegida
@@ -375,6 +472,7 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
 - **Sanitización Frontend**: Protección XSS en Nuxt.js
 
 ### Optimizaciones de Performance
+
 - **Índices de BD**: Optimización de consultas documentada
 - **Serializers Contextuales**: Diferentes niveles de detalle
 - **Prefetch Related**: Consultas optimizadas para relaciones
