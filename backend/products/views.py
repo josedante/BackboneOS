@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_page
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny, BasePermission
 from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters
@@ -270,7 +270,7 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'code', 'description']
     ordering_fields = ['name', 'code', 'level', 'created_at']
     ordering = ['name']
-    permission_classes = []
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -316,7 +316,7 @@ class ModalityViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
-    permission_classes = []
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class CustomizationViewSet(viewsets.ModelViewSet):
@@ -326,7 +326,30 @@ class CustomizationViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
-    permission_classes = []
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class ProductViewPermission(BasePermission):
+    """
+    Permiso personalizado para productos:
+    - Lectura pública limitada (sin precios sensibles)
+    - Escritura solo para usuarios autenticados
+    - Analytics y estadísticas solo para usuarios autenticados
+    """
+    
+    def has_permission(self, request, view):
+        # Endpoints completamente protegidos
+        protected_actions = ['stats', 'search_advanced', 'duplicate']
+        
+        if view.action in protected_actions:
+            return request.user.is_authenticated
+        
+        # CRUD: Solo lectura pública, escritura autenticada
+        if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            return request.user.is_authenticated
+            
+        # Lectura permitida (GET)
+        return True
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -336,7 +359,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'code', 'description', 'category__name', 'tags__name']
     ordering_fields = ['name', 'code', 'base_price', 'created_at', 'updated_at']
     ordering = ['name']
-    permission_classes = []
+    permission_classes = [ProductViewPermission]
     
     def get_queryset(self):
         queryset = super().get_queryset()

@@ -8,7 +8,7 @@ from .models import Division, Product, ProductCategory, Modality
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def division_analytics_dashboard(request):
     """Dashboard de analytics por división"""
     
@@ -53,7 +53,7 @@ def division_analytics_dashboard(request):
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def product_analytics_dashboard(request):
     """Dashboard principal de analytics de productos"""
     
@@ -109,7 +109,7 @@ def product_analytics_dashboard(request):
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def category_analytics(request):
     """Analytics por categorías"""
     
@@ -195,7 +195,7 @@ def category_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def market_segmentation_analytics(request):
     """Analytics de segmentación de mercado"""
     
@@ -302,7 +302,7 @@ def market_segmentation_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def pricing_analytics(request):
     """Analytics de pricing"""
     
@@ -407,7 +407,7 @@ def pricing_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def growth_analytics(request):
     """Analytics de crecimiento temporal"""
     
@@ -473,7 +473,7 @@ def growth_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def product_recommendations(request):
     """Recomendaciones basadas en análisis de datos"""
     
