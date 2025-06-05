@@ -14,10 +14,71 @@ from world.models import (
 )
 
 
+class Division(BaseUUIDModelWithActiveStatus):
+    """División empresarial que agrupa categorías de productos"""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = "División"
+        verbose_name_plural = "Divisiones"
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
+        ]
+        constraints = []
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def categories_count(self):
+        """Cantidad de categorías en la división"""
+        return self.categories.filter(is_active=True).count()
+
+    @property
+    def products_count(self):
+        """Cantidad total de productos en la división"""
+        from django.db.models import Count
+        return Product.objects.filter(
+            category__division=self,
+            is_active=True
+        ).count()
+
+    def get_revenue_summary(self):
+        """Resumen de ingresos potenciales de la división"""
+        from django.db.models import Sum, Avg, Count
+        
+        products = Product.objects.filter(
+            category__division=self,
+            is_active=True,
+            base_price__isnull=False
+        )
+        
+        return {
+            'total_products_with_price': products.count(),
+            'avg_price': products.aggregate(avg=Avg('base_price'))['avg'],
+            'total_potential_value': products.aggregate(total=Sum('base_price'))['total']
+        }
+
+
 class ProductCategory(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True)
+
+    # Relación con División
+    division = models.ForeignKey(
+        Division,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='categories',
+        verbose_name='División'
+    )
 
     parent = models.ForeignKey(
         'self',
@@ -28,7 +89,7 @@ class ProductCategory(BaseUUIDModelWithActiveStatus):
     )
 
     class Meta:
-        ordering = ['name']
+        ordering = ['division__name', 'name']
         verbose_name = "Categoría de Producto"
         verbose_name_plural = "Categorías de Productos"
         indexes = [
@@ -36,24 +97,31 @@ class ProductCategory(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['name']),
             models.Index(fields=['code']),
             models.Index(fields=['parent']),
+            models.Index(fields=['division', 'is_active']),
         ]
 
     def __str__(self):
+        if self.division:
+            return f"{self.division.name} > {self.name}"
         return self.name
 
     @property
     def full_path(self):
-        """Ruta completa de la categoría: Padre > Hijo > Nieto"""
+        """Ruta completa: División > Categoría Padre > Hijo > Nieto"""
         path = [self.name]
         parent = self.parent
         while parent:
             path.insert(0, parent.name)
             parent = parent.parent
+        
+        if self.division:
+            path.insert(0, self.division.name)
+        
         return ' > '.join(path)
 
     @property
     def level(self):
-        """Nivel de profundidad en la jerarquía"""
+        """Nivel de profundidad en la jerarquía (sin contar división)"""
         level = 0
         parent = self.parent
         while parent:
@@ -61,8 +129,13 @@ class ProductCategory(BaseUUIDModelWithActiveStatus):
             parent = parent.parent
         return level
 
+    @property
+    def absolute_level(self):
+        """Nivel absoluto incluyendo división (División=0, Categoría raíz=1, etc.)"""
+        return self.level + 1  # +1 porque la división es nivel 0
+
     def get_descendants(self):
-        """Obtiene todas las subcategorías activas"""
+        """Obtiene todas las subcategorías activas recursivamente"""
         descendants = []
         to_process = list(self.subcategories.filter(is_active=True))
         

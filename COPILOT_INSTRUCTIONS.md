@@ -28,14 +28,23 @@ Proyecto-OpenSource/
 │   │   ├── views.py
 │   │   ├── urls.py
 │   │   └── serializers.py
-│   └── world/                 # ✅ App de datos globales COMPLETA
-│       ├── models.py          # 15+ modelos de referencia global
-│       ├── views.py           # ViewSets con filtrado/búsqueda
-│       ├── serializers.py     # Serializers completos + choice
-│       ├── admin.py           # Admin interface configurada
-│       ├── urls.py            # API endpoints estructurados
-│       ├── migrations/        # Migraciones con índices optimizados
-│       └── INDEX_OPTIMIZATION.md  # Documentación performance
+│   ├── world/                 # ✅ App de datos globales COMPLETA
+│   │   ├── models.py          # 15+ modelos de referencia global
+│   │   ├── views.py           # ViewSets con filtrado/búsqueda
+│   │   ├── serializers.py     # Serializers completos + choice
+│   │   ├── admin.py           # Admin interface configurada
+│   │   ├── urls.py            # API endpoints estructurados
+│   │   ├── migrations/        # Migraciones con índices optimizados
+│   │   └── INDEX_OPTIMIZATION.md  # Documentación performance
+│   └── products/              # ✅ App de PRODUCTOS COMPLETA
+│       ├── models.py          # ProductCategory, Product, Modality, Customization
+│       ├── views.py           # ViewSets con filtrado/búsqueda avanzada
+│       ├── serializers.py     # Serializers optimizados (list/detail/create)
+│       ├── admin.py           # Admin interface con optimizaciones
+│       ├── urls.py            # API endpoints + analytics
+│       ├── analytics.py       # Dashboard y analytics de productos
+│       ├── migrations/        # Migraciones con constraints e índices
+│       └── tests.py           # Tests unitarios
 ├── frontend/                  # Frontend Nuxt.js COMPLETO
 │   ├── composables/
 │   │   └── useAuth.ts        # ✅ Sistema auth completo
@@ -97,6 +106,7 @@ npm run dev
 - **Aplicaciones**:
   - `users` (no `myapp`) con `ExampleModel`
   - **`world`** ✅ Datos globales de referencia (COMPLETA)
+  - **`products`** ✅ Sistema de gestión de productos (COMPLETA)
 
 ### Frontend
 
@@ -244,6 +254,137 @@ Un **campo semántico** es el conjunto de conceptos, términos y relaciones que 
 - **Automatización Inteligente**: Decisiones basadas en contexto semántico
 - **Ventaja Competitiva**: Conocimiento estructurado del mercado y la industria
 
+### ✅ Aplicación Products - Sistema de Gestión de Productos (COMPLETA)
+
+La aplicación `products` implementa un **sistema completo de gestión de catálogo de productos** con capacidades avanzadas de clasificación, personalización y análisis, integrado directamente con el campo semántico empresarial de `world`.
+
+#### **Concepto de Sistema de Productos en BackboneOS**
+
+Un **sistema de productos** es el componente que gestiona todo el catálogo de productos/servicios de la organización, permitiendo clasificación jerárquica, personalización, pricing dinámico y análisis de mercado. La app `products` actúa como:
+
+- **Catálogo Central**: Gestión unificada de productos y servicios
+- **Clasificación Semántica**: Organización basada en taxonomías empresariales
+- **Motor de Personalización**: Configuración y adaptación de productos
+- **Centro de Pricing**: Gestión de precios multi-moneda
+- **Hub Analítico**: Insights de rendimiento y oportunidades
+
+#### **Modelos del Sistema de Productos**
+
+**Estructura Organizacional:**
+
+- `Division`: **División empresarial** que agrupa categorías de productos a nivel organizacional
+  - Campos: `name`, `code`, `description`
+  - Propiedades computadas: `categories_count`, `products_count`
+  - Relación: Una división puede tener múltiples categorías
+  - Propósito: Estructurar productos por áreas de negocio (Tecnología, Consultoría, etc.)
+
+**Clasificación y Organización:**
+
+- `ProductCategory`: Taxonomía jerárquica de categorías con navegación multi-nivel
+  - Relación con `Division`: Cada categoría puede pertenecer a una división
+  - Propiedades extendidas: `full_path` incluye división, `absolute_level` considera jerarquía completa
+- `Product`: Entidad central con información completa y relaciones semánticas
+- `Modality`: Modalidades de entrega/ejecución de productos (presencial, virtual, híbrido)
+- `Customization`: Tipos de personalización disponible por producto
+
+#### **API REST Avanzada para Productos**
+
+**Endpoints Principales:**
+
+```
+/api/products/divisions/           # Gestión de divisiones organizacionales
+/api/products/divisions/{id}/categories/  # Categorías por división
+/api/products/divisions/{id}/products/    # Productos por división
+/api/products/divisions/{id}/summary/     # Resumen estadístico por división
+/api/products/categories/          # Gestión de categorías
+/api/products/categories/tree/     # Árbol completo de categorías
+/api/products/categories/{id}/products/  # Productos por categoría
+/api/products/modalities/          # Modalidades de productos
+/api/products/customizations/      # Tipos de personalización
+/api/products/products/            # CRUD completo de productos
+/api/products/products/stats/      # Estadísticas de productos
+/api/products/products/search_advanced/  # Búsqueda semántica avanzada
+/api/products/products/{id}/duplicate/   # Duplicación de productos
+```
+
+**Filtrado Avanzado:**
+
+- **Filtros Jerárquicos**: Por categoría incluyendo subcategorías
+- **Filtros Semánticos**: Por industrias, skills, segmentos de mercado
+- **Filtros de Negocio**: Precio, duración, personalización, moneda
+- **Búsqueda Semántica**: En descriptores, tags y contenido
+
+**Serializers Optimizados:**
+
+- `ProductListSerializer`: Optimizado para listados con propiedades calculadas
+- `ProductDetailSerializer`: Completo con todas las relaciones
+- `ProductCreateUpdateSerializer`: Simplificado para operaciones de escritura
+
+#### **Sistema de Analytics de Productos**
+
+**Dashboard de Analytics (`/api/products/analytics/`):**
+
+- **Métricas Generales**: Total productos, categorías, modalidades
+- **Análisis de Pricing**: Estadísticas por moneda, distribución de precios
+- **Segmentación**: Análisis por segmentos de mercado
+- **Tendencias**: Crecimiento y patrones temporales
+- **Personalización**: Métricas de productos customizables
+
+**Endpoints de Analytics Especializados:**
+
+```
+/api/products/analytics/dashboard/           # Dashboard principal de productos
+/api/products/analytics/divisions/           # Analytics específicos por división
+/api/products/analytics/categories/          # Analytics por categoría
+/api/products/analytics/market-segmentation/ # Análisis de segmentación
+/api/products/analytics/pricing/             # Análisis de precios
+/api/products/analytics/growth/              # Análisis de crecimiento
+/api/products/analytics/recommendations/     # Recomendaciones de productos
+```
+
+#### **Características Avanzadas**
+
+**Optimización de Performance:**
+
+- **Consultas Optimizadas**: `select_related` y `prefetch_related` estratégicos
+- **Índices de Base de Datos**: En campos críticos para búsquedas
+- **Cache**: Implementación de cache en endpoints de analytics
+- **Serializers Contextuales**: Diferentes niveles de detalle según uso
+
+**Validaciones de Negocio:**
+
+- **Constraints de BD**: Precios positivos, monedas válidas
+- **Validaciones Django**: Lógica de negocio en modelos
+- **Integridad Referencial**: Manejo de eliminaciones con SET_NULL
+
+**Interface Administrativa:**
+
+- **Admin Optimizado**: Consultas eficientes con prefetch
+- **Filtros Inteligentes**: Por categoría, segmentos, industrias
+- **Acciones en Lote**: Activar/desactivar/duplicar productos
+- **Campos Calculados**: Displays formateados para mejor UX
+
+#### **Casos de Uso del Sistema de Productos en CRM**
+
+1. **Catalogación Inteligente**: Organización semántica del portafolio de productos
+2. **Targeting Preciso**: Matching de productos con perfiles de clientes
+3. **Configuración Dinámica**: Personalización basada en contexto empresarial
+4. **Análisis de Portafolio**: Insights de rendimiento y oportunidades
+5. **Pricing Estratégico**: Gestión de precios basada en segmentación
+6. **Recomendaciones Automáticas**: Sugerencias basadas en perfil semántico
+7. **Reporting Avanzado**: Analytics multidimensional de productos
+8. **Integración CRM**: Conexión directa con oportunidades y cotizaciones
+
+#### **Valor del Sistema de Productos para la Organización**
+
+- **Catálogo Centralizado**: Gestión unificada de todo el portafolio
+- **Clasificación Inteligente**: Organización basada en ontología empresarial
+- **Flexibility Comercial**: Adaptación a diferentes mercados y segmentos
+- **Insights de Negocio**: Analíticas que impulsan decisiones estratégicas
+- **Eficiencia Operativa**: Automatización de procesos de gestión de productos
+- **Escalabilidad**: Crecimiento ordenado del catálogo
+- **Ventaja Competitiva**: Inteligencia comercial basada en datos
+
 ## Comandos de Desarrollo
 
 ### Inicio del Proyecto
@@ -290,12 +431,15 @@ npm run preview  # Preview build
 1. **Backend**:
    - Crear en app `users` para funcionalidad de usuarios
    - **Usar app `world`** como campo semántico para perfilado, segmentación y clasificación
+   - **Usar app `products`** para gestión de catálogo, pricing y configuración comercial
    - Aprovechar ontología empresarial existente (Industry, Skills, MarketSegments)
    - Implementar lógica de negocio basada en contexto semántico
+   - Utilizar analytics de productos para insights comerciales
 2. **Frontend**: Usar composables existentes (`useAuth`)
-3. **API**: Extender servicios en `src/services/` con capacidades semánticas
+3. **API**: Extender servicios en `src/services/` con capacidades semánticas y de productos
 4. **Autenticación**: Ya implementada y funcional
 5. **Campo Semántico**: Utilizar endpoints `/api/world/` para construcción de perfiles conceptuales
+6. **Gestión de Productos**: Aprovechar endpoints `/api/products/` para catálogo y analytics comerciales
 
 ### Para debugging:
 
@@ -310,6 +454,7 @@ npm run preview  # Preview build
 - Arquitectura Django + Nuxt.js
 - Sistema de autenticación completo
 - **Aplicación World**: **Campo semántico empresarial** (ontología y taxonomías para CRM)
+- **Aplicación Products**: **Sistema completo de gestión de productos** con analytics
 - Servicios API estructurados
 - Configuración por ambientes
 - Containerización híbrida
@@ -330,6 +475,7 @@ npm run preview  # Preview build
 2. **Aplicaciones Django**:
    - `users`: Gestión de usuarios y autenticación
    - **`world`**: **Campo semántico empresarial** (ontología y taxonomías para CRM)
+   - **`products`**: **Sistema completo de gestión de productos** con analytics
 3. **Campo Semántico**: La app `world` define el vocabulario y contexto conceptual
 4. **Configuración**: Via python-decouple y runtime config
 5. **CORS**: Configurado para desarrollo local
@@ -402,4 +548,78 @@ semantic_analytics = {
 }
 ```
 
-Esta configuración permite desarrollo eficiente con hot-reload del frontend, servicios backend estables en Docker, y un **campo semántico empresarial robusto** que potencia las capacidades de CRM con inteligencia contextual y clasificación ontológica.
+## Patrones de Uso del Sistema de Productos
+
+### Para Gestión de Divisiones Organizacionales
+
+```python
+# Backend - Estructura organizacional por divisiones
+from products.models import Division, ProductCategory, Product
+
+# Crear estructura divisional
+tech_division = Division.objects.create(
+    name="Tecnología y Desarrollo",
+    code="TECH",
+    description="División especializada en soluciones tecnológicas"
+)
+
+# Organizar productos por división
+software_category = ProductCategory.objects.create(
+    name="Desarrollo de Software",
+    division=tech_division
+)
+
+# Analytics por división
+division_analytics = {
+    'categories_count': tech_division.categories_count,
+    'products_count': tech_division.products_count,
+    'summary': tech_division.get_revenue_summary()
+}
+
+# Frontend - Navegación por divisiones
+const divisionsData = await $fetch('/api/products/divisions/')
+const divisionProducts = await $fetch(`/api/products/divisions/${divisionId}/products/`)
+const divisionSummary = await $fetch(`/api/products/divisions/${divisionId}/summary/`)
+```
+
+### Para Clasificación Jerárquica de Productos
+
+```python
+# Estructura completa: División > Categoría > Subcategoría > Producto
+from products.models import Division, ProductCategory, Product
+
+# Navegación semántica multinivel
+tech_products = Product.objects.filter(
+    category__division__code="TECH",
+    category__parent__name="Desarrollo Web"
+).select_related('category', 'category__division')
+
+# Path completo con división
+for product in tech_products:
+    print(product.category.full_path)  # "Tecnología y Desarrollo > Desarrollo Web > Frontend"
+    print(product.category.absolute_level)  # Nivel incluyendo división
+
+# Frontend - Selector jerárquico
+const categoryTree = await $fetch('/api/products/categories/tree/')
+const filteredByDivision = categories.filter(cat => cat.division === divisionId)
+```
+
+### Para Analytics Divisionales
+
+```python
+# Comparativa entre divisiones
+/api/products/analytics/divisions/  # Dashboard comparativo de divisiones
+
+# Métricas específicas por división
+division_metrics = {
+    'total_divisions': Division.objects.filter(is_active=True).count(),
+    'divisions_with_products': Division.objects.filter(categories__product__isnull=False).distinct().count(),
+    'top_divisions': Division.objects.annotate(
+        products_count=Count('categories__product', filter=Q(categories__product__is_active=True))
+    ).order_by('-products_count')[:5]
+}
+
+# Frontend - Dashboard divisional
+const divisionAnalytics = await $fetch('/api/products/analytics/divisions/')
+const performanceByDivision = divisionAnalytics.divisions_overview.distribution
+```

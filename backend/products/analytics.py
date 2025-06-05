@@ -4,7 +4,52 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from datetime import datetime, timedelta
-from .models import Product, ProductCategory, Modality
+from .models import Division, Product, ProductCategory, Modality
+
+
+@api_view(['GET'])
+@permission_classes([])
+def division_analytics_dashboard(request):
+    """Dashboard de analytics por división"""
+    
+    # Métricas por división
+    divisions_stats = Division.objects.filter(is_active=True).annotate(
+        categories_count=Count('categories', filter=Q(categories__is_active=True)),
+        products_count=Count('categories__product', filter=Q(categories__product__is_active=True)),
+        avg_price=Avg('categories__product__base_price', filter=Q(categories__product__is_active=True)),
+        products_with_price=Count('categories__product', filter=Q(
+            categories__product__is_active=True,
+            categories__product__base_price__isnull=False
+        ))
+    ).values('id', 'name', 'code', 'categories_count', 'products_count', 'avg_price', 'products_with_price')
+    
+    # Top divisiones por cantidad de productos
+    top_divisions_by_products = divisions_stats.order_by('-products_count')[:5]
+    
+    # Distribución de productos por división
+    division_distribution = []
+    for division in divisions_stats:
+        if division['products_count'] > 0:
+            division_distribution.append({
+                'division': division['name'],
+                'products_count': division['products_count'],
+                'categories_count': division['categories_count'],
+                'avg_price': division['avg_price']
+            })
+    
+    return Response({
+        'divisions_overview': {
+            'total_divisions': Division.objects.filter(is_active=True).count(),
+            'divisions_with_products': len([d for d in divisions_stats if d['products_count'] > 0]),
+            'top_divisions': list(top_divisions_by_products),
+            'distribution': division_distribution
+        },
+        'summary': {
+            'total_categories_across_divisions': sum(d['categories_count'] for d in divisions_stats),
+            'total_products_across_divisions': sum(d['products_count'] for d in divisions_stats),
+            'avg_products_per_division': sum(d['products_count'] for d in divisions_stats) / len(divisions_stats) if divisions_stats else 0
+        }
+    })
 
 
 @api_view(['GET'])
@@ -16,6 +61,7 @@ def product_analytics_dashboard(request):
     total_products = Product.objects.filter(is_active=True).count()
     total_categories = ProductCategory.objects.filter(is_active=True).count()
     total_modalities = Modality.objects.filter(is_active=True).count()
+    total_divisions = Division.objects.filter(is_active=True).count()
     
     # Productos con/sin precio
     products_with_price = Product.objects.filter(
@@ -49,6 +95,7 @@ def product_analytics_dashboard(request):
             'total_products': total_products,
             'total_categories': total_categories,
             'total_modalities': total_modalities,
+            'total_divisions': total_divisions,
             'products_with_price': products_with_price,
             'products_without_price': products_without_price,
             'customizable_products': customizable_products,

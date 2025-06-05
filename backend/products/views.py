@@ -9,24 +9,116 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters
-from .models import ProductCategory, Modality, Customization, Product
+from .models import Division, ProductCategory, Modality, Customization, Product
 from .serializers import (
-    ProductCategorySerializer, ProductCategoryTreeSerializer,
+    DivisionSerializer, ProductCategorySerializer, ProductCategoryTreeSerializer,
     ModalitySerializer, CustomizationSerializer,
     ProductListSerializer, ProductDetailSerializer,
     ProductCreateUpdateSerializer
 )
 
 
+class DivisionFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(lookup_expr='icontains')
+    code = django_filters.CharFilter(lookup_expr='icontains')
+    has_categories = django_filters.BooleanFilter(method='filter_has_categories')
+    
+    class Meta:
+        model = Division
+        fields = ['is_active']
+    
+    def filter_has_categories(self, queryset, name, value):
+        if value:
+            return queryset.filter(categories__isnull=False).distinct()
+        return queryset.filter(categories__isnull=True)
+
+
+class DivisionViewSet(viewsets.ModelViewSet):
+    queryset = Division.objects.all()
+    serializer_class = DivisionSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = DivisionFilter
+    search_fields = ['name', 'code', 'description']
+    ordering_fields = ['name', 'code', 'created_at']
+    ordering = ['name']
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Division.objects.select_related().prefetch_related('categories')
+
+    @action(detail=True, methods=['get'])
+    def categories(self, request, pk=None):
+        """Obtener todas las categorías de una división"""
+        division = self.get_object()
+        categories = division.categories.filter(is_active=True)
+        serializer = ProductCategorySerializer(categories, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        """Obtener todos los productos de una división"""
+        division = self.get_object()
+        products = Product.objects.filter(
+            category__division=division,
+            is_active=True
+        ).select_related('category', 'customization').prefetch_related('modalities')
+        
+        serializer = ProductListSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        """Resumen estadístico de la división"""
+        division = self.get_object()
+        
+        # Contar categorías
+        categories_count = division.categories.filter(is_active=True).count()
+        
+        # Contar productos
+        products_count = Product.objects.filter(
+            category__division=division,
+            is_active=True
+        ).count()
+        
+        # Estadísticas de precios
+        products_with_price = Product.objects.filter(
+            category__division=division,
+            is_active=True,
+            base_price__isnull=False
+        )
+        
+        price_stats = {}
+        if products_with_price.exists():
+            price_agg = products_with_price.aggregate(
+                avg_price=Avg('base_price'),
+                min_price=Min('base_price'),
+                max_price=Max('base_price')
+            )
+            price_stats = {
+                'products_with_price': products_with_price.count(),
+                'avg_price': price_agg['avg_price'],
+                'min_price': price_agg['min_price'],
+                'max_price': price_agg['max_price']
+            }
+        
+        return Response({
+            'division': DivisionSerializer(division, context={'request': request}).data,
+            'categories_count': categories_count,
+            'products_count': products_count,
+            'price_statistics': price_stats
+        })
+
+
 class ProductCategoryFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr='icontains')
     code = django_filters.CharFilter(lookup_expr='icontains')
+    division = django_filters.ModelChoiceFilter(queryset=Division.objects.filter(is_active=True))
     level = django_filters.NumberFilter(method='filter_by_level')
     has_products = django_filters.BooleanFilter(method='filter_has_products')
     
     class Meta:
         model = ProductCategory
-        fields = ['is_active', 'parent']
+        fields = ['is_active', 'parent', 'division']
     
     def filter_by_level(self, queryset, name, value):
         """Filtrar por nivel de jerarquía"""

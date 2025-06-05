@@ -3,22 +3,37 @@ from world.serializers import (
     IndustrySerializer, SkillSerializer, MarketSegmentSerializer,
     FunctionSerializer, WorldDescriptorSerializer, TagSerializer
 )
-from .models import ProductCategory, Modality, Customization, Product
+from .models import Division, ProductCategory, Modality, Customization, Product
+
+
+class DivisionSerializer(serializers.ModelSerializer):
+    categories_count = serializers.ReadOnlyField()
+    products_count = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Division
+        fields = [
+            'id', 'name', 'code', 'description', 'categories_count', 
+            'products_count', 'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
     full_path = serializers.ReadOnlyField()
     level = serializers.ReadOnlyField()
+    absolute_level = serializers.ReadOnlyField()
     subcategories_count = serializers.SerializerMethodField()
     products_count = serializers.SerializerMethodField()
     parent_name = serializers.CharField(source='parent.name', read_only=True)
+    division_name = serializers.CharField(source='division.name', read_only=True)
 
     class Meta:
         model = ProductCategory
         fields = [
-            'id', 'name', 'code', 'description', 'parent', 'parent_name',
-            'full_path', 'level', 'subcategories_count', 'products_count',
-            'is_active', 'created_at', 'updated_at'
+            'id', 'name', 'code', 'description', 'division', 'division_name',
+            'parent', 'parent_name', 'full_path', 'level', 'absolute_level',
+            'subcategories_count', 'products_count', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

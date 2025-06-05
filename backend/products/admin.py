@@ -4,19 +4,54 @@ from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import ProductCategory, Modality, Customization, Product
+from .models import Division, ProductCategory, Modality, Customization, Product
 
 
-class ProductCategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'full_path', 'level', 'products_count', 'is_active')
-    list_filter = ('is_active', 'parent')
+@admin.register(Division)
+class DivisionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'categories_count', 'products_count', 'is_active')
+    list_filter = ('is_active',)
     search_fields = ('name', 'code', 'description')
     ordering = ('name',)
     prepopulated_fields = {'code': ('name',)}
     
     fieldsets = (
         (None, {
-            'fields': ('name', 'code', 'description', 'parent')
+            'fields': ('name', 'code', 'description')
+        }),
+        ('Estado', {
+            'fields': ('is_active',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            categories_count=Count('categories', filter=Q(categories__is_active=True)),
+            products_count=Count('categories__product', filter=Q(categories__product__is_active=True))
+        )
+    
+    def categories_count(self, obj):
+        return obj.categories_count
+    categories_count.short_description = 'Categorías'
+    categories_count.admin_order_field = 'categories_count'
+    
+    def products_count(self, obj):
+        return obj.products_count
+    products_count.short_description = 'Productos'
+    products_count.admin_order_field = 'products_count'
+
+
+class ProductCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'division', 'full_path', 'level', 'products_count', 'is_active')
+    list_filter = ('is_active', 'division', 'parent')
+    search_fields = ('name', 'code', 'description')
+    ordering = ('division__name', 'name',)
+    prepopulated_fields = {'code': ('name',)}
+    
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'code', 'description', 'division', 'parent')
         }),
         ('Estado', {
             'fields': ('is_active',),
