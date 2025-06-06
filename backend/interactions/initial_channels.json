@@ -1,0 +1,52 @@
+[
+  {
+    "model": "interactions.channel",
+    "pk": "web",
+    "fields": {
+      "name": "Web",
+      "code": "web",
+      "medium": "digital",
+      "is_active": true
+    }
+  },
+  {
+    "model": "interactions.channel",
+    "pk": "email",
+    "fields": {
+      "name": "Email",
+      "code": "email",
+      "medium": "digital",
+      "is_active": true
+    }
+  },
+  {
+    "model": "interactions.channel",
+    "pk": "whatsapp",
+    "fields": {
+      "name": "WhatsApp",
+      "code": "whatsapp",
+      "medium": "digital",
+      "is_active": true
+    }
+  },
+  {
+    "model": "interactions.channel",
+    "pk": "phone_call",
+    "fields": {
+      "name": "Llamada telefónica",
+      "code": "phone_call",
+      "medium": "phone",
+      "is_active": true
+    }
+  },
+  {
+    "model": "interactions.channel",
+    "pk": "in_person",
+    "fields": {
+      "name": "Presencial",
+      "code": "in_person",
+      "medium": "physical",
+      "is_active": true
+    }
+  }
+]

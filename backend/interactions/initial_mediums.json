@@ -1,0 +1,29 @@
+[
+  {
+    "model": "interactions.medium",
+    "pk": "digital",
+    "fields": {
+      "name": "Digital",
+      "code": "digital",
+      "is_active": true
+    }
+  },
+  {
+    "model": "interactions.medium",
+    "pk": "physical",
+    "fields": {
+      "name": "Físico",
+      "code": "physical",
+      "is_active": true
+    }
+  },
+  {
+    "model": "interactions.medium",
+    "pk": "phone",
+    "fields": {
+      "name": "Telefónico",
+      "code": "phone",
+      "is_active": true
+    }
+  }
+]

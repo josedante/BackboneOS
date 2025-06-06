@@ -1,0 +1,47 @@
+[
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Clic",
+      "code": "click",
+      "description": "El usuario hizo clic",
+      "action_type": null
+    }
+  },
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Visualizó página",
+      "code": "page_view",
+      "description": "El usuario leyó una página",
+      "action_type": null
+    }
+  },
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Llenó formulario",
+      "code": "form_submit",
+      "description": "El usuario completó un formulario",
+      "action_type": null
+    }
+  },
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Llamada entrante",
+      "code": "incoming_call",
+      "description": "El usuario llamó a la organización",
+      "action_type": null
+    }
+  },
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Asistencia a evento",
+      "code": "event_attended",
+      "description": "El usuario asistió a un evento",
+      "action_type": null
+    }
+  }
+]

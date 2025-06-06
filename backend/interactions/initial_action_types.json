@@ -1,0 +1,26 @@
+[
+  {
+    "model": "interactions.actiontype",
+    "fields": {
+      "name": "Interacción Digital",
+      "code": "digital",
+      "description": "Acciones realizadas en canales digitales"
+    }
+  },
+  {
+    "model": "interactions.actiontype",
+    "fields": {
+      "name": "Interacción Presencial",
+      "code": "presencial",
+      "description": "Acciones realizadas de manera física"
+    }
+  },
+  {
+    "model": "interactions.actiontype",
+    "fields": {
+      "name": "Interacción Telefónica",
+      "code": "telefonica",
+      "description": "Acciones mediante llamada o contacto telefónico"
+    }
+  }
+]
