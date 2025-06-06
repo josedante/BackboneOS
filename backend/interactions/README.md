@@ -26,7 +26,8 @@ La aplicación `interactions` constituye la columna vertebral del sistema CRM Ba
 
 - `assigned_staff`: Usuario responsable del canal.
 - `product`: Producto principal asociado al punto de contacto.
-- `semantic_segment`: Descriptor del segmento al que apunta.
+- `semantic segmentation`: Descriptores del segmento al que apunta.
+- `funnel_stage`: Etapas estratégicas (texto plano).
 
 ### En `Interaction`
 
@@ -34,7 +35,7 @@ La aplicación `interactions` constituye la columna vertebral del sistema CRM Ba
 - `agent`: Medio por el cual ocurre la interacción.
 - `representative`: Usuario de la organización que ejecutó la acción.
 - `product`: Producto relacionado (hereda de `Touchpoint` si no se define).
-- `funnel_stage` / `jtbd_stage`: Etapas estratégicas (texto plano).
+- `jtbd_stage`: Etapas estratégicas (texto plano).
 
 ---
 
@@ -50,8 +51,8 @@ La aplicación `interactions` constituye la columna vertebral del sistema CRM Ba
 
 - Tipos de acción (`initial_action_types.json`)
 - Acciones básicas (`initial_actions.json`)
-- Etapas del embudo de ventas (`initial_funnel_stages.json`)
-- Etapas del progreso JTBD (`initial_jtbd_stages.json`)
+- Canales iniciales
+- Medios iniciales
 
 ---
 

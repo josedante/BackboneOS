@@ -162,6 +162,22 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         related_name='assigned_touchpoints',
         help_text="Miembro del equipo responsable de este punto de contacto"
     )
+    SEE = 'see'
+    THINK = 'think'
+    DO = 'do'
+    CARE = 'care'
+    ANY = 'any'
+    FUNNEL_STAGES = [
+        (SEE, 'Ver'),
+        (THINK, 'Pensar'),
+        (DO, 'Hacer'),
+        (CARE, 'Cuidar'),
+        (ANY, 'Cualquiera'),
+    ]
+    funnel_stage = models.CharField(
+        max_length=50, blank=True, choices=FUNNEL_STAGES, default=ANY,
+        help_text="Etapa del embudo de ventas para el cual fue diseñado este punto de contacto"
+    )
     product = models.ForeignKey(
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='touchpoints', help_text="Producto principal asociado a este punto de contacto"
@@ -204,12 +220,18 @@ class Interaction(BaseUUIDModelWithActiveStatus):
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='interactions', help_text="Producto vinculado a esta interacción"
     )
-    funnel_stage = models.CharField(
-        max_length=50, blank=True,
-        help_text="Etapa del embudo de ventas (ej. conciencia, consideración, decisión)"
-    )
+    JOB_STAGES = [
+        ('job_oblivious', 'Trabajo Desconocido'),
+        ('job_awareness', 'Conciencia del Trabajo'),
+        ('job_research', 'Investigación'),
+        ('job_decision', 'Toma de decisión'),
+        ('job_execution', 'Ejecución'),
+        ('job_solved', 'Resuelto'),
+        ('stage_unknown', 'Etapa Desconocida'),
+    ]
     jtbd_stage = models.CharField(
-        max_length=50, blank=True,
+        max_length=50, blank=True, choices=JOB_STAGES, default='any',
+        verbose_name="Etapa JTBD",
         help_text="Etapa del proceso de progreso del cliente (Jobs to Be Done)"
     )
 
