@@ -2,6 +2,12 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from backend.models import BaseUUIDModelWithActiveStatus
 
+from world.models import (
+    Industry,
+    FunctionOrResponsibility as Area,
+    Skill,
+    WorldDescriptor,
+)
 
 class Agent(BaseUUIDModelWithActiveStatus):
     AGENT_TYPES = [
@@ -160,10 +166,10 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='touchpoints', help_text="Producto principal asociado a este punto de contacto"
     )
-    semantic_segment = models.ForeignKey(
-        'world.Descriptor', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='touchpoints', help_text="Segmento semántico objetivo de este punto de contacto"
-    )
+    related_industries = models.ManyToManyField(Industry, blank=True)
+    related_functions = models.ManyToManyField(Area, blank=True)
+    related_skills = models.ManyToManyField(Skill, blank=True)
+    related_descriptors = models.ManyToManyField(WorldDescriptor, blank=True)
 
     class Meta:
         ordering = ['name']
