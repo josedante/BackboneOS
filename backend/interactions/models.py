@@ -227,7 +227,7 @@ class Interaction(BaseUUIDModelWithActiveStatus):
         related_name='interactions_represented',
         help_text="Miembro de la organización que ejecutó esta interacción"
     )
-    
+
     payload = models.JSONField(blank=True, null=True)
 
     occurred_at = models.DateTimeField(null=True, blank=True)
@@ -255,6 +255,7 @@ class Interaction(BaseUUIDModelWithActiveStatus):
         related_name='interactions', help_text="Producto vinculado a esta interacción"
     )
     JOB_STAGES = [
+        ('any', 'Cualquiera'),
         ('job_oblivious', 'Trabajo Desconocido'),
         ('job_awareness', 'Conciencia del Trabajo'),
         ('job_research', 'Investigación'),
@@ -282,6 +283,17 @@ class Interaction(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['representative']),
             models.Index(fields=['occurred_at']),
             models.Index(fields=['is_active', 'occurred_at']),
+            # Nuevos índices para campos añadidos
+            models.Index(fields=['session_id']),
+            models.Index(fields=['ip_address']),
+            models.Index(fields=['jtbd_stage']),
+            models.Index(fields=['duration_seconds']),
+            models.Index(fields=['source']),
+            # Índices compuestos para analytics
+            models.Index(fields=['touchpoint', 'occurred_at']),
+            models.Index(fields=['channel', 'occurred_at']),
+            models.Index(fields=['agent', 'occurred_at']),
+            models.Index(fields=['jtbd_stage', 'occurred_at']),
         ]
 
     def clean(self):
@@ -309,5 +321,38 @@ class Interaction(BaseUUIDModelWithActiveStatus):
     def resolved_organization(self):
         return self.organization or (self.agent.represents_organization if self.agent else None)
 
+    @property
+    def geographic_location(self):
+        """Retorna tupla (lat, lng) si ambas coordenadas están disponibles"""
+        if self.latitude is not None and self.longitude is not None:
+            return (float(self.latitude), float(self.longitude))
+        return None
+
+    @property
+    def has_duration(self):
+        """Indica si la interacción tiene duración medida"""
+        return self.duration_seconds is not None and self.duration_seconds > 0
+
+    @property
+    def duration_display(self):
+        """Formatea la duración para display humano"""
+        if not self.has_duration:
+            return "Sin duración"
+        
+        seconds = self.duration_seconds
+        if seconds < 60:
+            return f"{seconds}s"
+        elif seconds < 3600:
+            minutes = seconds // 60
+            remaining_seconds = seconds % 60
+            return f"{minutes}m {remaining_seconds}s" if remaining_seconds else f"{minutes}m"
+        else:
+            hours = seconds // 3600
+            remaining_minutes = (seconds % 3600) // 60
+            return f"{hours}h {remaining_minutes}m" if remaining_minutes else f"{hours}h"
+
     def __str__(self):
-        return f"Interacción de {self.person or self.organization} en {self.touchpoint}"
+        entity = self.resolved_person or self.resolved_organization
+        if entity:
+            return f"Interacción de {entity} en {self.touchpoint or 'punto no especificado'}"
+        return f"Interacción anónima en {self.touchpoint or 'punto no especificado'}"

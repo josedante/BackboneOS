@@ -1,0 +1,106 @@
+[
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f1",
+    "fields": {
+      "name": "Clic",
+      "code": "click",
+      "description": "El usuario hizo clic en un elemento",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fbf",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f2",
+    "fields": {
+      "name": "Vista de Página",
+      "code": "page_view",
+      "description": "El usuario visitó una página",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fbf",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f3",
+    "fields": {
+      "name": "Formulario Enviado",
+      "code": "form_submit",
+      "description": "El usuario envió un formulario",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fbf",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f4",
+    "fields": {
+      "name": "Llamada Telefónica",
+      "code": "phone_call",
+      "description": "Comunicación telefónica realizada",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fc0",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f5",
+    "fields": {
+      "name": "Mensaje WhatsApp",
+      "code": "whatsapp_msg",
+      "description": "Mensaje enviado o recibido por WhatsApp",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fc0",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f6",
+    "fields": {
+      "name": "Reunión Presencial",
+      "code": "meeting",
+      "description": "Encuentro presencial programado",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fc1",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f7",
+    "fields": {
+      "name": "Compra",
+      "code": "purchase",
+      "description": "Transacción de compra completada",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fc2",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.action",
+    "pk": "42361535-018a-464b-a445-4f356fc3d2f8",
+    "fields": {
+      "name": "Descarga",
+      "code": "download",
+      "description": "El usuario descargó un archivo",
+      "action_type": "975877cb-e92a-4671-a07d-25af42ae2fbf",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

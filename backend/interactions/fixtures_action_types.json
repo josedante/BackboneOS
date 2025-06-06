@@ -1,0 +1,50 @@
+[
+  {
+    "model": "interactions.actiontype",
+    "pk": "975877cb-e92a-4671-a07d-25af42ae2fbf",
+    "fields": {
+      "name": "Interacción Digital",
+      "code": "digital",
+      "description": "Acciones realizadas en canales digitales",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.actiontype",
+    "pk": "975877cb-e92a-4671-a07d-25af42ae2fc0",
+    "fields": {
+      "name": "Comunicación Telefónica",
+      "code": "phone_comm",
+      "description": "Comunicaciones por teléfono o mensajería",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.actiontype",
+    "pk": "975877cb-e92a-4671-a07d-25af42ae2fc1",
+    "fields": {
+      "name": "Interacción Presencial",
+      "code": "in_person",
+      "description": "Encuentros cara a cara",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "interactions.actiontype",
+    "pk": "975877cb-e92a-4671-a07d-25af42ae2fc2",
+    "fields": {
+      "name": "Transacción Comercial",
+      "code": "transaction",
+      "description": "Compras, pagos y transacciones",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]
