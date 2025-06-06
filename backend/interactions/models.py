@@ -50,8 +50,8 @@ class Agent(BaseUUIDModelWithActiveStatus):
         ]
 
     def clean(self):
-        if self.represents_person and self.represents_organization:
-            raise ValidationError("Un agente no puede representar simultáneamente a una persona y una organización.")
+        if self.operated_by and self.represents_person is None:
+            self.represents_person = self.operated_by
 
     def __str__(self):
         label = self.name or self.identifier or f"Agente ({self.get_agent_type_display()})"
@@ -251,19 +251,15 @@ class Interaction(BaseUUIDModelWithActiveStatus):
         ]
 
     def clean(self):
-        if self.person and self.agent:
+        if self.person is None and self.agent:
             expected = self.agent.represents_person or self.agent.operated_by
             if expected and self.person != expected:
-                raise ValidationError({
-                    'person': f"La persona indicada no coincide con la persona representada u operadora del agente ({expected})."
-                })
+                self.person = expected
 
-        if self.organization and self.agent:
+        if self.organization is None and self.agent:
             expected_org = self.agent.represents_organization
             if expected_org and self.organization != expected_org:
-                raise ValidationError({
-                    'organization': f"La organización indicada no coincide con la organización representada por el agente ({expected_org})."
-                })
+                self.organization = expected_org
 
         if not self.representative and self.touchpoint and self.touchpoint.assigned_staff:
             self.representative = self.touchpoint.assigned_staff
