@@ -9,6 +9,7 @@ from world.models import (
     WorldDescriptor,
 )
 
+
 class Agent(BaseUUIDModelWithActiveStatus):
     AGENT_TYPES = [
         ('browser', 'Navegador Web'),
@@ -49,12 +50,26 @@ class Agent(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['represents_organization']),
         ]
 
+    def generate_name(self):
+        if self.agent_type == 'browser':
+            return self.metadata.get('user_agent', '[navegador anónimo]')[:40] if self.metadata else '[navegador]'
+        elif self.agent_type == 'human':
+            return str(self.operated_by or self.represents_person or 'Humano')
+        elif self.agent_type == 'bot':
+            return f"Bot {self.identifier}" if self.identifier else 'Bot sin ID'
+        elif self.agent_type == 'system':
+            return f"Sistema externo ({self.identifier})" if self.identifier else 'Sistema externo'
+        return f"Agente ({self.get_agent_type_display()})"
+
     def clean(self):
-        if self.operated_by and self.represents_person is None:
-            self.represents_person = self.operated_by
+        if self.represents_person and self.represents_organization:
+            raise ValidationError("Un agente no puede representar simultáneamente a una persona y una organización.")
+
+        if not self.name:
+            self.name = self.generate_name()
 
     def __str__(self):
-        label = self.name or self.identifier or f"Agente ({self.get_agent_type_display()})"
+        label = self.name or self.generate_name()
         if self.represents_person:
             label += f" \u2194 {self.represents_person.full_name}"
         elif self.represents_organization:
@@ -212,8 +227,27 @@ class Interaction(BaseUUIDModelWithActiveStatus):
         related_name='interactions_represented',
         help_text="Miembro de la organización que ejecutó esta interacción"
     )
+    
+    payload = models.JSONField(blank=True, null=True)
+
     occurred_at = models.DateTimeField(null=True, blank=True)
     source = models.CharField(max_length=200, blank=True)
+
+    # Duración de la interacción
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+
+    # Contexto de sesión para agrupación
+    session_id = models.CharField(max_length=100, blank=True)
+
+    # Geolocalización
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    # Referrer y contexto
+    referrer_url = models.URLField(blank=True)
+    user_agent = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
     metadata = models.JSONField(blank=True, null=True)
 
     product = models.ForeignKey(
