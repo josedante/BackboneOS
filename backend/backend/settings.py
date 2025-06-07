@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'products',
     'entities',
     'interactions',
+    'our_institution',
 ]
 
 MIDDLEWARE = [

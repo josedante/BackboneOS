@@ -39,6 +39,50 @@ class OurOrganization(BaseUUIDModelWithActiveStatus):
             raise ValidationError("Solo puede haber una organización activa.")
 
 
+class Division(BaseUUIDModelWithActiveStatus):
+    """División estructural de la organización"""
+    organization = models.ForeignKey(OurOrganization, on_delete=models.CASCADE, related_name="divisions")
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "División"
+        verbose_name_plural = "Divisiones"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organization', 'name'], 
+                name='unique_division_name_per_org'
+            ),
+            models.UniqueConstraint(
+                fields=['organization', 'code'], 
+                name='unique_division_code_per_org'
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.organization.name})"
+    
+    @property
+    def units_count(self):
+        """Número de unidades en esta división"""
+        return self.units.filter(is_active=True).count()
+    
+    @property
+    def teams_count(self):
+        """Número de equipos en esta división"""
+        return self.teams.filter(is_active=True).count()
+    
+    @property
+    def positions_count(self):
+        """Número de posiciones en todas las unidades de esta división"""
+        count = 0
+        for unit in self.units.filter(is_active=True):
+            count += unit.positions.filter(is_active=True).count()
+        return count
+
+
 class Seat(BaseUUIDModelWithActiveStatus):
     """Sede física de la organización propietaria"""
     SEAT_TYPES = (
@@ -61,33 +105,95 @@ class Seat(BaseUUIDModelWithActiveStatus):
 
 
 class Unit(BaseUUIDModelWithActiveStatus):
-    """Unidad organizativa dentro de la organización propietaria"""
+    """Unidad organizativa dentro de una división"""
+    division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name="units")
     name = models.CharField(max_length=200)
+    code = models.CharField(max_length=20, verbose_name="Código de la unidad")
     description = models.TextField(null=True, blank=True)
     parent = models.ForeignKey("self", related_name="children", null=True, blank=True, on_delete=models.SET_NULL)
 
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Unidad"
+        verbose_name_plural = "Unidades"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['division', 'code'], 
+                name='unique_unit_code_per_division'
+            ),
+        ]
+
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.division.name})"
+    
+    @property
+    def positions_count(self):
+        """Número de cargos en esta unidad"""
+        return self.positions.filter(is_active=True).count()
+
+    @property
+    def full_path(self):
+        """Ruta completa de la unidad incluyendo división y jerarquía"""
+        path_parts = []
+        if self.division:
+            path_parts.append(self.division.name)
+        
+        # Construir jerarquía de unidades
+        ancestors = []
+        current = self
+        while current.parent:
+            ancestors.append(current.parent.name)
+            current = current.parent
+        
+        path_parts.extend(reversed(ancestors))
+        path_parts.append(self.name)
+        
+        return " > ".join(path_parts)
 
 
 class Position(BaseUUIDModelWithActiveStatus):
     """Posición o cargo dentro de una unidad organizativa"""
-    title = models.CharField(max_length=200)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="positions")
+    name = models.CharField(max_length=200, verbose_name="Nombre del cargo")
+    code = models.CharField(max_length=20, verbose_name="Código del cargo")
     description = models.TextField(null=True, blank=True)
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Posición"
+        verbose_name_plural = "Posiciones"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['unit', 'code'], 
+                name='unique_position_code_per_unit'
+            ),
+        ]
 
     def __str__(self):
-        return self.title
+        return f"{self.name} - {self.unit.name}"
 
 
 class Team(BaseUUIDModelWithActiveStatus):
-    """Equipo de trabajo dentro de la organización propietaria"""
-    name = models.CharField(max_length=190, unique=True)
-    code = models.CharField(max_length=20, unique=True, default=uuid.uuid4)
-
-    def __str__(self):
-        return self.name
+    """Equipo de trabajo dentro de una división"""
+    division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name="teams")
+    name = models.CharField(max_length=190)
+    code = models.CharField(max_length=20, verbose_name="Código del equipo")
+    description = models.TextField(blank=True)
 
     class Meta:
-        verbose_name = "equipo"
-        verbose_name_plural = "equipos"
+        ordering = ['name']
+        verbose_name = "Equipo"
+        verbose_name_plural = "Equipos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['division', 'code'], 
+                name='unique_team_code_per_division'
+            ),
+            models.UniqueConstraint(
+                fields=['division', 'name'], 
+                name='unique_team_name_per_division'
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.division.name})"
