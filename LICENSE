@@ -1,0 +1,53 @@
+MIT License
+
+Copyright (c) 2025 The Backbone Group LTD
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Política de Uso Comercial
+
+BackboneOS es un sistema CRM de código abierto diseñado para ser el sistema operativo
+empresarial centrado en la creación de clientes, según la filosofía de Peter Drucker.
+
+### Términos Específicos para BackboneOS:
+
+1. **Uso Libre**: Este software puede ser usado libremente para propósitos comerciales
+   y no comerciales bajo los términos de la licencia MIT.
+
+2. **Atribución**: Se requiere mantener el aviso de copyright y esta licencia en todas
+   las copias o partes sustanciales del software.
+
+3. **Marca Registrada**: "BackboneOS" y "Backbone Operating Systems" son marcas
+   registradas. El uso de estas marcas requiere autorización explícita.
+
+4. **Contribuciones**: Las contribuciones al proyecto se consideran bajo la misma
+   licencia MIT, a menos que se especifique lo contrario.
+
+5. **Servicios Profesionales**: Para servicios de implementación, consultoría o
+   soporte comercial, contactar: info@backboneos.com
+
+### Reconocimientos:
+
+- Inspirado en la filosofía empresarial de Peter Drucker
+- Construido con Django, Nuxt.js, PostgreSQL y tecnologías de código abierto
+- Desarrollado por la comunidad para la comunidad empresarial
+
+Para más información visite: https://backboneos.com/
