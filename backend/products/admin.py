@@ -7,6 +7,24 @@ from django.utils.safestring import mark_safe
 from .models import Division, ProductCategory, Modality, Customization, Product
 
 
+class HasCanonicalUrlFilter(admin.SimpleListFilter):
+    title = 'URL Canónica'
+    parameter_name = 'has_canonical_url'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Con URL'),
+            ('no', 'Sin URL'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.exclude(canonical_url__isnull=True).exclude(canonical_url='')
+        if self.value() == 'no':
+            return queryset.filter(Q(canonical_url__isnull=True) | Q(canonical_url=''))
+        return queryset
+
+
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'categories_count', 'products_count', 'is_active')
@@ -116,14 +134,15 @@ class CustomizationAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         'name', 'code', 'category', 'price_display', 'duration_display', 
-        'target_audience_summary', 'modalities_summary', 'is_customizable', 'is_active'
+        'target_audience_summary', 'modalities_summary', 'is_customizable', 
+        'has_canonical_url_display', 'is_active'
     )
     list_filter = (
         'is_active', 'category', 'modalities', 'currency_code',
-        'target_segments', 'related_industries', 'customization'
+        'target_segments', 'related_industries', 'customization', HasCanonicalUrlFilter
     )
     search_fields = (
-        'name', 'code', 'description',
+        'name', 'code', 'description', 'canonical_url',
         'category__name', 'tags__name',
         'target_segments__name', 'related_industries__name'
     )
@@ -132,7 +151,7 @@ class ProductAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('name', 'code', 'description', 'category')
+            'fields': ('name', 'code', 'description', 'canonical_url', 'category')
         }),
         ('Configuración del Producto', {
             'fields': ('modalities', 'customization', 'duration')
@@ -202,6 +221,16 @@ class ProductAdmin(admin.ModelAdmin):
         return format_html('<span style="color: gray;">✗ Estándar</span>')
     is_customizable.short_description = 'Personalizable'
     is_customizable.admin_order_field = 'customization'
+
+    def has_canonical_url_display(self, obj):
+        if obj.canonical_url:
+            return format_html(
+                '<a href="{}" target="_blank" style="color: green;">✓ Ver URL</a>', 
+                obj.canonical_url
+            )
+        return format_html('<span style="color: gray;">✗ Sin URL</span>')
+    has_canonical_url_display.short_description = 'URL Canónica'
+    has_canonical_url_display.admin_order_field = 'canonical_url'
     
     # Acciones personalizadas
     actions = ['make_active', 'make_inactive', 'duplicate_product']

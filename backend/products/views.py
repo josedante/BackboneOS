@@ -199,6 +199,7 @@ class ProductFilter(django_filters.FilterSet):
     # Filtros booleanos
     is_customizable = django_filters.BooleanFilter(method='filter_customizable')
     has_price = django_filters.BooleanFilter(method='filter_has_price')
+    has_canonical_url = django_filters.BooleanFilter(method='filter_has_canonical_url')
     
     # Búsqueda semántica en descriptores
     semantic_search = django_filters.CharFilter(method='filter_semantic_search')
@@ -251,6 +252,13 @@ class ProductFilter(django_filters.FilterSet):
             return queryset.filter(base_price__isnull=False)
         else:
             return queryset.filter(base_price__isnull=True)
+    
+    def filter_has_canonical_url(self, queryset, name, value):
+        """Filtrar productos con/sin URL canónica"""
+        if value:
+            return queryset.filter(canonical_url__isnull=False)
+        else:
+            return queryset.filter(canonical_url__isnull=True)
     
     def filter_semantic_search(self, queryset, name, value):
         """Búsqueda semántica en descriptores y tags"""
@@ -356,7 +364,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_active=True)
     filterset_class = ProductFilter
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'code', 'description', 'category__name', 'tags__name']
+    search_fields = ['name', 'code', 'description', 'canonical_url', 'category__name', 'tags__name']
     ordering_fields = ['name', 'code', 'base_price', 'created_at', 'updated_at']
     ordering = ['name']
     permission_classes = [ProductViewPermission]

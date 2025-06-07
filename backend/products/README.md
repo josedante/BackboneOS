@@ -87,6 +87,7 @@ class Product(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=200, unique=True)
     code = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
+    canonical_url = models.URLField(max_length=500, blank=True, null=True)
 
     # Clasificación y configuración
     category = models.ForeignKey(ProductCategory, ...)
@@ -110,6 +111,7 @@ class Product(BaseUUIDModelWithActiveStatus):
 **Propiedades Calculadas:**
 
 - `is_customizable`: Verifica si permite personalización
+- `has_canonical_url`: Verifica si tiene URL canónica configurada
 - `price_display`: Precio formateado con moneda
 - `duration_display`: Duración en formato legible
 - `get_target_audience()`: Descripción del público objetivo
@@ -164,12 +166,14 @@ class Product(BaseUUIDModelWithActiveStatus):
 - Moneda específica
 - Productos personalizables/estándar
 - Productos con/sin precio definido
+- Productos con/sin URL canónica
 
 #### Búsqueda Semántica
 
 ```python
-# Búsqueda en descriptores, tags y contenido
+# Búsqueda en descriptores, tags, contenido y URLs canónicas
 ?semantic_search=python+data+science
+?search=https://empresa.com  # Búsqueda por URL canónica
 ```
 
 ### Serializers Optimizados
@@ -180,7 +184,8 @@ class Product(BaseUUIDModelWithActiveStatus):
 # Campos incluidos para performance en listados
 ['id', 'name', 'code', 'category_name', 'division_name',
  'price_display', 'duration_display', 'modalities_summary',
- 'is_customizable', 'target_audience_summary']
+ 'is_customizable', 'has_canonical_url', 'canonical_url',
+ 'target_audience_summary']
 ```
 
 #### **ProductDetailSerializer** - Vista Completa
@@ -189,6 +194,7 @@ class Product(BaseUUIDModelWithActiveStatus):
 # Incluye todas las relaciones y propiedades calculadas
 + related_industries, related_skills, target_segments
 + descriptors, tags, full_path, absolute_level
++ canonical_url, has_canonical_url
 ```
 
 #### **ProductCreateUpdateSerializer** - Operaciones de Escritura
@@ -340,6 +346,12 @@ def clean(self):
         raise ValidationError({'base_price': 'El precio debe ser mayor a 0'})
 ```
 
+#### Campos de Referencia Externa
+
+- **`canonical_url`**: URL externa opcional que referencia la página oficial del producto
+- **`has_canonical_url`**: Propiedad calculada que indica si el producto tiene URL canónica configurada
+- Filtro administrativo `HasCanonicalUrlFilter` para productos con/sin URL canónica
+
 ### Interface Administrativa Optimizada
 
 #### Listas con Información Relevante
@@ -347,7 +359,8 @@ def clean(self):
 ```python
 list_display = (
     'name', 'code', 'category', 'price_display', 'duration_display',
-    'target_audience_summary', 'modalities_summary', 'is_customizable'
+    'target_audience_summary', 'modalities_summary', 'is_customizable',
+    'has_canonical_url_display'
 )
 ```
 
@@ -356,7 +369,8 @@ list_display = (
 ```python
 list_filter = (
     'is_active', 'category', 'modalities', 'currency_code',
-    'target_segments', 'related_industries', 'customization'
+    'target_segments', 'related_industries', 'customization',
+    HasCanonicalUrlFilter
 )
 ```
 

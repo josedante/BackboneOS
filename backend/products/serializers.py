@@ -91,6 +91,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     duration_display = serializers.ReadOnlyField()
     target_audience = serializers.SerializerMethodField()
     modalities_display = serializers.SerializerMethodField()
+    has_canonical_url = serializers.ReadOnlyField()
     
     # Contadores
     skills_count = serializers.SerializerMethodField()
@@ -100,10 +101,10 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'code', 'description', 'category', 'category_name', 
+            'id', 'name', 'code', 'description', 'canonical_url', 'category', 'category_name', 
             'category_full_path', 'customization_name', 'duration', 'base_price', 
             'currency_code', 'price_display', 'duration_display', 'target_audience',
-            'modalities_display', 'skills_count', 'industries_count', 'segments_count',
+            'modalities_display', 'has_canonical_url', 'skills_count', 'industries_count', 'segments_count',
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -143,6 +144,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     price_display = serializers.ReadOnlyField()
     duration_display = serializers.ReadOnlyField()
     is_customizable = serializers.ReadOnlyField()
+    has_canonical_url = serializers.ReadOnlyField()
     skills_summary = serializers.SerializerMethodField()
     
     # IDs para escritura
@@ -173,14 +175,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'code', 'description', 'category', 'category_id',
+            'id', 'name', 'code', 'description', 'canonical_url', 'category', 'category_id',
             'modalities', 'modalities_ids', 'customization', 'customization_id',
             'duration', 'base_price', 'currency_code', 'target_segments',
             'target_segments_ids', 'related_industries', 'related_industries_ids',
             'related_functions', 'related_functions_ids', 'related_skills',
             'related_skills_ids', 'descriptors', 'descriptors_ids', 'tags',
             'tags_ids', 'price_display', 'duration_display', 'is_customizable',
-            'skills_summary', 'is_active', 'created_at', 'updated_at'
+            'has_canonical_url', 'skills_summary', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -270,7 +272,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'name', 'code', 'description', 'category', 'modalities',
+            'name', 'code', 'description', 'canonical_url', 'category', 'modalities',
             'customization', 'duration', 'base_price', 'currency_code',
             'target_segments', 'related_industries', 'related_functions',
             'related_skills', 'descriptors', 'tags', 'is_active'

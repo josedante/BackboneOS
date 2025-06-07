@@ -177,6 +177,13 @@ class Product(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=200, unique=True)
     code = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
+    canonical_url = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name="URL del producto",
+        help_text="Página principal donde se presenta este producto"
+    )
+
 
     category = models.ForeignKey(ProductCategory, null=True, blank=True, on_delete=models.SET_NULL)
     modalities = models.ManyToManyField(Modality, blank=True)
@@ -239,6 +246,11 @@ class Product(BaseUUIDModelWithActiveStatus):
     def is_customizable(self):
         """Verifica si el producto permite personalización"""
         return self.customization is not None
+
+    @property
+    def has_canonical_url(self):
+        """Verifica si el producto tiene URL canónica"""
+        return bool(self.canonical_url)
 
     @property
     def price_display(self):
