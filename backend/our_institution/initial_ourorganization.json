@@ -1,0 +1,20 @@
+[
+  {
+    "model": "our_institution.ourorganization",
+    "pk": "00000000-0000-0000-0000-000000000001",
+    "fields": {
+      "name": "BackboneOS",
+      "legal_name": "Backbone Operating Systems SAC",
+      "org_type": null,
+      "industry": null,
+      "tax_id": "20500000000",
+      "country": null,
+      "website": "https://backboneos.com",
+      "logo": null,
+      "email": "contacto@backboneos.com",
+      "phone": "+5111234567",
+      "address": "Av. Principal 123, Lima",
+      "is_active": true
+    }
+  }
+]
