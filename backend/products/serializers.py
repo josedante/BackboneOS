@@ -97,6 +97,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     skills_count = serializers.SerializerMethodField()
     industries_count = serializers.SerializerMethodField()
     segments_count = serializers.SerializerMethodField()
+    included_products_count = serializers.SerializerMethodField()
+    is_bundle = serializers.ReadOnlyField()
 
     class Meta:
         model = Product
@@ -105,7 +107,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             'category_full_path', 'customization_name', 'duration', 'base_price', 
             'currency_code', 'price_display', 'duration_display', 'target_audience',
             'modalities_display', 'has_canonical_url', 'skills_count', 'industries_count', 'segments_count',
-            'is_active', 'created_at', 'updated_at'
+            'included_products_count', 'is_bundle', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -124,6 +126,9 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_segments_count(self, obj):
         return obj.target_segments.count()
 
+    def get_included_products_count(self, obj):
+        return obj.included_products.filter(is_active=True).count()
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     """Serializer completo para detalles de productos"""
@@ -140,11 +145,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     descriptors = WorldDescriptorSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     
+    # Productos incluidos
+    included_products = serializers.SerializerMethodField()
+    parent_products = serializers.SerializerMethodField()
+    
     # Propiedades calculadas
     price_display = serializers.ReadOnlyField()
     duration_display = serializers.ReadOnlyField()
     is_customizable = serializers.ReadOnlyField()
     has_canonical_url = serializers.ReadOnlyField()
+    is_bundle = serializers.ReadOnlyField()
+    bundle_price_display = serializers.ReadOnlyField()
     skills_summary = serializers.SerializerMethodField()
     
     # IDs para escritura
@@ -171,6 +182,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     tags_ids = serializers.ListField(
         child=serializers.UUIDField(), write_only=True, required=False
     )
+    included_products_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False
+    )
 
     class Meta:
         model = Product
@@ -181,13 +195,24 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'target_segments_ids', 'related_industries', 'related_industries_ids',
             'related_functions', 'related_functions_ids', 'related_skills',
             'related_skills_ids', 'descriptors', 'descriptors_ids', 'tags',
-            'tags_ids', 'price_display', 'duration_display', 'is_customizable',
-            'has_canonical_url', 'skills_summary', 'is_active', 'created_at', 'updated_at'
+            'tags_ids', 'included_products', 'included_products_ids', 'parent_products',
+            'price_display', 'duration_display', 'is_customizable', 'bundle_price_display',
+            'has_canonical_url', 'is_bundle', 'skills_summary', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def get_skills_summary(self, obj):
         return obj.get_related_skills_summary()
+
+    def get_included_products(self, obj):
+        """Serializa los productos incluidos activos"""
+        included = obj.included_products.filter(is_active=True)
+        return ProductListSerializer(included, many=True, context=self.context).data
+
+    def get_parent_products(self, obj):
+        """Serializa los productos que incluyen a este producto"""
+        parents = obj.included_in_products.filter(is_active=True)
+        return ProductListSerializer(parents, many=True, context=self.context).data
 
     def create(self, validated_data):
         # Extraer IDs de relaciones M2M
@@ -198,6 +223,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         related_skills_ids = validated_data.pop('related_skills_ids', [])
         descriptors_ids = validated_data.pop('descriptors_ids', [])
         tags_ids = validated_data.pop('tags_ids', [])
+        included_products_ids = validated_data.pop('included_products_ids', [])
         
         # Asignar IDs de FK
         if 'category_id' in validated_data:
@@ -223,6 +249,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             product.descriptors.set(descriptors_ids)
         if tags_ids:
             product.tags.set(tags_ids)
+        if included_products_ids:
+            product.included_products.set(included_products_ids)
 
         return product
 
@@ -235,6 +263,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         related_skills_ids = validated_data.pop('related_skills_ids', None)
         descriptors_ids = validated_data.pop('descriptors_ids', None)
         tags_ids = validated_data.pop('tags_ids', None)
+        included_products_ids = validated_data.pop('included_products_ids', None)
         
         # Asignar IDs de FK
         if 'category_id' in validated_data:
@@ -262,6 +291,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             instance.descriptors.set(descriptors_ids)
         if tags_ids is not None:
             instance.tags.set(tags_ids)
+        if included_products_ids is not None:
+            instance.included_products.set(included_products_ids)
 
         return instance
 
@@ -273,7 +304,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'name', 'code', 'description', 'canonical_url', 'category', 'modalities',
-            'customization', 'duration', 'base_price', 'currency_code',
+            'customization', 'duration', 'base_price', 'currency_code', 'included_products',
             'target_segments', 'related_industries', 'related_functions',
             'related_skills', 'descriptors', 'tags', 'is_active'
         ]

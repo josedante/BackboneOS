@@ -89,6 +89,12 @@ class Product(BaseUUIDModelWithActiveStatus):
     description = models.TextField(blank=True)
     canonical_url = models.URLField(max_length=500, blank=True, null=True)
 
+    # Productos incluidos (Bundle System)
+    included_products = models.ManyToManyField('self',
+                                               symmetrical=False,
+                                               blank=True,
+                                               related_name='included_in_products')
+
     # Clasificación y configuración
     category = models.ForeignKey(ProductCategory, ...)
     modalities = models.ManyToManyField(Modality, ...)
@@ -112,10 +118,15 @@ class Product(BaseUUIDModelWithActiveStatus):
 
 - `is_customizable`: Verifica si permite personalización
 - `has_canonical_url`: Verifica si tiene URL canónica configurada
+- `is_bundle`: Verifica si es un bundle (tiene productos incluidos)
+- `is_included_in_bundles`: Verifica si está incluido en otros productos
 - `price_display`: Precio formateado con moneda
+- `bundle_price_display`: Precio total del bundle (producto + incluidos)
 - `duration_display`: Duración en formato legible
 - `get_target_audience()`: Descripción del público objetivo
 - `get_modalities_display()`: Modalidades como string
+- `get_included_products_display()`: Productos incluidos como string
+- `get_total_included_price()`: Precio total de productos incluidos
 
 ## 🌐 API REST Completa
 
@@ -142,6 +153,11 @@ class Product(BaseUUIDModelWithActiveStatus):
 /api/products/products/stats/               # Estadísticas de productos
 /api/products/products/search_advanced/     # Búsqueda semántica avanzada
 /api/products/products/{id}/duplicate/      # Duplicación de productos
+/api/products/products/{id}/included_products/        # Productos incluidos
+/api/products/products/{id}/add_included_product/     # Agregar producto incluido
+/api/products/products/{id}/remove_included_product/  # Remover producto incluido
+/api/products/products/{id}/parent_products/          # Productos padre (que incluyen este)
+/api/products/products/{id}/bundle_info/              # Información completa del bundle
 ```
 
 ### Sistema de Filtrado Avanzado
@@ -185,7 +201,7 @@ class Product(BaseUUIDModelWithActiveStatus):
 ['id', 'name', 'code', 'category_name', 'division_name',
  'price_display', 'duration_display', 'modalities_summary',
  'is_customizable', 'has_canonical_url', 'canonical_url',
- 'target_audience_summary']
+ 'target_audience_summary', 'included_products_count', 'is_bundle']
 ```
 
 #### **ProductDetailSerializer** - Vista Completa
@@ -195,6 +211,7 @@ class Product(BaseUUIDModelWithActiveStatus):
 + related_industries, related_skills, target_segments
 + descriptors, tags, full_path, absolute_level
 + canonical_url, has_canonical_url
++ included_products, parent_products, bundle_price_display, is_bundle
 ```
 
 #### **ProductCreateUpdateSerializer** - Operaciones de Escritura

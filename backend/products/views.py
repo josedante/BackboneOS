@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.db.models import Q, Count, Avg, Min, Max, Prefetch
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.core.exceptions import ValidationError
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -506,6 +507,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         new_product.save()
         
         # Copiar relaciones M2M
+        new_product.included_products.set(product.included_products.all())
         new_product.modalities.set(product.modalities.all())
         new_product.target_segments.set(product.target_segments.all())
         new_product.related_industries.set(product.related_industries.all())
@@ -516,3 +518,110 @@ class ProductViewSet(viewsets.ModelViewSet):
         
         serializer = ProductDetailSerializer(new_product, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['get'])
+    def included_products(self, request, pk=None):
+        """Obtener productos incluidos en este producto"""
+        product = self.get_object()
+        included = product.included_products.filter(is_active=True)
+        
+        # Aplicar paginación
+        page = self.paginate_queryset(included)
+        if page is not None:
+            serializer = ProductListSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = ProductListSerializer(included, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def add_included_product(self, request, pk=None):
+        """Agregar un producto a la lista de incluidos"""
+        product = self.get_object()
+        included_product_id = request.data.get('product_id')
+        
+        if not included_product_id:
+            return Response(
+                {'error': 'product_id es requerido'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            included_product = Product.objects.get(id=included_product_id, is_active=True)
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Producto no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            success = product.add_included_product(included_product)
+            if success:
+                return Response({'message': 'Producto agregado exitosamente'})
+            else:
+                return Response(
+                    {'message': 'El producto ya está incluido'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=True, methods=['delete'])
+    def remove_included_product(self, request, pk=None):
+        """Remover un producto de la lista de incluidos"""
+        product = self.get_object()
+        included_product_id = request.data.get('product_id') or request.query_params.get('product_id')
+        
+        if not included_product_id:
+            return Response(
+                {'error': 'product_id es requerido'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            included_product = Product.objects.get(id=included_product_id)
+            product.remove_included_product(included_product)
+            return Response({'message': 'Producto removido exitosamente'})
+        except Product.DoesNotExist:
+            return Response(
+                {'error': 'Producto no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=True, methods=['get'])
+    def parent_products(self, request, pk=None):
+        """Obtener productos que incluyen a este producto"""
+        product = self.get_object()
+        parents = product.included_in_products.filter(is_active=True)
+        
+        # Aplicar paginación
+        page = self.paginate_queryset(parents)
+        if page is not None:
+            serializer = ProductListSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = ProductListSerializer(parents, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def bundle_info(self, request, pk=None):
+        """Información completa del bundle (producto + incluidos)"""
+        product = self.get_object()
+        
+        bundle_data = {
+            'main_product': ProductDetailSerializer(product, context={'request': request}).data,
+            'included_products': ProductListSerializer(
+                product.included_products.filter(is_active=True), 
+                many=True, 
+                context={'request': request}
+            ).data,
+            'total_included_price': product.get_total_included_price(),
+            'bundle_price_display': product.get_bundle_price_display(),
+            'is_bundle': product.is_bundle,
+            'included_count': product.included_products.filter(is_active=True).count()
+        }
+        
+        return Response(bundle_data)

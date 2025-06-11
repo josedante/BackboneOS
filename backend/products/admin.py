@@ -25,6 +25,27 @@ class HasCanonicalUrlFilter(admin.SimpleListFilter):
         return queryset
 
 
+class IsBundleFilter(admin.SimpleListFilter):
+    title = 'Tipo de Producto'
+    parameter_name = 'is_bundle'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('bundle', 'Bundles (con productos incluidos)'),
+            ('individual', 'Productos individuales'),
+            ('included', 'Incluidos en otros productos'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'bundle':
+            return queryset.filter(included_products__isnull=False).distinct()
+        if self.value() == 'individual':
+            return queryset.filter(included_products__isnull=True, included_in_products__isnull=True)
+        if self.value() == 'included':
+            return queryset.filter(included_in_products__isnull=False).distinct()
+        return queryset
+
+
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'categories_count', 'products_count', 'is_active')
@@ -134,12 +155,12 @@ class CustomizationAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         'name', 'code', 'category', 'price_display', 'duration_display', 
-        'target_audience_summary', 'modalities_summary', 'is_customizable', 
-        'has_canonical_url_display', 'is_active'
+        'target_audience_summary', 'modalities_summary', 'included_products_count',
+        'is_bundle_display', 'is_customizable', 'has_canonical_url_display', 'is_active'
     )
     list_filter = (
         'is_active', 'category', 'modalities', 'currency_code',
-        'target_segments', 'related_industries', 'customization', HasCanonicalUrlFilter
+        'target_segments', 'related_industries', 'customization', HasCanonicalUrlFilter, IsBundleFilter
     )
     search_fields = (
         'name', 'code', 'description', 'canonical_url',
@@ -152,6 +173,10 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Información Básica', {
             'fields': ('name', 'code', 'description', 'canonical_url', 'category')
+        }),
+        ('Productos Incluidos', {
+            'fields': ('included_products',),
+            'description': 'Otros productos que están incluidos conceptualmente dentro de este producto'
         }),
         ('Configuración del Producto', {
             'fields': ('modalities', 'customization', 'duration')
@@ -178,7 +203,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     
     filter_horizontal = (
-        'modalities', 'target_segments', 'related_industries',
+        'included_products', 'modalities', 'target_segments', 'related_industries',
         'related_functions', 'related_skills', 'descriptors', 'tags'
     )
     
@@ -188,7 +213,7 @@ class ProductAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'category', 'customization'
         ).prefetch_related(
-            'modalities', 'target_segments', 'related_industries',
+            'included_products', 'modalities', 'target_segments', 'related_industries',
             'related_functions', 'related_skills', 'tags'
         )
     
@@ -211,6 +236,26 @@ class ProductAdmin(admin.ModelAdmin):
             names.append(f"(+{extra})")
         return ', '.join(names) if names else 'No especificada'
     modalities_summary.short_description = 'Modalidades'
+    
+    def included_products_count(self, obj):
+        count = obj.included_products.filter(is_active=True).count()
+        if count > 0:
+            return format_html(
+                '<span style="color: green;">✓ {} producto{}</span>',
+                count, 's' if count > 1 else ''
+            )
+        return format_html('<span style="color: gray;">✗ Ninguno</span>')
+    included_products_count.short_description = 'Productos Incluidos'
+    
+    def is_bundle_display(self, obj):
+        if obj.is_bundle:
+            bundle_price = obj.get_bundle_price_display()
+            return format_html(
+                '<span style="color: blue;">📦 Bundle<br/><small>{}</small></span>',
+                bundle_price
+            )
+        return format_html('<span style="color: gray;">Producto Individual</span>')
+    is_bundle_display.short_description = 'Tipo'
     
     def is_customizable(self, obj):
         if obj.customization:
@@ -255,6 +300,7 @@ class ProductAdmin(admin.ModelAdmin):
             new_product.save()
             
             # Copiar relaciones M2M
+            new_product.included_products.set(product.included_products.all())
             new_product.modalities.set(product.modalities.all())
             new_product.target_segments.set(product.target_segments.all())
             new_product.related_industries.set(product.related_industries.all())

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 from backend.models import BaseUUIDModelWithActiveStatus
@@ -183,6 +184,13 @@ class Product(BaseUUIDModelWithActiveStatus):
         verbose_name="URL del producto",
         help_text="Página principal donde se presenta este producto"
     )
+    included_products = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='included_in_products',
+        help_text="Otros productos incluidos conceptualmente dentro de este"
+    )
 
 
     category = models.ForeignKey(ProductCategory, null=True, blank=True, on_delete=models.SET_NULL)
@@ -235,7 +243,6 @@ class Product(BaseUUIDModelWithActiveStatus):
         
         # Validar precio positivo
         if self.base_price is not None and self.base_price <= Decimal('0'):
-            from django.core.exceptions import ValidationError
             raise ValidationError({'base_price': 'El precio debe ser mayor a 0'})
 
     def save(self, *args, **kwargs):
@@ -298,3 +305,58 @@ class Product(BaseUUIDModelWithActiveStatus):
             skill_types[skill_type].append(skill['name'])
         
         return skill_types
+
+    # Métodos para manejar productos incluidos
+    def get_included_products_list(self):
+        """Obtiene la lista de productos incluidos activos"""
+        return self.included_products.filter(is_active=True)
+
+    def get_included_products_display(self):
+        """Productos incluidos como string para mostrar"""
+        included = list(self.included_products.filter(is_active=True).values_list('name', flat=True))
+        return ', '.join(included) if included else 'Ninguno'
+
+    def get_parent_products(self):
+        """Obtiene los productos que incluyen a este producto"""
+        return self.included_in_products.filter(is_active=True)
+
+    def add_included_product(self, product):
+        """Agrega un producto a la lista de incluidos con validación"""
+        if product == self:
+            raise ValidationError("Un producto no puede incluirse a sí mismo")
+        
+        if product in self.get_included_products_list():
+            return False  # Ya está incluido
+        
+        self.included_products.add(product)
+        return True
+
+    def remove_included_product(self, product):
+        """Remueve un producto de la lista de incluidos"""
+        self.included_products.remove(product)
+
+    def get_total_included_price(self):
+        """Calcula el precio total de todos los productos incluidos"""
+        included_products = self.get_included_products_list().filter(base_price__isnull=False)
+        total = sum(product.base_price for product in included_products)
+        return total if total > 0 else None
+
+    def get_bundle_price_display(self):
+        """Muestra el precio del bundle (producto principal + incluidos)"""
+        main_price = self.base_price or 0
+        included_price = self.get_total_included_price() or 0
+        total = main_price + included_price
+        
+        if total > 0:
+            return f"{self.currency_code} {total:,.2f} (incluye {len(self.get_included_products_list())} productos)"
+        return self.price_display
+
+    @property
+    def is_bundle(self):
+        """Verifica si este producto es un bundle (tiene productos incluidos)"""
+        return self.included_products.filter(is_active=True).exists()
+
+    @property
+    def is_included_in_bundles(self):
+        """Verifica si este producto está incluido en otros productos"""
+        return self.included_in_products.filter(is_active=True).exists()
