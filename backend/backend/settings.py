@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'entities',
     'interactions',
     'our_institution',
+    'offers',
 ]
 
 MIDDLEWARE = [

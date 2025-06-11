@@ -73,6 +73,16 @@ Proyecto-OpenSource/
 │       ├── fixtures/          # Datos iniciales para mediums, channels, actions
 │       ├── tests.py           # Suite de pruebas 100% exitosa
 │       └── README.md          # Documentación técnica completa (746 líneas)
+│   └── offers/                # ✅ App de OFERTAS COMERCIALES COMPLETA
+│       ├── models.py          # ProductOffering con segmentación semántica
+│       ├── views.py           # ViewSet con 10 endpoints + analytics empresariales
+│       ├── serializers.py     # 5 serializers contextuales optimizados
+│       ├── admin.py           # Interface administrativa con acciones en lote
+│       ├── urls.py            # 10 endpoints API completamente funcionales
+│       ├── migrations/        # Migraciones con índices estratégicos
+│       ├── tests.py           # Tests unitarios y de integración
+│       ├── README.md          # Documentación del sistema de ofertas
+│       └── COMPLETION_REPORT.md # Reporte completo de implementación
 ├── frontend/                  # Frontend Nuxt.js COMPLETO
 │   ├── composables/
 │   │   └── useAuth.ts        # ✅ Sistema auth completo
@@ -780,6 +790,286 @@ python manage.py loaddata interactions/initial_actions.json
 - **ROI Medible**: Métricas precisas de performance de touchpoints y canales
 - **Automatización Inteligente**: Base para workflows automatizados basados en comportamiento
 
+### ✅ Aplicación Offers - Sistema de Gestión de Ofertas Comerciales (COMPLETA)
+
+La aplicación `offers` es el **sistema central de gestión de ofertas comerciales** de BackboneOS. Proporciona un framework completo para crear, gestionar y analizar todas las ofertas de productos con segmentación semántica avanzada, pricing dinámico y analytics empresariales.
+
+#### **Concepto de Sistema de Ofertas en BackboneOS**
+
+Un **sistema de ofertas** gestiona la comercialización de productos del catálogo bajo condiciones específicas de precio, temporalidad, canales y audiencia. La app `offers` actúa como:
+
+- **Centro de Comercialización**: Gestión completa de ofertas activas de la organización
+- **Motor de Pricing**: Precios específicos y condiciones comerciales por oferta
+- **Sistema Temporal**: Ofertas con vigencia limitada y renovación automática
+- **Hub de Segmentación**: Targeting por canales, industrias, funciones y geografía
+- **Analytics Comercial**: Insights de performance y ROI por oferta
+
+#### **Modelo Principal: ProductOffering**
+
+**Características Centrales:**
+
+- `ProductOffering`: Oferta comercial con precio específico, temporalidad y segmentación
+- Integración directa con `products.Product` como base de la oferta
+- Soporte para suscripciones con `auto_renew` y `duration_days`
+- Segmentación por `channels`, `seats`, `target_segments`
+- Metadata JSON para configuraciones avanzadas de campaña
+
+#### **Integración Semántica Multi-App**
+
+**Integración con Products App:**
+
+```python
+# Base del producto ofertado
+product = models.ForeignKey('products.Product', on_delete=models.PROTECT)
+```
+
+**Integración con World App:**
+
+```python
+# Segmentación semántica empresarial
+target_segments = models.ManyToManyField('world.MarketSegment', blank=True)
+related_industries = models.ManyToManyField('world.Industry', blank=True)
+related_functions = models.ManyToManyField('world.FunctionOrResponsibility', blank=True)
+descriptors = models.ManyToManyField('world.WorldDescriptor', blank=True)
+tags = models.ManyToManyField('world.Tag', blank=True)
+```
+
+**Integración con Interactions App:**
+
+```python
+# Canales de comercialización
+channels = models.ManyToManyField('interactions.Channel', blank=True)
+```
+
+**Integración con Our Institution App:**
+
+```python
+# Limitación geográfica por sedes
+seats = models.ManyToManyField('our_institution.Seat', blank=True)
+```
+
+#### **API REST Completa - 10 Endpoints**
+
+**Gestión Central de Ofertas:**
+
+```
+GET/POST    /api/offers/offerings/              # CRUD completo
+GET/PUT/DEL /api/offers/offerings/{id}/         # Detalle y operaciones
+GET         /api/offers/offerings/choices/      # Choices para formularios
+```
+
+**Endpoints Especializados:**
+
+```
+GET         /api/offers/offerings/currently_valid/    # Ofertas actualmente válidas
+GET         /api/offers/offerings/by_product/         # Ofertas por producto
+GET         /api/offers/offerings/by_channel/         # Ofertas por canal
+GET         /api/offers/offerings/analytics/          # Analytics empresariales
+POST        /api/offers/offerings/{id}/duplicate/     # Duplicar oferta
+```
+
+#### **Sistema de Analytics Empresariales**
+
+**Dashboard de Analytics Completo:**
+
+```json
+{
+  "total_offerings": 5,
+  "active_offerings": 5,
+  "expired_offerings": 0,
+  "future_offerings": 2,
+  "by_currency": [{"currency_code": "USD", "count": 5, "avg_price": 10180.0}],
+  "by_product_category": [...],
+  "by_channel": [...],
+  "by_market_segment": [...],
+  "price_statistics": {
+    "min_price": 1400.0,
+    "max_price": 25000.0,
+    "avg_price": 10180.0,
+    "total_value": 50900.0
+  },
+  "duration_statistics": {...},
+  "top_products": [...],
+  "recent_offerings": [...]
+}
+```
+
+**Métricas Empresariales:**
+
+- Distribución por moneda con precios promedio
+- Análisis por categoría de producto (top 10)
+- Performance por canal (top 10)
+- Segmentación de mercado basada en campo semántico
+- Estadísticas de precios (min, max, promedio, valor total)
+- Estadísticas de duración para suscripciones
+- Top productos más ofertados
+- Ofertas recientes y tendencias
+
+#### **Características Comerciales Avanzadas**
+
+**Temporal y Pricing:**
+
+```python
+# Vigencia temporal
+valid_from = models.DateField(null=True, blank=True)
+valid_until = models.DateField(null=True, blank=True)
+
+# Suscripciones
+auto_renew = models.BooleanField(default=False)
+duration_days = models.PositiveIntegerField(null=True, blank=True)
+
+# Pricing multi-moneda
+price = models.DecimalField(max_digits=12, decimal_places=2)
+currency_code = models.CharField(max_length=3, default='USD')
+```
+
+**Propiedades Computadas:**
+
+```python
+@property
+def is_currently_valid(self):
+    """Verifica si la oferta está actualmente válida"""
+
+@property
+def price_display(self):
+    """Formato amigable: USD 1,400.00"""
+```
+
+**Filtros y Búsquedas Sofisticadas:**
+
+- Filtros por validez actual, moneda, auto-renovación
+- Rangos de fechas y precios
+- Filtros por producto, categoría, división
+- Filtros semánticos por canales, segmentos, industrias
+- Búsquedas en nombre, código, descripción, producto
+
+#### **Serializers Contextuales Optimizados**
+
+**5 Serializers Especializados:**
+
+```python
+ProductOfferingListSerializer      # Listados optimizados
+ProductOfferingDetailSerializer    # Detalle con relaciones semánticas
+ProductOfferingCreateUpdateSerializer  # CRUD con validaciones
+ProductOfferingChoiceSerializer    # Formularios (ID, name, display_name)
+ProductOfferingAnalyticsSerializer # Estructura de métricas
+```
+
+**Validaciones de Negocio:**
+
+- Código único por oferta
+- Fechas válidas (valid_from ≤ valid_until)
+- Precios positivos
+- Integridad referencial con productos
+
+#### **Interface Administrativa Empresarial**
+
+**Django Admin Optimizado:**
+
+```python
+# Características avanzadas
+- List display con métricas clave
+- Filtros por múltiples dimensiones semánticas
+- Búsqueda en campos relacionados
+- Fieldsets organizados por contexto empresarial
+- Filter horizontal para relaciones M2M
+- Acciones en lote (activar/desactivar/duplicar)
+- Consultas optimizadas con select_related/prefetch_related
+```
+
+**Acciones Disponibles:**
+
+1. **Activar ofertas** en lote
+2. **Desactivar ofertas** en lote
+3. **Duplicar ofertas** preservando relaciones M2M
+4. **Filtros inteligentes** por categoría, segmentos, industrias
+5. **Campos calculados** para mejor experiencia de usuario
+
+#### **Casos de Uso Comerciales en CRM**
+
+1. **Gestión de Campañas**: Ofertas temporales con metadata de campaña
+2. **Suscripciones Empresariales**: Paquetes anuales con auto-renovación
+3. **Segmentación Avanzada**: Targeting por industria, función, canal
+4. **Pricing Dinámico**: Precios específicos por oferta y audiencia
+5. **Analytics de Performance**: ROI por canal, producto y segmento
+6. **Duplicación Rápida**: Reutilización de ofertas exitosas
+7. **Gestión Temporal**: Control de vigencia y expiración automática
+8. **Reporting Ejecutivo**: Dashboard con métricas empresariales
+
+#### **Endpoints API Disponibles**
+
+```
+# Gestión de ofertas
+/api/offers/offerings/              # CRUD completo de ofertas
+/api/offers/offerings/choices/      # Choices para formularios
+/api/offers/offerings/currently_valid/  # Ofertas válidas ahora
+
+# Filtros especializados
+/api/offers/offerings/by_product/   # Ofertas por producto específico
+/api/offers/offerings/by_channel/   # Ofertas por canal específico
+
+# Analytics y duplicación
+/api/offers/offerings/analytics/    # Dashboard empresarial completo
+/api/offers/offerings/{id}/duplicate/  # Duplicar oferta con relaciones
+```
+
+#### **Optimización y Performance**
+
+**Consultas Optimizadas:**
+
+```python
+# ViewSet con prefetch estratégico
+queryset = ProductOffering.objects.select_related(
+    'product', 'product__category', 'product__category__division'
+).prefetch_related(
+    'channels', 'seats', 'target_segments', 'related_industries',
+    'related_functions', 'descriptors', 'tags'
+)
+```
+
+**Índices de Base de Datos:**
+
+```python
+class Meta:
+    indexes = [
+        models.Index(fields=['is_active']),
+        models.Index(fields=['valid_from']),
+        models.Index(fields=['valid_until']),
+        models.Index(fields=['currency_code']),
+    ]
+```
+
+#### **Testing y Calidad**
+
+**Suite de Tests Completa:**
+
+- Tests del modelo (propiedades computadas, validaciones)
+- Tests de API (CRUD, filtros, endpoints especializados)
+- Tests de validación (código único, fechas, precios)
+- Tests de duplicación y analytics
+- Datos de prueba realistas con casos de uso diversos
+
+#### **Datos de Prueba**
+
+**5 Ofertas de Ejemplo:**
+
+1. **Oferta Black Friday**: Descuento temporal con metadata de campaña
+2. **Consultoría Anual**: Paquete de suscripción con auto-renovación
+3. **Desarrollo Web Premium**: Oferta futura con configuración avanzada
+4. **Capacitación Virtual**: Programa con duración específica
+5. **Análisis de Datos Q1**: Servicio completo con metadata técnica
+
+#### **Valor del Sistema de Ofertas para la Organización**
+
+- **Comercialización Inteligente**: Separación clara entre producto y oferta comercial
+- **Segmentación Semántica**: Targeting preciso basado en campo semántico empresarial
+- **Analytics Comerciales**: Insights de performance y ROI por oferta
+- **Flexibilidad Temporal**: Gestión de campañas con vigencia limitada
+- **Suscripciones Empresariales**: Soporte completo para modelos recurrentes
+- **Escalabilidad Comercial**: Múltiples ofertas por producto con diferentes condiciones
+- **Automatización**: Workflows basados en temporalidad y renovación
+- **Ventaja Competitiva**: Inteligencia comercial basada en datos semánticos
+
 ## Comandos de Desarrollo
 
 ### Inicio del Proyecto
@@ -834,12 +1124,13 @@ npm run preview  # Preview build
    - Utilizar analytics de entidades, productos e interacciones para insights comerciales
    - Aplicar framework Jobs-to-be-Done para análisis de customer journey
 2. **Frontend**: Usar composables existentes (`useAuth`)
-3. **API**: Extender servicios en `src/services/` con capacidades semánticas, de productos y de interacciones
+3. **API**: Extender servicios en `src/services/` con capacidades semánticas, de productos, de interacciones y de ofertas
 4. **Autenticación**: Ya implementada y funcional
 5. **Sistema de Entidades**: Utilizar endpoints `/api/entities/` para gestión de personas y organizaciones
 6. **Campo Semántico**: Utilizar endpoints `/api/world/` para construcción de perfiles conceptuales
 7. **Gestión de Productos**: Aprovechar endpoints `/api/products/` para catálogo y analytics comerciales
 8. **Customer Journey**: Utilizar endpoints `/api/interactions/` para tracking completo de interacciones
+9. **Ofertas Comerciales**: Utilizar endpoints `/api/offers/` para gestión de ofertas, campañas y analytics comerciales
 
 ### Para debugging:
 
