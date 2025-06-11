@@ -63,6 +63,43 @@ Framework completo de gestión de customer journey:
 - **Agent Analytics**: Análisis de performance de agentes
 - **Channel Optimization**: Optimización de canales de comunicación
 
+### Sistema de Ofertas Comerciales (Offers App)
+
+Sistema central de gestión de ofertas comerciales con:
+
+- **Centro de Comercialización**: Gestión completa de ofertas activas de la organización
+- **Motor de Pricing**: Precios específicos y condiciones comerciales por oferta
+- **Sistema Temporal**: Ofertas con vigencia limitada y renovación automática
+- **Hub de Segmentación**: Targeting por canales, industrias, funciones y geografía
+- **Analytics Comercial**: Insights de performance y ROI por oferta
+
+## 🎯 Valor Empresarial del Ecosistema
+
+BackboneOS representa un **ecosistema CRM completo** donde cada aplicación aporta valor específico:
+
+### 🔄 Flujo de Valor Comercial
+
+```
+World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (Comercialización) → Interactions (Journey)
+```
+
+- **World App**: Define el **vocabulario empresarial** para segmentación precisa
+- **Entities App**: Gestiona **personas y organizaciones** con perfilado semántico
+- **Products App**: Estructura el **catálogo de valor** organizacional
+- **Offers App**: Transforma productos en **ofertas comerciales** con pricing dinámico
+- **Interactions App**: Registra y optimiza el **customer journey** completo
+- **Our Institution App**: Proporciona **contexto organizacional** para todas las operaciones
+
+### 💡 Ventaja Competitiva
+
+La integración semántica entre todas las apps permite:
+
+- **Segmentación Inteligente**: Ofertas dirigidas por industria, función, y perfil semántico
+- **Pricing Contextual**: Precios específicos por canal, geografía y audiencia
+- **Analytics Integrados**: Insights de performance desde producto hasta conversión
+- **Customer Journey Completo**: Tracking desde awareness hasta advocacy
+- **Escalabilidad Empresarial**: Arquitectura preparada para crecimiento masivo
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -125,6 +162,15 @@ BackboneOS/
 │       ├── urls.py            # 27 API endpoints funcionales
 │       ├── migrations/        # Migraciones con índices para performance
 │       └── README.md          # Documentación completa del sistema
+│   └── offers/                # ✅ Sistema de Ofertas Comerciales (COMPLETA)
+│       ├── models.py          # ProductOffering con segmentación semántica avanzada
+│       ├── views.py           # ViewSets con analytics empresariales y filtros avanzados
+│       ├── serializers.py     # Serializers contextuales para ofertas comerciales
+│       ├── admin.py           # Interface administrativa con acciones en lote
+│       ├── urls.py            # 10 API endpoints con analytics y duplicación
+│       ├── migrations/        # Migraciones con índices optimizados
+│       ├── COMPLETION_REPORT.md  # Reporte de implementación completa
+│       └── README.md          # Documentación técnica completa
 ├── frontend/                  # Frontend Nuxt.js (NO containerizado)
 │   ├── composables/
 │   │   └── useAuth.ts        # ✅ Sistema auth JWT completo
@@ -187,10 +233,13 @@ docker-compose exec backend python manage.py migrate
 # 5. Crear estructura organizacional (opcional)
 docker-compose exec backend python manage.py create_organization_structure
 
-# 6. Crear superusuario (opcional)
+# 6. Crear datos de prueba de ofertas (opcional)
+docker-compose exec backend python create_offers_data.py
+
+# 7. Crear superusuario (opcional)
 docker-compose exec backend python manage.py createsuperuser
 
-# 7. Frontend (Local - OBLIGATORIO)
+# 8. Frontend (Local - OBLIGATORIO)
 cd frontend
 npm install
 npm run dev
@@ -221,6 +270,7 @@ chmod +x start.sh
   - **`world`** ✅ Campo semántico empresarial (COMPLETA)
   - **`products`** ✅ Sistema de gestión de productos (COMPLETA)
   - **`interactions`** ✅ Framework de customer journey (COMPLETA)
+  - **`offers`** ✅ Sistema de ofertas comerciales (COMPLETA)
 
 ### Frontend (Nuxt.js)
 
@@ -532,6 +582,18 @@ DELETE /api/users/{id}/        # Eliminar usuario
 /api/products/analytics/dashboard/ # Dashboard de analytics
 ```
 
+#### Gestión de Ofertas Comerciales
+
+```
+/api/offers/offerings/             # CRUD completo de ofertas
+/api/offers/offerings/choices/     # Choices para formularios
+/api/offers/offerings/currently_valid/  # Ofertas válidas ahora
+/api/offers/offerings/by_product/  # Ofertas por producto específico
+/api/offers/offerings/by_channel/  # Ofertas por canal específico
+/api/offers/offerings/analytics/   # Dashboard empresarial completo
+/api/offers/offerings/{id}/duplicate/  # Duplicar oferta con relaciones
+```
+
 #### Gestión de Interacciones
 
 ```
@@ -740,6 +802,7 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
 - ✅ **Campo Semántico Empresarial**: Ontología y taxonomías completas (World App)
 - ✅ **Sistema de Productos**: Gestión de catálogo con analytics (Products App)
 - ✅ **Sistema de Interacciones**: Framework completo de customer journey (Interactions App)
+- ✅ **Sistema de Ofertas Comerciales**: Gestión completa de ofertas con pricing dinámico y analytics (Offers App)
 - ✅ **API REST Completa**: Endpoints estructurados con filtrado avanzado
 - ✅ **Optimización DB**: Índices estratégicos y consultas optimizadas
 - ✅ **Interface Administrativa**: Django Admin configurado
@@ -791,6 +854,8 @@ docker-compose exec -T postgres psql -U postgres backboneos < backup.sql
 - **our_institution/COMPLETION_REPORT.md**: Reporte de implementación y tests
 - **products/README.md**: Documentación del sistema de productos
 - **interactions/README.md**: Documentación del framework de interacciones
+- **offers/README.md**: Documentación del sistema de ofertas comerciales
+- **offers/COMPLETION_REPORT.md**: Reporte de implementación completa y funcionalidades
 - **SECURITY_AUDIT_REPORT.md**: Reporte de auditoría de seguridad
 
 ## 🤝 Contribución
