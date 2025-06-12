@@ -35,7 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'django_redis',
+    'django_redis',  # Módulo Redis para caché y sesiones optimizadas
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -205,6 +205,16 @@ else:
 
 
 
+# =============================================================================
+# CONFIGURACIÓN DE REDIS Y CACHÉ
+# =============================================================================
+# Redis se utiliza para:
+# - Caché de aplicación (mejorar rendimiento de queries y vistas)
+# - Almacenamiento de sesiones de usuario
+# - Cache de tokens JWT y autenticación
+# Configuración optimizada para desarrollo y producción
+# Ver documentación completa en: docs/REDIS.md
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -219,7 +229,12 @@ CACHES = {
     }
 }
 
-# Configuración adicional para usar Redis como session backend
+# =============================================================================
+# CONFIGURACIÓN DE SESIONES CON REDIS
+# =============================================================================
+# Utiliza Redis como backend de sesiones para mejor rendimiento y escalabilidad
+# Fallback automático a base de datos si Redis no está disponible
+
 if config("USE_REDIS_SESSIONS", default=True, cast=bool):
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
     SESSION_CACHE_ALIAS = "default"

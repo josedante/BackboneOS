@@ -7,6 +7,7 @@ BackboneOS es una aplicación full-stack moderna que combina:
 - **Backend**: Django 5.x + Django REST Framework
 - **Frontend**: Nuxt.js 3.17.4 + TypeScript 5.8.3
 - **Base de Datos**: PostgreSQL 14
+- **Caché y Sesiones**: Redis 7 con django-redis
 - **Containerización**: Docker + Docker Compose (desarrollo híbrido)
 
 ## 🎯 Valor Empresarial del Ecosistema
@@ -53,6 +54,8 @@ La integración semántica entre todas las apps permite:
 - **Framework**: Django 5.x
 - **API**: Django REST Framework
 - **Base de Datos**: PostgreSQL 14 (Docker)
+- **Caché**: Redis 7 con django-redis para optimización de rendimiento
+- **Sesiones**: Redis como backend de sesiones con fallback a base de datos
 - **Configuración**: python-decouple para variables de entorno
 - **Autenticación**: JWT + Token-based (implementado)
 - **CORS**: django-cors-headers configurado
@@ -75,6 +78,9 @@ La integración semántica entre todas las apps permite:
 Frontend (Nuxt.js) ←→ API REST (Django) ←→ PostgreSQL
      │                    │                   │
    Localhost:3000    Docker:8000/api    Docker:5432
+                          │
+                       Redis:6379
+                    (Caché y Sesiones)
 ```
 
 ### Separación de Responsabilidades

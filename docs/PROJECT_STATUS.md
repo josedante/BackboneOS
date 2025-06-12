@@ -5,6 +5,7 @@
 ### ✅ Funcionalidades Completadas
 
 - ✅ **Arquitectura Full-Stack**: Django + Nuxt.js + PostgreSQL
+- ✅ **Sistema de Redis y Caché**: Configuración optimizada para rendimiento y sesiones
 - ✅ **Sistema de Autenticación**: JWT + composables + middleware
 - ✅ **Sistema de Entidades**: Gestión de personas y organizaciones con perfilado semántico (Entities App)
 - ✅ **Estructura Organizacional**: Sistema completo de gestión organizacional propietaria (Our Institution App)

@@ -160,6 +160,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 ### 🛠️ Documentación Técnica Adicional
 
+- **[🔴 Redis y Caché](docs/REDIS.md)** - Configuración de Redis, caché y sesiones optimizadas
 - **[CLAUDE.md](CLAUDE.md)** - Guía técnica completa para desarrollo
 - **[COMMANDS.md](COMMANDS.md)** - Comandos de desarrollo y deployment
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Configuración de producción
