@@ -2,15 +2,15 @@
 
 ## 📋 Resumen de Servicios
 
-| Servicio | Puerto | Función | URL |
-|----------|--------|---------|-----|
-| Django Backend | 8000 | API REST + Admin | http://localhost:8000 |
-| Nuxt Frontend | 3000 | Interfaz de Usuario | http://localhost:3000 |
-| PostgreSQL | 5432 | Base de Datos | localhost:5432 |
-| Redis | 6379 | Cache + Broker | localhost:6379 |
-| Celery Worker | - | Tareas Asíncronas | (background) |
-| Celery Beat | - | Tareas Programadas | (background) |
-| Flower | 5555 | Monitor Celery | http://localhost:5555 |
+| Servicio       | Puerto | Función             | URL                   |
+| -------------- | ------ | ------------------- | --------------------- |
+| Django Backend | 8000   | API REST + Admin    | http://localhost:8000 |
+| Nuxt Frontend  | 3000   | Interfaz de Usuario | http://localhost:3000 |
+| PostgreSQL     | 5432   | Base de Datos       | localhost:5432        |
+| Redis          | 6379   | Cache + Broker      | localhost:6379        |
+| Celery Worker  | -      | Tareas Asíncronas   | (background)          |
+| Celery Beat    | -      | Tareas Programadas  | (background)          |
+| Flower         | 5555   | Monitor Celery      | http://localhost:5555 |
 
 ## 🎯 URLs de Acceso Rápido
 
@@ -105,12 +105,14 @@ docker-compose exec backend celery -A backend inspect ping
 Usa `Ctrl+Shift+P` > "Tasks: Run Task" para acceder a:
 
 ### 🐳 Docker Tasks
+
 - **🐳 Docker: Iniciar entorno completo**
 - **🐳 Docker: Detener todos los servicios**
 - **🐳 Django: Migraciones (en Docker)**
 - **🐳 Django: Crear superusuario (en Docker)**
 
 ### 📊 Monitoring Tasks
+
 - **🐳 Logs: Backend**
 - **🐳 Logs: Celery Worker**
 - **🐳 Logs: Celery Beat**
@@ -118,12 +120,14 @@ Usa `Ctrl+Shift+P` > "Tasks: Run Task" para acceder a:
 - **🐳 Logs: Redis**
 
 ### 🔧 Diagnostic Tasks
+
 - **🌸 Flower: Abrir Dashboard**
 - **🔧 Celery: Estado de Workers**
 - **🔧 Celery: Estadísticas**
 - **🔧 Redis: Ping Test**
 
 ### 💻 Frontend Tasks
+
 - **💻 Frontend: Desarrollo (local)**
 - **💻 Frontend: Instalar dependencias**
 
@@ -200,7 +204,7 @@ CORS_ALLOWED_ORIGINS=https://yourdomain.com
 
 ```yaml
 # docker-compose.prod.yml (ejemplo)
-version: '3.8'
+version: "3.8"
 services:
   backend:
     build: ./backend
@@ -209,17 +213,17 @@ services:
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
-    
+
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes --requirepass yourpassword
     volumes:
       - redis_data_prod:/data
-  
+
   celery:
     build: ./backend
     command: celery -A backend worker -l info --concurrency=4
-    
+
   flower:
     image: mher/flower
     environment:

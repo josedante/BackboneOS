@@ -13,7 +13,7 @@ This application is designed to work across development, staging, and production
 
 ### Production Environment
 
-- Cookies: `secure: true`, `sameSite: 'strict'` 
+- Cookies: `secure: true`, `sameSite: 'strict'`
 - CORS: Restricted to specific origins
 - Debug mode disabled
 - Requires HTTPS
@@ -58,6 +58,7 @@ NODE_ENV=production
 ## Security Checklist for Production
 
 ### Backend (Django)
+
 - ✅ Set `DEBUG=False`
 - ✅ Use strong `SECRET_KEY`
 - ✅ Configure `ALLOWED_HOSTS`
@@ -67,12 +68,14 @@ NODE_ENV=production
 - ✅ Enable Django security middleware
 
 ### Frontend (Nuxt.js)
+
 - ✅ Set `NODE_ENV=production`
 - ✅ Use HTTPS API URLs
 - ✅ Cookies automatically secure in production
 - ✅ Build with `npm run build`
 
 ### Infrastructure
+
 - ✅ HTTPS/TLS certificates
 - ✅ Secure database connections
 - ✅ Firewall rules
@@ -81,19 +84,21 @@ NODE_ENV=production
 ## Deployment Commands
 
 ### Staging
+
 ```bash
 # Backend
 export DEBUG=False
 export CORS_ALLOWED_ORIGINS=https://staging.yourdomain.com
 docker-compose -f docker-compose.staging.yml up --build
 
-# Frontend  
+# Frontend
 export NODE_ENV=staging
 export NUXT_PUBLIC_API_BASE=https://api-staging.yourdomain.com
 npm run build
 ```
 
 ### Production
+
 ```bash
 # Backend
 export DEBUG=False
@@ -108,10 +113,10 @@ npm run build
 
 ## Cookie Security by Environment
 
-| Environment | Secure | SameSite | Domain | Notes |
-|-------------|--------|----------|---------|-------|
-| Development | false | lax | undefined | Works with HTTP |
-| Staging | true | lax | undefined | Requires HTTPS |
-| Production | true | strict | configured | Maximum security |
+| Environment | Secure | SameSite | Domain     | Notes            |
+| ----------- | ------ | -------- | ---------- | ---------------- |
+| Development | false  | lax      | undefined  | Works with HTTP  |
+| Staging     | true   | lax      | undefined  | Requires HTTPS   |
+| Production  | true   | strict   | configured | Maximum security |
 
 The authentication system automatically adapts to the environment for optimal security and functionality.

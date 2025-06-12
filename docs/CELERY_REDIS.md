@@ -118,11 +118,13 @@ CACHES = {
 ### Tareas Asíncronas Típicas
 
 1. **Envío de Emails**
+
    - Confirmaciones de registro
    - Notificaciones de campaña
    - Reportes automáticos
 
 2. **Procesamiento de Datos**
+
    - Importación de archivos CSV
    - Generación de reportes complejos
    - Análisis de interacciones
@@ -193,28 +195,31 @@ docker-compose exec backend celery -A backend inspect registered
 ### Problemas Comunes
 
 1. **Redis no disponible**
+
    ```bash
    # Verificar estado del contenedor
    docker-compose ps redis
-   
+
    # Reiniciar Redis
    docker-compose restart redis
    ```
 
 2. **Celery Worker no procesa tareas**
+
    ```bash
    # Ver logs detallados
    docker-compose logs celery
-   
+
    # Reiniciar worker
    docker-compose restart celery
    ```
 
 3. **Flower no accesible**
+
    ```bash
    # Verificar puerto y dependencias
    docker-compose ps flower
-   
+
    # Reiniciar Flower
    docker-compose restart flower
    ```
