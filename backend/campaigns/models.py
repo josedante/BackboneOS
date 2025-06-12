@@ -10,6 +10,19 @@ class Campaign(BaseUUIDModelWithActiveStatus):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     budget = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    
+    content_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("affinity", "Afinidad"),
+            ("category", "Categoría"),
+            ("product", "Producto"),
+            ("brand", "Marca"),
+        ],
+        blank=True,
+        null=True,
+        verbose_name="Tipo de contenido comunicacional"
+    )
 
     division = models.ForeignKey(
         'our_institution.Division', null=True, blank=True, on_delete=models.SET_NULL

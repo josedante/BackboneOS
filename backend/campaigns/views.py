@@ -48,7 +48,7 @@ class CampaignFilter(django_filters.FilterSet):
     class Meta:
         model = Campaign
         fields = [
-            'is_active', 'division', 'team', 'parent',
+            'is_active', 'content_type', 'division', 'team', 'parent',
             'channels', 'related_industries', 'related_functions', 'target_segments'
         ]
     

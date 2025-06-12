@@ -31,8 +31,8 @@ class CampaignListSerializer(serializers.ModelSerializer):
         model = Campaign
         fields = [
             'id', 'name', 'code', 'description', 'start_date', 'end_date',
-            'budget', 'budget_display', 'duration_display', 'division_name', 
-            'team_name', 'parent_name', 'is_active', 'is_active_now',
+            'budget', 'budget_display', 'duration_display', 'content_type',
+            'division_name', 'team_name', 'parent_name', 'is_active', 'is_active_now',
             'channels_count', 'touchpoints_count', 'subcampaigns_count', 
             'segments_count', 'created_at', 'updated_at'
         ]
@@ -118,7 +118,7 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         model = Campaign
         fields = [
             'id', 'name', 'code', 'description', 'start_date', 'end_date',
-            'budget', 'budget_display', 'duration_display', 'campaign_status',
+            'budget', 'budget_display', 'duration_display', 'campaign_status', 'content_type',
             'division', 'division_id', 'team', 'team_id', 'parent', 'parent_id',
             'channels', 'channels_ids', 'related_industries', 'related_industries_ids',
             'related_functions', 'related_functions_ids', 'target_segments', 
@@ -268,7 +268,7 @@ class CampaignCreateUpdateSerializer(serializers.ModelSerializer):
         model = Campaign
         fields = [
             'name', 'code', 'description', 'start_date', 'end_date',
-            'budget', 'division', 'team', 'parent', 'channels',
+            'budget', 'content_type', 'division', 'team', 'parent', 'channels',
             'related_industries', 'related_functions', 'target_segments',
             'descriptors', 'tags', 'metadata', 'is_active'
         ]
@@ -306,7 +306,7 @@ class CampaignChoiceSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Campaign
-        fields = ['id', 'name', 'code', 'display_name', 'is_active', 'is_active_now']
+        fields = ['id', 'name', 'code', 'content_type', 'display_name', 'is_active', 'is_active_now']
     
     def get_display_name(self, obj):
         status = "🟢" if obj.is_active_now else "🔴"

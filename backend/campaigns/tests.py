@@ -120,6 +120,46 @@ class CampaignModelTests(TestCase):
                 division=self.division
             )
 
+    def test_campaign_content_type_field(self):
+        """Test del campo content_type"""
+        # Test con content_type válido
+        campaign = Campaign.objects.create(
+            name="Product Campaign",
+            code="PROD_CAMP_001",
+            start_date=date.today(),
+            content_type="product",
+            division=self.division
+        )
+        
+        self.assertEqual(campaign.content_type, "product")
+        
+        # Test con content_type None (opcional)
+        campaign_none = Campaign.objects.create(
+            name="Generic Campaign",
+            code="GEN_CAMP_001",
+            start_date=date.today(),
+            division=self.division
+        )
+        
+        self.assertIsNone(campaign_none.content_type)
+        
+        # Test con todos los valores de choice
+        choices = ["affinity", "category", "product", "brand"]
+        for i, choice in enumerate(choices):
+            Campaign.objects.create(
+                name=f"Test {choice.title()} Campaign",
+                code=f"TEST_{choice.upper()}_{i:03d}",
+                start_date=date.today(),
+                content_type=choice,
+                division=self.division
+            )
+        
+        # Verificar que se crearon correctamente
+        self.assertEqual(Campaign.objects.filter(content_type="affinity").count(), 1)
+        self.assertEqual(Campaign.objects.filter(content_type="category").count(), 1)
+        self.assertEqual(Campaign.objects.filter(content_type="product").count(), 2)  # Incluye la primera
+        self.assertEqual(Campaign.objects.filter(content_type="brand").count(), 1)
+
 
 class CampaignTouchpointModelTests(TestCase):
     """Tests para el modelo CampaignTouchpoint"""
@@ -320,6 +360,45 @@ class CampaignAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['code'], 'ACTIVE_001')
+
+    def test_campaign_content_type_filtering(self):
+        """Test de filtros por content_type en la API"""
+        # Crear campañas con diferentes content_type
+        Campaign.objects.create(
+            name="Product Campaign",
+            code="PRODUCT_001",
+            start_date=date.today(),
+            content_type="product",
+            division=self.division
+        )
+        Campaign.objects.create(
+            name="Brand Campaign",
+            code="BRAND_001",
+            start_date=date.today(),
+            content_type="brand",
+            division=self.division
+        )
+        Campaign.objects.create(
+            name="Generic Campaign",
+            code="GENERIC_001",
+            start_date=date.today(),
+            # content_type=None (sin tipo)
+            division=self.division
+        )
+        
+        url = reverse('campaigns:campaign-list')
+        
+        # Test filtro por content_type=product
+        response = self.client.get(url, {'content_type': 'product'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['code'], 'PRODUCT_001')
+        
+        # Test filtro por content_type=brand
+        response = self.client.get(url, {'content_type': 'brand'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['code'], 'BRAND_001')
 
     def test_campaign_search(self):
         """Test de búsqueda en campañas"""

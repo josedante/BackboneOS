@@ -33,6 +33,20 @@ class Campaign(BaseUUIDModelWithActiveStatus):
     end_date = models.DateField(null=True, blank=True)
     budget = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
+    # Tipo de contenido comunicacional
+    content_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("affinity", "Afinidad"),
+            ("category", "Categoría"),
+            ("product", "Producto"),
+            ("brand", "Marca"),
+        ],
+        blank=True,
+        null=True,
+        verbose_name="Tipo de contenido comunicacional"
+    )
+
     # Organización
     division = models.ForeignKey('our_institution.Division', null=True, blank=True, on_delete=models.SET_NULL)
     team = models.ForeignKey('our_institution.Team', null=True, blank=True, on_delete=models.SET_NULL)
@@ -61,6 +75,7 @@ class Campaign(BaseUUIDModelWithActiveStatus):
 - **Identificación**: `name`, `code` (único)
 - **Temporalidad**: `start_date`, `end_date` (opcional)
 - **Presupuesto**: `budget` con precisión decimal
+- **Tipo de contenido**: `content_type` (clasificación comunicacional opcional)
 - **Organización**: `division`, `team` (ForeignKey opcionales)
 - **Segmentación semántica**: múltiples relaciones M2M con entidades de `world`
 - **Canales**: `channels` (ManyToMany con `interactions.Channel`)
@@ -107,6 +122,34 @@ class CampaignTouchpoint(models.Model):
 
 - `is_product_targeted`: si el touchpoint y la campaña apuntan al mismo producto
 - `is_cross_product`: si hay cruce de productos
+
+---
+
+### 🆕 Campo `content_type` en `Campaign`
+
+Cada campaña (`Campaign`) incluye un campo opcional `content_type`, que permite clasificar el enfoque estratégico del contenido asociado a esa campaña.
+
+#### 📌 Utilidad
+
+Este campo permite analizar y segmentar las campañas según su propósito comunicacional:
+
+| Valor      | Significado                                              |
+| ---------- | -------------------------------------------------------- |
+| `affinity` | Contenido que apela a emociones, valores o identidad.    |
+| `category` | Contenido que representa una línea temática amplia.      |
+| `product`  | Contenido enfocado en un producto o servicio específico. |
+| `brand`    | Contenido orientado al posicionamiento institucional.    |
+
+> El campo es opcional y puede dejarse vacío para campañas funcionales, legales o no clasificables.
+
+#### 🧠 Ejemplos prácticos
+
+- Una página como `/mba` tendría `content_type="product"`.
+- Una página como `/ranking-y-reputacion` podría clasificarse como `"affinity"`.
+- `/maestrias` sería `"category"`.
+- `/nosotros` se alinea con `"brand"`.
+
+Este campo enriquece el análisis editorial y estratégico del customer journey digital.
 
 ---
 
@@ -165,6 +208,7 @@ class CampaignTouchpoint(models.Model):
 - **Texto**: `name`, `code`, `description`
 - **Fechas**: `start_date_from/to`, `end_date_from/to`
 - **Presupuesto**: `budget_min/max`, `has_budget`
+- **Tipo de contenido**: `content_type` (affinity, category, product, brand)
 - **Estado**: `is_active`, `is_active_now`, `has_end_date`
 - **Organización**: `division`, `team`, `parent`
 - **Relaciones**: `has_subcampaigns`, `has_touchpoints`
@@ -364,6 +408,7 @@ Content-Type: application/json
   "start_date": "2025-01-01",
   "end_date": "2025-03-31",
   "budget": "50000.00",
+  "content_type": "product",
   "division_id": "uuid-of-division",
   "target_segments_ids": ["uuid-segment-1", "uuid-segment-2"],
   "channels_ids": ["uuid-channel-web", "uuid-channel-social"],
@@ -397,6 +442,13 @@ Content-Type: application/json
 
 ```bash
 GET /api/campaigns/campaigns/?budget_min=10000&budget_max=100000&is_active=true
+```
+
+### Filtrar Campañas por Tipo de Contenido
+
+```bash
+GET /api/campaigns/campaigns/?content_type=product&is_active=true
+GET /api/campaigns/campaigns/?content_type=brand
 ```
 
 ### Obtener Analytics
@@ -492,11 +544,11 @@ La app está pensada para:
 
 ### ✅ Completado (100%)
 
-- Modelos de datos y migraciones
-- API REST completa con filtros
-- Serializers optimizados
-- Admin interfaces
-- Suite de tests completa
+- Modelos de datos y migraciones (incluyendo campo `content_type`)
+- API REST completa con filtros (incluyendo filtro por tipo de contenido)
+- Serializers optimizados con nuevo campo
+- Admin interfaces actualizadas
+- Suite de tests completa con tests para `content_type`
 - Analytics y reportes
 - Documentación técnica
 
