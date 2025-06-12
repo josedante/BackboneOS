@@ -155,7 +155,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     is_customizable = serializers.ReadOnlyField()
     has_canonical_url = serializers.ReadOnlyField()
     is_bundle = serializers.ReadOnlyField()
-    bundle_price_display = serializers.ReadOnlyField()
+    bundle_price_display = serializers.SerializerMethodField()
     skills_summary = serializers.SerializerMethodField()
     
     # IDs para escritura
@@ -203,6 +203,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_skills_summary(self, obj):
         return obj.get_related_skills_summary()
+
+    def get_bundle_price_display(self, obj):
+        """Obtiene el precio del bundle usando el método del modelo"""
+        return obj.get_bundle_price_display()
 
     def get_included_products(self, obj):
         """Serializa los productos incluidos activos"""
