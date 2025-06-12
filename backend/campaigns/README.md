@@ -46,7 +46,7 @@ class Campaign(BaseUUIDModelWithActiveStatus):
         null=True,
         verbose_name="Tipo de contenido comunicacional"
     )
-    
+
     # Etapa del embudo de ventas
     funnel_stage = models.CharField(
         max_length=50,
@@ -177,13 +177,13 @@ Cada campaña (`Campaign`) incluye un campo `funnel_stage` que define la etapa d
 
 Este campo permite segmentar y analizar las campañas según su posición en el customer journey:
 
-| Valor   | Significado                                              |
-| ------- | -------------------------------------------------------- |
-| `see`   | **Ver** - Campañas de awareness y descubrimiento        |
-| `think` | **Pensar** - Campañas de consideración e investigación  |
-| `do`    | **Hacer** - Campañas de conversión y acción             |
-| `care`  | **Cuidar** - Campañas de retención y fidelización       |
-| `any`   | **Cualquiera** - Campañas transversales (por defecto)   |
+| Valor   | Significado                                            |
+| ------- | ------------------------------------------------------ |
+| `see`   | **Ver** - Campañas de awareness y descubrimiento       |
+| `think` | **Pensar** - Campañas de consideración e investigación |
+| `do`    | **Hacer** - Campañas de conversión y acción            |
+| `care`  | **Cuidar** - Campañas de retención y fidelización      |
+| `any`   | **Cualquiera** - Campañas transversales (por defecto)  |
 
 #### 🎯 Estrategia por Etapa
 
@@ -195,6 +195,7 @@ Este campo permite segmentar y analizar las campañas según su posición en el 
 #### 🔗 Coherencia con Touchpoints
 
 Al tener el mismo sistema de clasificación que los touchpoints, permite:
+
 - **Alineación estratégica** entre campañas y puntos de contacto
 - **Análisis de coherencia** en el customer journey
 - **Optimización de recursos** por etapa del embudo
