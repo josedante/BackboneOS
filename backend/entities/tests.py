@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -109,7 +110,7 @@ class OrganizationModelTest(TestCase):
         )
         
         # Sin id_type, no está completa
-        self.assertFalse(org.has_complete_info())
+        self.assertFalse(org.has_complete_profile())
 
 
 class PersonAPITest(APITestCase):
