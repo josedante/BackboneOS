@@ -6,6 +6,8 @@ from .views import ProductOfferingViewSet
 router = DefaultRouter()
 router.register(r'offerings', ProductOfferingViewSet, basename='productoffering')
 
+app_name = 'offers'
+
 urlpatterns = [
     path('api/offers/', include(router.urls)),
 ]
