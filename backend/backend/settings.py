@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 'django_redis',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -201,3 +202,74 @@ else:
         'x-csrftoken',
         'x-requested-with',
     ]
+
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": config("DJANGO_REDIS_URL", default="redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+            "IGNORE_EXCEPTIONS": True,  # Evita errores si Redis no está disponible
+        },
+        "KEY_PREFIX": "backend_cache",  # Prefijo para evitar colisiones
+        "TIMEOUT": 300,  # Timeout por defecto de 5 minutos
+    }
+}
+
+# Configuración adicional para usar Redis como session backend
+if config("USE_REDIS_SESSIONS", default=True, cast=bool):
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+    SESSION_COOKIE_AGE = 86400  # 24 horas
+    SESSION_SAVE_EVERY_REQUEST = False  # Solo guarda si se modifica
+else:
+    # Fallback a database sessions
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# Configuración de cookies de sesión
+SESSION_COOKIE_SECURE = not DEBUG  # HTTPS en producción
+SESSION_COOKIE_HTTPONLY = True  # Previene XSS
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
+
+# # Configuración de seguridad adicional
+# SECURE_BROWSER_XSS_FILTER = True  # Activa el filtro XSS del navegador
+# SECURE_CONTENT_TYPE_NOSNIFF = True  # Previene el sniffing de contenido
+# SECURE_SSL_REDIRECT = not DEBUG  # Redirige a HTTPS en producción
+# # Configuración de CSRF
+# CSRF_COOKIE_SECURE = not DEBUG  # HTTPS en producción
+# CSRF_COOKIE_HTTPONLY = True  # Previene XSS
+# CSRF_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
+# # Configuración de seguridad de la cabecera HTTP Strict Transport Security (HSTS)
+# SECURE_HSTS_SECONDS = 3600 if not DEBUG else 0  # Habilita HSTS en producción
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # Aplica HSTS a subdominios
+# SECURE_HSTS_PRELOAD = True  # Permite el preload de HSTS
+# # Configuración de logging
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'verbose': {
+#             'format': '{levelname} {asctime} {module} {message}',
+#             'style': '{',
+#         },
+#         'simple': {
+#             'format': '{levelname} {message}',
+#             'style': '{',
+#         },
+#     },
+#     'handlers': {
+#         'console': {
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose',
+#         },
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['console'],
+#             'level': config('DJANGO_LOG_LEVEL', default='INFO'),
+#         },
+#     },
+# }

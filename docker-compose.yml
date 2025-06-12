@@ -10,6 +10,7 @@ services:
       - .env
     depends_on:
       - db
+      - redis
 
   # frontend:
   #   build: ./frontend
@@ -27,6 +28,14 @@ services:
   #   depends_on:
   #     - backend
 
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ../redis_data:/data
+    restart: unless-stopped
   db:
     image: postgres:14
     volumes:
@@ -39,4 +48,5 @@ services:
       - "5432:5432"
 
 volumes:
+  redis_data:
   postgres_data:

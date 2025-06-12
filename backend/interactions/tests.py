@@ -830,7 +830,81 @@ class TouchpointModelTest(TestCase):
         self.assertEqual(touchpoint.description, '')
         self.assertEqual(touchpoint.url, '')
         self.assertEqual(touchpoint.external_id, '')
+        # Test nuevo campo content_type es opcional por defecto
+        self.assertIsNone(touchpoint.content_type)
 
+    def test_touchpoint_content_type_choices(self):
+        """Test de validación de choices en content_type"""
+        valid_content_types = ['affinity', 'category', 'product', 'brand']
+        
+        for content_type in valid_content_types:
+            touchpoint_data = self.touchpoint_data.copy()
+            touchpoint_data['content_type'] = content_type
+            touchpoint_data['name'] = f'Test {content_type}'
+            touchpoint_data['code'] = f'TEST_{content_type.upper()}'
+            
+            touchpoint = Touchpoint.objects.create(**touchpoint_data)
+            self.assertEqual(touchpoint.content_type, content_type)
+
+    def test_touchpoint_content_type_optional(self):
+        """Test que content_type es opcional"""
+        touchpoint_data = self.touchpoint_data.copy()
+        # No incluir content_type en los datos
+        touchpoint_data.pop('content_type', None)
+        touchpoint_data['name'] = 'Optional Content Type Test'
+        touchpoint_data['code'] = 'OPTIONAL_CT'
+        
+        touchpoint = Touchpoint.objects.create(**touchpoint_data)
+        self.assertIsNone(touchpoint.content_type)
+        
+        # También verificar que se puede guardar explícitamente como None
+        touchpoint.content_type = None
+        touchpoint.save()
+        touchpoint.refresh_from_db()
+        self.assertIsNone(touchpoint.content_type)
+
+    def test_touchpoint_invalid_content_type(self):
+        """Test de content_type inválido"""
+        touchpoint_data = self.touchpoint_data.copy()
+        touchpoint_data['content_type'] = 'invalid_content_type'
+        touchpoint_data['name'] = 'Invalid Content Type Test'
+        touchpoint_data['code'] = 'INVALID_CT'
+        
+        with self.assertRaises(ValidationError):
+            touchpoint = Touchpoint(**touchpoint_data)
+            touchpoint.full_clean()
+
+    def test_touchpoint_content_type_blank_string(self):
+        """Test que content_type puede ser string vacío"""
+        touchpoint_data = self.touchpoint_data.copy()
+        touchpoint_data['content_type'] = ''
+        touchpoint_data['name'] = 'Blank Content Type Test'
+        touchpoint_data['code'] = 'BLANK_CT'
+        
+        touchpoint = Touchpoint.objects.create(**touchpoint_data)
+        self.assertEqual(touchpoint.content_type, '')
+
+    def test_touchpoint_content_type_with_product_consistency(self):
+        """Test consistencia entre content_type='product' y campo product"""
+        # Crear touchpoint con content_type='product' y product asociado
+        touchpoint_data = self.touchpoint_data.copy()
+        touchpoint_data['content_type'] = 'product'
+        touchpoint_data['name'] = 'Product Consistency Test'
+        touchpoint_data['code'] = 'PRODUCT_CONS'
+        
+        touchpoint = Touchpoint.objects.create(**touchpoint_data)
+        self.assertEqual(touchpoint.content_type, 'product')
+        self.assertIsNotNone(touchpoint.product)
+        
+        # También verificar que se puede tener content_type='product' sin product
+        touchpoint_data2 = touchpoint_data.copy()
+        touchpoint_data2['product'] = None
+        touchpoint_data2['name'] = 'Product Without Product'
+        touchpoint_data2['code'] = 'PROD_NO_PROD'
+        
+        touchpoint2 = Touchpoint.objects.create(**touchpoint_data2)
+        self.assertEqual(touchpoint2.content_type, 'product')
+        self.assertIsNone(touchpoint2.product)
 
 class InteractionModelTest(TestCase):
     """Tests para el modelo Interaction"""
