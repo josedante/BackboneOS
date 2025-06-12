@@ -46,6 +46,21 @@ class Campaign(BaseUUIDModelWithActiveStatus):
         null=True,
         verbose_name="Tipo de contenido comunicacional"
     )
+    
+    # Etapa del embudo de ventas
+    funnel_stage = models.CharField(
+        max_length=50,
+        choices=[
+            ("see", "Ver"),
+            ("think", "Pensar"),
+            ("do", "Hacer"),
+            ("care", "Cuidar"),
+            ("any", "Cualquiera"),
+        ],
+        blank=True,
+        default="any",
+        help_text="Etapa del embudo de ventas para la cual está diseñada esta campaña"
+    )
 
     # Organización
     division = models.ForeignKey('our_institution.Division', null=True, blank=True, on_delete=models.SET_NULL)
@@ -76,6 +91,7 @@ class Campaign(BaseUUIDModelWithActiveStatus):
 - **Temporalidad**: `start_date`, `end_date` (opcional)
 - **Presupuesto**: `budget` con precisión decimal
 - **Tipo de contenido**: `content_type` (clasificación comunicacional opcional)
+- **Etapa del embudo**: `funnel_stage` (see, think, do, care, any)
 - **Organización**: `division`, `team` (ForeignKey opcionales)
 - **Segmentación semántica**: múltiples relaciones M2M con entidades de `world`
 - **Canales**: `channels` (ManyToMany con `interactions.Channel`)
@@ -153,6 +169,41 @@ Este campo enriquece el análisis editorial y estratégico del customer journey 
 
 ---
 
+### 🎯 Campo `funnel_stage` en `Campaign`
+
+Cada campaña (`Campaign`) incluye un campo `funnel_stage` que define la etapa del embudo de ventas para la cual está diseñada la campaña. Este campo es homólogo al existente en `interactions.Touchpoint`.
+
+#### 📌 Utilidad
+
+Este campo permite segmentar y analizar las campañas según su posición en el customer journey:
+
+| Valor   | Significado                                              |
+| ------- | -------------------------------------------------------- |
+| `see`   | **Ver** - Campañas de awareness y descubrimiento        |
+| `think` | **Pensar** - Campañas de consideración e investigación  |
+| `do`    | **Hacer** - Campañas de conversión y acción             |
+| `care`  | **Cuidar** - Campañas de retención y fidelización       |
+| `any`   | **Cualquiera** - Campañas transversales (por defecto)   |
+
+#### 🎯 Estrategia por Etapa
+
+- **See (Ver)**: Campañas de brand awareness, contenido viral, publicidad display
+- **Think (Pensar)**: Webinars, whitepapers, comparativos, testimoniales
+- **Do (Hacer)**: Landing pages de conversión, ofertas limitadas, CTAs directos
+- **Care (Cuidar)**: Programas de lealtad, soporte post-venta, upselling
+
+#### 🔗 Coherencia con Touchpoints
+
+Al tener el mismo sistema de clasificación que los touchpoints, permite:
+- **Alineación estratégica** entre campañas y puntos de contacto
+- **Análisis de coherencia** en el customer journey
+- **Optimización de recursos** por etapa del embudo
+- **Métricas especializadas** por fase del proceso de compra
+
+Este campo facilita la gestión estratégica del funnel de marketing y ventas.
+
+---
+
 ## 🌐 Relaciones con otras Apps
 
 | App               | Relación                            | Propósito                               |
@@ -209,6 +260,7 @@ Este campo enriquece el análisis editorial y estratégico del customer journey 
 - **Fechas**: `start_date_from/to`, `end_date_from/to`
 - **Presupuesto**: `budget_min/max`, `has_budget`
 - **Tipo de contenido**: `content_type` (affinity, category, product, brand)
+- **Etapa del embudo**: `funnel_stage` (see, think, do, care, any)
 - **Estado**: `is_active`, `is_active_now`, `has_end_date`
 - **Organización**: `division`, `team`, `parent`
 - **Relaciones**: `has_subcampaigns`, `has_touchpoints`
@@ -409,6 +461,7 @@ Content-Type: application/json
   "end_date": "2025-03-31",
   "budget": "50000.00",
   "content_type": "product",
+  "funnel_stage": "think",
   "division_id": "uuid-of-division",
   "target_segments_ids": ["uuid-segment-1", "uuid-segment-2"],
   "channels_ids": ["uuid-channel-web", "uuid-channel-social"],
@@ -442,6 +495,12 @@ Content-Type: application/json
 
 ```bash
 GET /api/campaigns/campaigns/?budget_min=10000&budget_max=100000&is_active=true
+```
+
+### Filtrar Campañas por Etapa del Embudo
+
+```bash
+GET /api/campaigns/campaigns/?funnel_stage=think&is_active=true
 ```
 
 ### Filtrar Campañas por Tipo de Contenido

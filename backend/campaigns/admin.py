@@ -4,8 +4,8 @@ from .models import Campaign, CampaignTouchpoint
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ['name', 'code', 'content_type', 'start_date', 'end_date', 'budget', 'is_active', 'is_active_now', 'division', 'team']
-    list_filter = ['is_active', 'content_type', 'start_date', 'end_date', 'division', 'team', 'related_industries']
+    list_display = ['name', 'code', 'content_type', 'funnel_stage', 'start_date', 'end_date', 'budget', 'is_active', 'is_active_now', 'division', 'team']
+    list_filter = ['is_active', 'content_type', 'funnel_stage', 'start_date', 'end_date', 'division', 'team', 'related_industries']
     search_fields = ['name', 'code', 'description']
     readonly_fields = ['created_at', 'updated_at', 'is_active_now']
     
@@ -14,7 +14,7 @@ class CampaignAdmin(admin.ModelAdmin):
             'fields': ('name', 'code', 'description', 'is_active')
         }),
         ('Temporalidad y Presupuesto', {
-            'fields': ('start_date', 'end_date', 'budget', 'content_type')
+            'fields': ('start_date', 'end_date', 'budget', 'content_type', 'funnel_stage')
         }),
         ('Organización', {
             'fields': ('division', 'team', 'parent')

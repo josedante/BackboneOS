@@ -23,6 +23,24 @@ class Campaign(BaseUUIDModelWithActiveStatus):
         null=True,
         verbose_name="Tipo de contenido comunicacional"
     )
+    
+    # Etapa del embudo de ventas
+    SEE = 'see'
+    THINK = 'think'
+    DO = 'do'
+    CARE = 'care'
+    ANY = 'any'
+    FUNNEL_STAGES = [
+        (SEE, 'Ver'),
+        (THINK, 'Pensar'),
+        (DO, 'Hacer'),
+        (CARE, 'Cuidar'),
+        (ANY, 'Cualquiera'),
+    ]
+    funnel_stage = models.CharField(
+        max_length=50, blank=True, choices=FUNNEL_STAGES, default=ANY,
+        help_text="Etapa del embudo de ventas para la cual está diseñada esta campaña"
+    )
 
     division = models.ForeignKey(
         'our_institution.Division', null=True, blank=True, on_delete=models.SET_NULL
@@ -54,6 +72,7 @@ class Campaign(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['is_active']),
             models.Index(fields=['start_date']),
             models.Index(fields=['end_date']),
+            models.Index(fields=['funnel_stage']),
         ]
 
     def __str__(self):
