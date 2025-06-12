@@ -35,6 +35,14 @@ DATABASE_PASSWORD=secure-password-here
 DATABASE_HOST=db.yourdomain.com
 DATABASE_PORT=5432
 
+# Redis Configuration
+DJANGO_REDIS_URL=redis://redis.yourdomain.com:6379/1
+USE_REDIS_SESSIONS=true
+
+# Celery Configuration
+CELERY_BROKER_URL=redis://redis.yourdomain.com:6379/0
+CELERY_RESULT_BACKEND=redis://redis.yourdomain.com:6379/2
+
 # CORS (Production domains)
 CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```

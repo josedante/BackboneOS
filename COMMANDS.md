@@ -24,6 +24,28 @@ docker-compose logs -f
 docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f db
+docker-compose logs -f redis
+docker-compose logs -f celery
+docker-compose logs -f celery-beat
+docker-compose logs -f flower
+```
+
+### Servicios de Infraestructura
+
+```bash
+# Redis commands
+docker-compose exec redis redis-cli ping
+docker-compose exec redis redis-cli info
+docker-compose exec redis redis-cli monitor
+
+# Celery commands
+docker-compose exec backend celery -A backend inspect active
+docker-compose exec backend celery -A backend inspect stats
+docker-compose exec backend celery -A backend status
+docker-compose exec backend celery -A backend inspect registered
+
+# Flower dashboard
+open http://localhost:5555
 ```
 
 ### Django Commands

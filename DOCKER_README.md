@@ -30,6 +30,10 @@ Use `Ctrl+Shift+P` > "Tasks: Run Task":
 
 - **Backend**: Django in Docker container (port 8000)
 - **Database**: PostgreSQL in Docker container (port 5432)
+- **Cache & Broker**: Redis in Docker container (port 6379)
+- **Task Worker**: Celery worker for async processing
+- **Task Scheduler**: Celery Beat for periodic tasks
+- **Task Monitor**: Flower dashboard (port 5555)
 - **Frontend**: Nuxt.js running locally (port 3000)
 
 ## Important Files

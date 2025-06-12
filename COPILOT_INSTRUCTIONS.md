@@ -11,6 +11,9 @@
 - **Backend**: Django 5.x + DRF (🐳 Docker obligatorio)
 - **Frontend**: Nuxt.js 3.17.4 + TypeScript (💻 local)
 - **Base de Datos**: PostgreSQL 14 (🐳 Docker obligatorio)
+- **Cache & Broker**: Redis 7 (🐳 Docker)
+- **Task Queue**: Celery Worker + Beat (🐳 Docker)
+- **Monitoring**: Flower Dashboard (🐳 Docker)
 - **Auth**: JWT + Token-based
 
 ### URLs de Desarrollo
@@ -18,12 +21,14 @@
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000/api/
 - **Admin**: http://localhost:8000/admin
+- **Flower**: http://localhost:5555
+- **Redis**: localhost:6379
 
 ## 🐳 Comandos Docker CRÍTICOS
 
 ### ⚠️ ARQUITECTURA HÍBRIDA OBLIGATORIA
 
-- ✅ **Backend + PostgreSQL**: Docker containers
+- ✅ **Backend + PostgreSQL + Redis + Celery**: Docker containers
 - ✅ **Frontend**: Local execution only
 
 ### Comandos Correctos
@@ -47,6 +52,45 @@ python manage.py runserver
 python manage.py migrate
 pip install -r requirements.txt
 ```
+
+## 🚀 Servicios de Infraestructura
+
+### Redis (Multi-DB Setup)
+
+- **DB 0**: Celery broker (cola de tareas)
+- **DB 1**: Django cache (consultas, sesiones)
+- **DB 2**: Celery results (resultados de tareas)
+- **Comandos**:
+  ```bash
+  docker-compose exec redis redis-cli ping
+  docker-compose logs -f redis
+  ```
+
+### Celery Worker
+
+- **Función**: Procesamiento asíncrono
+- **Casos de uso**: Emails, reportes, archivos
+- **Comandos**:
+  ```bash
+  docker-compose logs -f celery
+  docker-compose exec backend celery -A backend inspect active
+  ```
+
+### Celery Beat
+
+- **Función**: Tareas programadas
+- **Casos de uso**: Limpieza, backups, sincronización
+- **Comandos**:
+  ```bash
+  docker-compose logs -f celery-beat
+  docker-compose exec backend celery -A backend inspect stats
+  ```
+
+### Flower Dashboard
+
+- **URL**: http://localhost:5555
+- **Función**: Monitoreo de Celery
+- **Características**: Workers, tasks, estadísticas
 
 ## 📱 Aplicaciones Django (6 Apps Completas)
 
@@ -169,12 +213,26 @@ docker-compose exec backend python manage.py test
 
 ## 📚 Documentación Específica
 
-Para detalles de cada aplicación:
+### Arquitectura y Servicios
+
+- **Arquitectura General**: `docs/ARCHITECTURE.md`
+- **Servicios de Infraestructura**: `docs/SERVICES_REFERENCE.md`
+- **Celery y Redis**: `docs/CELERY_REDIS.md`
+- **Configuración Redis**: `docs/REDIS.md`
+
+### Aplicaciones Django
 
 - **Entities**: `docs/copilot/COPILOT_ENTITIES.md`
 - **Interactions**: `docs/copilot/COPILOT_INTERACTIONS.md`
 - **Products**: `docs/copilot/COPILOT_PRODUCTS.md`
 - **World**: `docs/copilot/COPILOT_WORLD.md`
+
+### Desarrollo y Deployment
+
+- **Comandos**: `COMMANDS.md`
+- **Docker**: `DOCKER_README.md`
+- **Deployment**: `DEPLOYMENT.md`
+- **Estado del Proyecto**: `docs/PROJECT_STATUS.md`
 - **Offers**: `docs/copilot/COPILOT_OFFERS.md`
 - **Campaigns**: `docs/copilot/COPILOT_CAMPAIGNS.md`
 

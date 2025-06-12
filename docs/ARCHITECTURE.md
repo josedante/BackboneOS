@@ -8,6 +8,8 @@ BackboneOS es una aplicación full-stack moderna que combina:
 - **Frontend**: Nuxt.js 3.17.4 + TypeScript 5.8.3
 - **Base de Datos**: PostgreSQL 14
 - **Caché y Sesiones**: Redis 7 con django-redis
+- **Procesamiento Asíncrono**: Celery Worker + Beat
+- **Monitoreo de Tareas**: Flower Dashboard
 - **Containerización**: Docker + Docker Compose (desarrollo híbrido)
 
 ## 🎯 Valor Empresarial del Ecosistema
@@ -72,16 +74,36 @@ La integración semántica entre todas las apps permite:
 
 ## 🔄 Arquitectura de Comunicación
 
-### Flujo de Datos Backend ↔ Frontend
+### Flujo de Datos y Servicios
 
 ```
 Frontend (Nuxt.js) ←→ API REST (Django) ←→ PostgreSQL
      │                    │                   │
    Localhost:3000    Docker:8000/api    Docker:5432
                           │
-                       Redis:6379
-                    (Caché y Sesiones)
+                    ┌─────┴─────┐
+                    │  Redis    │
+                    │ :6379     │
+                    └─────┬─────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+   Celery Worker    Celery Beat        Flower
+   (Async Tasks)   (Scheduled)     (Monitor :5555)
+        │                 │                 │
+        └─────────────────┼─────────────────┘
+                          │
+                    Task Results
 ```
+
+### Comunicación Entre Servicios
+
+- **Frontend → Backend**: HTTP REST API calls
+- **Backend → Redis**: Caché y sesiones
+- **Backend → PostgreSQL**: ORM queries y transacciones
+- **Celery Worker ← Redis**: Consume tareas del broker
+- **Celery Beat → Redis**: Programa tareas periódicas
+- **Flower ← Redis**: Monitorea estado de workers
 
 ### Separación de Responsabilidades
 
@@ -100,6 +122,51 @@ Frontend (Nuxt.js) ←→ API REST (Django) ←→ PostgreSQL
 - **Estado de Cliente**: Gestión de estado con composables
 - **Consumo de API**: Servicios HTTP para comunicación con backend
 - **Autenticación Cliente**: Manejo de tokens y sesiones
+
+## 🚀 Servicios de Infraestructura
+
+### Redis (Caché y Broker)
+
+- **Puerto**: 6379
+- **Funciones**:
+  - Caché de aplicación (DB 1)
+  - Broker de Celery (DB 0)
+  - Backend de resultados Celery (DB 2)
+  - Sesiones de usuario (con fallback a DB)
+- **Configuración**: Persistencia en volumen Docker
+- **Optimización**: Pool de conexiones y manejo de excepciones
+
+### Celery Worker
+
+- **Función**: Procesamiento asíncrono de tareas
+- **Casos de Uso**:
+  - Envío de emails
+  - Procesamiento de archivos
+  - Generación de reportes
+  - Tareas de limpieza de datos
+- **Configuración**: Auto-restart y logging
+- **Escalabilidad**: Múltiples workers según carga
+
+### Celery Beat
+
+- **Función**: Programador de tareas periódicas
+- **Casos de Uso**:
+  - Limpieza de sesiones expiradas
+  - Backups automáticos
+  - Sincronización de datos
+  - Reportes periódicos
+- **Configuración**: Persistencia de schedule
+
+### Flower Dashboard
+
+- **Puerto**: 5555
+- **Función**: Monitoreo y administración de Celery
+- **Características**:
+  - Estado de workers en tiempo real
+  - Historial de tareas
+  - Estadísticas de rendimiento
+  - Interfaz web intuitiva
+- **Acceso**: http://localhost:5555
 
 ### Comunicación API-First
 
