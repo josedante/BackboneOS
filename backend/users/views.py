@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.contrib.auth.models import User
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -19,6 +19,21 @@ def about(request):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    
+    def get_permissions(self):
+        """
+        Instanciar y devolver la lista de permisos requeridos para esta vista.
+        """
+        if self.action == 'create':
+            # Permitir creación de usuarios sin autenticación (registro)
+            permission_classes = [AllowAny]
+        elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
+            # Requiere autenticación para otras operaciones
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
         if self.action == 'create':
