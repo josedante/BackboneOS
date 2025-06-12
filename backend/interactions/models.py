@@ -193,6 +193,27 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         max_length=50, blank=True, choices=FUNNEL_STAGES, default=ANY,
         help_text="Etapa del embudo de ventas para el cual fue diseñado este punto de contacto"
     )
+
+    # Content type choices for strategic communication classification
+    AFFINITY = 'affinity'
+    CATEGORY = 'category'
+    PRODUCT = 'product'
+    BRAND = 'brand'
+    CONTENT_TYPE_CHOICES = [
+        (AFFINITY, 'Afinidad'),
+        (CATEGORY, 'Categoría'),
+        (PRODUCT, 'Producto'),
+        (BRAND, 'Marca'),
+    ]
+    content_type = models.CharField(
+        max_length=20,
+        choices=CONTENT_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Tipo de contenido comunicacional",
+        help_text="Clasificación del enfoque estratégico del contenido asociado a este touchpoint"
+    )
+
     product = models.ForeignKey(
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='touchpoints', help_text="Producto principal asociado a este punto de contacto"

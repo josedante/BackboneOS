@@ -243,7 +243,7 @@ class TouchpointViewSet(viewsets.ModelViewSet):
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
-        'is_active', 'funnel_stage', 'touchpoint_class', 'assigned_staff',
+        'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 'assigned_staff',
         'related_industries', 'related_functions'
     ]
     search_fields = ['name', 'code', 'description', 'url']
@@ -271,6 +271,18 @@ class TouchpointViewSet(viewsets.ModelViewSet):
         stage = request.query_params.get('stage')
         if stage:
             queryset = self.get_queryset().filter(funnel_stage=stage, is_active=True)
+        else:
+            queryset = self.get_queryset().filter(is_active=True)
+        
+        serializer = TouchpointListSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def by_content_type(self, request):
+        """Endpoint para obtener touchpoints por tipo de contenido"""
+        content_type = request.query_params.get('content_type')
+        if content_type:
+            queryset = self.get_queryset().filter(content_type=content_type, is_active=True)
         else:
             queryset = self.get_queryset().filter(is_active=True)
         

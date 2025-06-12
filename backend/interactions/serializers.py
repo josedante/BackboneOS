@@ -191,7 +191,7 @@ class TouchpointListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Touchpoint
         fields = [
-            'id', 'name', 'code', 'touchpoint_class', 'funnel_stage',
+            'id', 'name', 'code', 'touchpoint_class', 'funnel_stage', 'content_type',
             'assigned_staff_display', 'product_display', 'interactions_count',
             'semantic_tags', 'is_active'
         ]
@@ -237,7 +237,7 @@ class TouchpointDetailSerializer(serializers.ModelSerializer):
         model = Touchpoint
         fields = [
             'id', 'name', 'code', 'description', 'url', 'external_id',
-            'touchpoint_class', 'funnel_stage', 'product', 'assigned_staff',
+            'touchpoint_class', 'funnel_stage', 'content_type', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'interactions_count', 'recent_interactions', 'is_active',
             'created_at', 'updated_at'
@@ -256,7 +256,7 @@ class TouchpointCreateUpdateSerializer(serializers.ModelSerializer):
         model = Touchpoint
         fields = [
             'id', 'name', 'code', 'description', 'url', 'external_id',
-            'touchpoint_class', 'funnel_stage', 'product', 'assigned_staff',
+            'touchpoint_class', 'funnel_stage', 'content_type', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'is_active'
         ]
@@ -266,7 +266,7 @@ class TouchpointChoiceSerializer(serializers.ModelSerializer):
     """Serializer simple para choices"""
     class Meta:
         model = Touchpoint
-        fields = ['id', 'name', 'code', 'funnel_stage']
+        fields = ['id', 'name', 'code', 'funnel_stage', 'content_type']
 
 
 class InteractionListSerializer(serializers.ModelSerializer):

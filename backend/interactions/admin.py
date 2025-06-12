@@ -102,11 +102,11 @@ class TouchpointClassAdmin(admin.ModelAdmin):
 @admin.register(Touchpoint)
 class TouchpointAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'touchpoint_class', 'funnel_stage', 'product', 
+        'name', 'touchpoint_class', 'funnel_stage', 'content_type', 'product', 
         'assigned_staff', 'is_active', 'interactions_count'
     ]
     list_filter = [
-        'is_active', 'funnel_stage', 'touchpoint_class', 
+        'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 
         'related_industries', 'related_functions'
     ]
     search_fields = ['name', 'code', 'description', 'url']
@@ -122,7 +122,7 @@ class TouchpointAdmin(admin.ModelAdmin):
             'fields': ('name', 'code', 'touchpoint_class', 'description', 'is_active')
         }),
         ('Configuración de Negocio', {
-            'fields': ('funnel_stage', 'product', 'assigned_staff')
+            'fields': ('funnel_stage', 'content_type', 'product', 'assigned_staff')
         }),
         ('Detalles Técnicos', {
             'fields': ('url', 'external_id'),
