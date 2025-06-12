@@ -1,0 +1,43 @@
+{
+    "name": "BackboneOS Development Environment",
+    "description": "Full-stack CRM platform with Django backend (Docker) + Nuxt.js frontend (local)",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "backend",
+    "workspaceFolder": "/app",
+    "shutdownAction": "stopCompose",
+    "forwardPorts": [
+        8000,
+        5432
+    ],
+    "portsAttributes": {
+        "8000": {
+            "label": "Django Backend API",
+            "onAutoForward": "notify"
+        },
+        "5432": {
+            "label": "PostgreSQL Database",
+            "onAutoForward": "silent"
+        }
+    },
+    "postCreateCommand": "python manage.py migrate",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-vscode.vscode-typescript-next",
+                "vue.volar",
+                "ms-azuretools.vscode-docker",
+                "github.copilot",
+                "github.copilot-chat"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.terminal.activateEnvironment": false
+            }
+        }
+    },
+    "remoteEnv": {
+        "DJANGO_SETTINGS_MODULE": "backend.settings"
+    }
+}

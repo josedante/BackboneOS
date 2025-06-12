@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'interactions',
     'our_institution',
     'offers',
+    'campaigns',
 ]
 
 MIDDLEWARE = [

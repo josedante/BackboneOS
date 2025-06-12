@@ -1,5 +1,7 @@
 # 🎯 App Campaigns - Sistema de Gestión de Campañas Comerciales
 
+> ⚠️ **IMPORTANTE**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](../DOCKER_README.md) para configuración.
+
 ## ✅ Propósito
 
 La app `campaigns` gestiona campañas comerciales, entendidas como **estructuras organizadas y planificadas** para promocionar productos o servicios a través de múltiples canales y puntos de contacto.

@@ -67,7 +67,7 @@ class CampaignTouchpoint(models.Model):
         unique_together = ('campaign', 'touchpoint')
 
     def __str__(self):
-        return f"{self.campaign.name} @ {self.touchpoint.name}"
+        return f"{self.campaign.name} -> {self.touchpoint.name}"
 
     @property
     def is_product_targeted(self):

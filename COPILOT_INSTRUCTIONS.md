@@ -109,21 +109,58 @@ Proyecto-OpenSource/
 └── README.md
 ```
 
-## Configuración de Desarrollo
+## 🐳 CONFIGURACIÓN DE DESARROLLO OBLIGATORIA
 
-### ⚠️ IMPORTANTE: Arquitectura Híbrida
+### ⚠️ CRÍTICO: SIEMPRE USAR DOCKER COMPOSE
 
-**El frontend NO está containerizado** - se ejecuta localmente mientras backend y DB están en Docker:
+**ESTE PROYECTO USA ARQUITECTURA HÍBRIDA CON DOCKER COMPOSE - NO HAY EXCEPCIONES:**
+
+- ✅ **Backend Django**: OBLIGATORIAMENTE en contenedor Docker
+- ✅ **PostgreSQL**: OBLIGATORIAMENTE en contenedor Docker
+- ✅ **Frontend Nuxt.js**: Ejecuta localmente (no containerizado)
+
+### 🚫 COMANDOS PROHIBIDOS (NO USAR NUNCA):
 
 ```bash
-# Backend + Database (Docker)
+# ❌ NUNCA ejecutar directamente en el host:
+python manage.py runserver
+python manage.py migrate
+python manage.py shell
+pip install -r requirements.txt
+python manage.py createsuperuser
+python manage.py test
+
+# ❌ NUNCA instalar PostgreSQL localmente
+brew install postgresql
+apt-get install postgresql
+```
+
+### ✅ COMANDOS CORRECTOS OBLIGATORIOS:
+
+```bash
+# ✅ SIEMPRE iniciar con Docker Compose
 docker-compose up -d
 
-# Frontend (Local - REQUERIDO)
+# ✅ TODOS los comandos Django van con docker-compose exec:
+docker-compose exec backend python manage.py migrate
+docker-compose exec backend python manage.py shell
+docker-compose exec backend python manage.py createsuperuser
+docker-compose exec backend python manage.py test
+docker-compose exec backend python manage.py makemigrations
+
+# ✅ Frontend local (única excepción)
 cd frontend
 npm install
 npm run dev
 ```
+
+### 🎯 Para GitHub Copilot y otros agentes:
+
+1. **NUNCA sugerir comandos Python directos en el host**
+2. **SIEMPRE anteponer `docker-compose exec backend` a comandos Django**
+3. **SIEMPRE verificar que Docker Compose esté ejecutándose**
+4. **NUNCA asumir instalación local de Python/Django**
+5. **SIEMPRE usar las tareas de VS Code configuradas**
 
 ### URLs de Acceso
 
@@ -133,11 +170,11 @@ npm run dev
 
 ## Tecnologías Implementadas
 
-### Backend
+### Backend (🐳 EN DOCKER SIEMPRE)
 
-- **Framework**: Django 5.x
-- **API**: Django REST Framework
-- **Base de Datos**: PostgreSQL 14 (docker)
+- **Framework**: Django 5.x (en contenedor)
+- **API**: Django REST Framework (en contenedor)
+- **Base de Datos**: PostgreSQL 14 (en contenedor Docker)
 - **Configuración**: python-decouple para variables de entorno
 - **Autenticación**: JWT + Token-based (implementado)
 - **CORS**: django-cors-headers configurado
@@ -148,7 +185,7 @@ npm run dev
   - **`products`** ✅ Sistema de gestión de productos (COMPLETA)
   - **`interactions`** ✅ Sistema de gestión de customer journey (COMPLETA)
 
-### Frontend
+### Frontend (💻 LOCAL)
 
 - **Framework**: Nuxt.js 3.17.4
 - **Lenguaje**: TypeScript 5.8.3
