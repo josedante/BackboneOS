@@ -159,6 +159,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 - **[Products App](../backend/products/README.md)** - Gestión de productos
 - **[Interactions App](../backend/interactions/README.md)** - Framework de customer journey
 - **[Offers App](../backend/offers/README.md)** - Sistema de ofertas comerciales
+- **[Campaigns App](../backend/campaigns/README.md)** - Sistema de gestión de campañas comerciales
 
 ### Frontend Specific
 

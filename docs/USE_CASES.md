@@ -166,3 +166,143 @@
    GET /api/interactions/channels/analytics/
    # Insights: volume por canal, performance, ROI
    ```
+
+### Sistema de Campañas Comerciales
+
+1. **Gestión de Campañas Multi-canal**
+
+   ```python
+   # Campañas con targeting semántico
+   from campaigns.models import Campaign, CampaignTouchpoint
+
+   # Crear campaña con segmentación inteligente
+   campaign = Campaign.objects.create(
+       name="Lead Generation MBA Q1 2025",
+       code="LG-MBA-Q1",
+       description="Campaña de generación de leads para MBA",
+       start_date=date(2025, 1, 1),
+       end_date=date(2025, 3, 31),
+       budget=25000.00,
+       content_type="product",
+       funnel_stage="think",
+       division=Division.objects.get(code="MKT")
+   )
+
+   # Asignar targeting semántico
+   campaign.related_industries.set([
+       Industry.objects.get(name="Financial Services"),
+       Industry.objects.get(name="Technology")
+   ])
+   campaign.target_segments.set([
+       MarketSegment.objects.get(name="Enterprise"),
+       MarketSegment.objects.get(name="C-Level")
+   ])
+   ```
+
+2. **Asignación de Touchpoints con Peso y Prioridad**
+
+   ```python
+   # Configurar touchpoints para la campaña
+   touchpoints_config = [
+       {"touchpoint": "Landing Page MBA", "weight": 3.0, "priority": 1, "budget": 8000},
+       {"touchpoint": "Email Newsletter", "weight": 2.0, "priority": 2, "budget": 5000},
+       {"touchpoint": "LinkedIn Ads", "weight": 2.5, "priority": 1, "budget": 7000},
+       {"touchpoint": "Webinar Registration", "weight": 4.0, "priority": 1, "budget": 5000}
+   ]
+
+   for config in touchpoints_config:
+       touchpoint = Touchpoint.objects.get(name=config["touchpoint"])
+       CampaignTouchpoint.objects.create(
+           campaign=campaign,
+           touchpoint=touchpoint,
+           weight=config["weight"],
+           priority=config["priority"],
+           budget_allocated=config["budget"],
+           expected_conversions=random.randint(50, 200)
+       )
+   ```
+
+3. **Analytics de Performance de Campañas**
+
+   ```python
+   # Dashboard completo de analytics
+   GET /api/campaigns/campaigns/analytics/
+
+   # Respuesta esperada:
+   {
+       "total_campaigns": 25,
+       "active_campaigns": 8,
+       "scheduled_campaigns": 5,
+       "finished_campaigns": 12,
+       "total_budget": "125000.00",
+       "average_budget": "5000.00",
+       "by_division": [
+           {"division__name": "Marketing", "count": 15, "total_budget": "75000.00"},
+           {"division__name": "Ventas", "count": 10, "total_budget": "50000.00"}
+       ],
+       "by_funnel_stage": [
+           {"funnel_stage": "see", "count": 8},
+           {"funnel_stage": "think", "count": 6},
+           {"funnel_stage": "do", "count": 7},
+           {"funnel_stage": "care", "count": 4}
+       ],
+       "top_channels": [
+           {"channel__name": "Email", "campaign_count": 12},
+           {"channel__name": "Social Media", "campaign_count": 8}
+       ]
+   }
+   ```
+
+4. **Filtrado Avanzado por Estado y Segmentación**
+
+   ```python
+   # Campañas activas con filtros específicos
+   GET /api/campaigns/campaigns/active_now/?funnel_stage=think&content_type=product
+
+   # Campañas por división y presupuesto
+   GET /api/campaigns/campaigns/?division=1&budget_min=10000&budget_max=50000
+
+   # Búsqueda semántica en campañas
+   GET /api/campaigns/campaigns/?search=MBA&related_industries=1
+   ```
+
+5. **Duplicación y Gestión de Subcampañas**
+
+   ```python
+   # Duplicar campaña exitosa
+   POST /api/campaigns/campaigns/{id}/duplicate/
+   # Crea copia con todas las relaciones: touchpoints, industrias, segmentos
+
+   # Crear estructura jerárquica
+   parent_campaign = Campaign.objects.get(code="BF2024")
+
+   subcampaigns = [
+       {"name": "Black Friday - Email", "code": "BF2024-EMAIL"},
+       {"name": "Black Friday - Social", "code": "BF2024-SOCIAL"},
+       {"name": "Black Friday - Retargeting", "code": "BF2024-RETARG"}
+   ]
+
+   for sub_data in subcampaigns:
+       Campaign.objects.create(
+           parent=parent_campaign,
+           name=sub_data["name"],
+           code=sub_data["code"],
+           start_date=parent_campaign.start_date,
+           end_date=parent_campaign.end_date,
+           funnel_stage=parent_campaign.funnel_stage,
+           division=parent_campaign.division
+       )
+   ```
+
+6. **Analytics de Relaciones Campaña-Touchpoint**
+
+   ```python
+   # Métricas de asignación de touchpoints
+   GET /api/campaigns/campaign-touchpoints/analytics/
+
+   # Touchpoints por campaña específica
+   GET /api/campaigns/campaigns/{id}/touchpoints/
+
+   # Campañas que usan un touchpoint específico
+   GET /api/campaigns/campaign-touchpoints/by_touchpoint/?touchpoint=5
+   ```

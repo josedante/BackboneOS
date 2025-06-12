@@ -96,6 +96,31 @@ DELETE /api/users/{id}/        # Eliminar usuario
 /api/interactions/touchpoints/analytics/  # Analytics de touchpoints
 ```
 
+#### Gestión de Campañas Comerciales
+
+```
+# CRUD de Campañas
+/api/campaigns/campaigns/              # CRUD completo de campañas
+/api/campaigns/campaigns/choices/      # Choices para formularios
+/api/campaigns/campaigns/analytics/    # Dashboard completo de analytics
+
+# Endpoints especializados de campañas
+/api/campaigns/campaigns/active_now/      # Campañas activamente vigentes
+/api/campaigns/campaigns/scheduled/       # Campañas programadas (futuras)
+/api/campaigns/campaigns/finished/        # Campañas ya finalizadas
+/api/campaigns/campaigns/by_division/     # Campañas agrupadas por división
+/api/campaigns/campaigns/by_team/         # Campañas agrupadas por equipo
+/api/campaigns/campaigns/{id}/subcampaigns/  # Subcampañas de una campaña
+/api/campaigns/campaigns/{id}/touchpoints/   # Touchpoints de una campaña
+/api/campaigns/campaigns/{id}/duplicate/     # Duplicar campaña completa
+
+# CRUD de Relaciones Campaña-Touchpoint
+/api/campaigns/campaign-touchpoints/       # CRUD relaciones campaña-touchpoint
+/api/campaigns/campaign-touchpoints/by_campaign/     # Touchpoints por campaña
+/api/campaigns/campaign-touchpoints/by_touchpoint/   # Campañas por touchpoint
+/api/campaigns/campaign-touchpoints/analytics/       # Analytics de relaciones
+```
+
 ## 📊 Filtros y Capacidades Avanzadas
 
 ### Filtros Comunes

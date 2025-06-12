@@ -29,19 +29,20 @@ BackboneOS es una aplicación full-stack moderna que combina:
 
 ### 🎯 Ecosistema de Aplicaciones
 
-BackboneOS incluye **6 aplicaciones Django especializadas** que forman un ecosistema CRM completo:
+BackboneOS incluye **7 aplicaciones Django especializadas** que forman un ecosistema CRM completo:
 
 - **🌍 World App**: Campo semántico empresarial con ontología y taxonomías
 - **👤 Entities App**: Gestión de personas y organizaciones con perfilado semántico
 - **🏢 Our Institution App**: Estructura organizacional propietaria completa
 - **📦 Products App**: Sistema de catálogo comercial con analytics
 - **💼 Offers App**: Centro de comercialización con pricing dinámico
+- **🎯 Campaigns App**: Sistema de gestión de campañas comerciales multi-canal
 - **🔄 Interactions App**: Framework completo de customer journey
 
 ### 🔄 Flujo de Valor Comercial
 
 ```
-World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (Comercialización) → Interactions (Journey)
+World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (Comercialización) → Campaigns (Promoción) → Interactions (Journey)
 ```
 
 ## ⚠️ Configuración de Desarrollo Híbrida
@@ -78,7 +79,10 @@ docker-compose exec backend python manage.py create_organization_structure
 # 6. Crear datos de prueba de ofertas (opcional)
 docker-compose exec backend python create_offers_data.py
 
-# 7. Crear superusuario (opcional)
+# 7. Crear datos de prueba de campañas (opcional)
+docker-compose exec backend python create_campaigns_data.py
+
+# 8. Crear superusuario (opcional)
 docker-compose exec backend python manage.py createsuperuser
 
 # 8. Frontend (Local - OBLIGATORIO)
@@ -167,7 +171,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 - ✅ **Arquitectura Full-Stack**: Django + Nuxt.js + PostgreSQL
 - ✅ **Sistema de Autenticación**: JWT + composables + middleware
-- ✅ **6 Aplicaciones Django**: World, Entities, Our Institution, Products, Interactions, Offers
+- ✅ **7 Aplicaciones Django**: World, Entities, Our Institution, Products, Interactions, Offers, Campaigns
 - ✅ **API REST Completa**: 50+ endpoints con filtrado avanzado
 - ✅ **Optimización DB**: Índices estratégicos y consultas optimizadas
 - ✅ **Testing Implementado**: Tests unitarios con coverage completo

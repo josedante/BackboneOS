@@ -83,6 +83,15 @@ Proyecto-OpenSource/
 │       ├── tests.py           # Tests unitarios y de integración
 │       ├── README.md          # Documentación del sistema de ofertas
 │       └── COMPLETION_REPORT.md # Reporte completo de implementación
+│   └── campaigns/             # ✅ App de CAMPAÑAS COMERCIALES COMPLETA
+│       ├── models.py          # Campaign, CampaignTouchpoint con targeting semántico
+│       ├── views.py           # ViewSets con 7 endpoints + analytics empresariales
+│       ├── serializers.py     # 8 serializers contextuales optimizados
+│       ├── admin.py           # Interface administrativa completa
+│       ├── urls.py            # 7 endpoints API completamente funcionales
+│       ├── migrations/        # Migraciones con índices estratégicos
+│       ├── tests.py           # Tests unitarios y de integración
+│       └── README.md          # Documentación completa del sistema de campañas
 ├── frontend/                  # Frontend Nuxt.js COMPLETO
 │   ├── composables/
 │   │   └── useAuth.ts        # ✅ Sistema auth completo
@@ -1107,6 +1116,262 @@ class Meta:
 - **Automatización**: Workflows basados en temporalidad y renovación
 - **Ventaja Competitiva**: Inteligencia comercial basada en datos semánticos
 
+### ✅ Aplicación Campaigns - Sistema de Gestión de Campañas Comerciales (COMPLETA)
+
+La aplicación `campaigns` gestiona **campañas comerciales** como estructuras organizadas y planificadas para promocionar productos o servicios a través de múltiples canales y puntos de contacto.
+
+#### **Concepto de Campaña en BackboneOS**
+
+Una **campaña** en BackboneOS es mucho más que un simple contenedor de marketing. Es una **estructura empresarial inteligente** que:
+
+- Tiene una **intención estratégica** definida (segmentos, industrias, temporalidad, presupuesto)
+- Se articula mediante **canales y touchpoints** específicos
+- Puede tener **subcampañas** como unidades operativas independientes
+- Se integra con el **campo semántico** de BackboneOS para facilitar targeting y análisis
+
+#### **Modelos del Sistema de Campañas**
+
+**`Campaign` - Iniciativa de Marketing/Ventas:**
+
+```python
+class Campaign(BaseUUIDModelWithActiveStatus):
+    # Identificación y descripción
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+
+    # Temporalidad y presupuesto
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    budget = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Clasificación estratégica
+    content_type = models.CharField(
+        choices=[("affinity", "Afinidad"), ("category", "Categoría"),
+                ("product", "Producto"), ("brand", "Marca")]
+    )
+
+    # Etapa del embudo de ventas
+    funnel_stage = models.CharField(
+        choices=[("see", "Ver"), ("think", "Pensar"),
+                ("do", "Hacer"), ("care", "Cuidar"), ("any", "Cualquiera")]
+    )
+
+    # Organización
+    division = models.ForeignKey('our_institution.Division')
+    team = models.ForeignKey('our_institution.Team')
+
+    # Canales y segmentación semántica
+    channels = models.ManyToManyField('interactions.Channel')
+    related_industries = models.ManyToManyField('world.Industry')
+    related_functions = models.ManyToManyField('world.FunctionOrResponsibility')
+    target_segments = models.ManyToManyField('world.MarketSegment')
+    descriptors = models.ManyToManyField('world.WorldDescriptor')
+    tags = models.ManyToManyField('world.Tag')
+
+    # Jerarquía (subcampañas)
+    parent = models.ForeignKey('self', related_name='subcampaigns')
+```
+
+**`CampaignTouchpoint` - Relación Campaña-Punto de Contacto:**
+
+```python
+class CampaignTouchpoint(models.Model):
+    campaign = models.ForeignKey('Campaign')
+    touchpoint = models.ForeignKey('interactions.Touchpoint')
+
+    # Configuración de planificación
+    weight = models.FloatField(default=1.0)
+    priority = models.PositiveIntegerField(default=0)
+    expected_conversions = models.PositiveIntegerField()
+    budget_allocated = models.DecimalField(max_digits=12, decimal_places=2)
+```
+
+#### **Características Avanzadas del Sistema**
+
+**Targeting Semántico Multimodal:**
+
+- **Segmentación por Industrias**: Campaigns dirigidas a sectores específicos
+- **Targeting por Funciones**: Campañas para roles empresariales específicos
+- **Geografía Semántica**: Combinación de ubicación y características empresariales
+- **Descriptores Empresariales**: Etiquetado avanzado basado en campo semántico
+
+**Gestión Temporal Inteligente:**
+
+- **Estados Dinámicos**: Activa, programada, finalizada, inactiva (calculados en tiempo real)
+- **Propiedad `is_active_now`**: Validación automática de vigencia actual
+- **Fechas Flexibles**: Inicio obligatorio, fin opcional para campañas permanentes
+- **Análisis Temporal**: Filtros y analytics por períodos específicos
+
+**Presupuesto Multi-nivel:**
+
+- **Presupuesto de Campaña**: Control presupuestario general
+- **Presupuesto por Touchpoint**: Asignación específica a puntos de contacto
+- **Peso y Prioridad**: Distribución inteligente de recursos
+- **Métricas de ROI**: Análisis de retorno de inversión por nivel
+
+**Estructura Jerárquica:**
+
+```python
+# Ejemplo de jerarquía
+Campaña_Padre: "Black Friday 2024"
+├── Subcampaña: "Black Friday - Email Marketing"
+├── Subcampaña: "Black Friday - Redes Sociales"
+└── Subcampaña: "Black Friday - Retargeting"
+```
+
+#### **Clasificaciones Estratégicas**
+
+**Tipos de Contenido Comunicacional:**
+
+| Tipo       | Significado                                | Ejemplo                           |
+| ---------- | ------------------------------------------ | --------------------------------- |
+| `affinity` | Contenido que apela a emociones y valores  | Campaña de responsabilidad social |
+| `category` | Contenido de línea temática amplia         | Campaña de "Educación Online"     |
+| `product`  | Contenido específico de producto/servicio  | Campaña de "MBA Ejecutivo"        |
+| `brand`    | Contenido de posicionamiento institucional | Campaña de "Somos Líderes"        |
+
+**Etapas del Embudo de Ventas:**
+
+| Etapa   | Propósito                    | Estrategia                       | Ejemplos                  |
+| ------- | ---------------------------- | -------------------------------- | ------------------------- |
+| `see`   | **Ver** - Awareness          | Brand awareness, contenido viral | Display ads, social media |
+| `think` | **Pensar** - Consideración   | Educación, comparativos          | Webinars, whitepapers     |
+| `do`    | **Hacer** - Conversión       | CTAs directos, ofertas           | Landing pages, demos      |
+| `care`  | **Cuidar** - Retención       | Fidelización, upselling          | Programas de lealtad      |
+| `any`   | **Cualquiera** - Transversal | Campañas multiobjetivo           | Campañas institucionales  |
+
+#### **API REST Completa**
+
+**Endpoints de Campañas (`/api/campaigns/campaigns/`):**
+
+```
+# CRUD básico
+GET/POST /api/campaigns/campaigns/              # Listar/crear campañas
+GET/PUT/PATCH/DELETE /api/campaigns/campaigns/{id}/  # Operaciones específicas
+
+# Endpoints especializados
+GET /api/campaigns/campaigns/choices/           # Choices para formularios
+GET /api/campaigns/campaigns/active_now/        # Campañas actualmente activas
+GET /api/campaigns/campaigns/scheduled/         # Campañas programadas (futuras)
+GET /api/campaigns/campaigns/finished/          # Campañas finalizadas
+GET /api/campaigns/campaigns/by_division/       # Campañas por división
+GET /api/campaigns/campaigns/by_team/           # Campañas por equipo
+GET /api/campaigns/campaigns/{id}/subcampaigns/ # Subcampañas
+GET /api/campaigns/campaigns/{id}/touchpoints/  # Touchpoints de campaña
+POST /api/campaigns/campaigns/{id}/duplicate/   # Duplicar campaña
+GET /api/campaigns/campaigns/analytics/         # Analytics completo
+```
+
+**Endpoints de Relaciones (`/api/campaigns/campaign-touchpoints/`):**
+
+```
+# CRUD de relaciones
+GET/POST /api/campaigns/campaign-touchpoints/   # Listar/crear relaciones
+GET/PUT/PATCH/DELETE /api/campaigns/campaign-touchpoints/{id}/  # Operaciones
+
+# Analytics especializados
+GET /api/campaigns/campaign-touchpoints/by_campaign/     # Por campaña
+GET /api/campaigns/campaign-touchpoints/by_touchpoint/   # Por touchpoint
+GET /api/campaigns/campaign-touchpoints/analytics/       # Analytics relaciones
+```
+
+#### **Filtros y Búsqueda Avanzada**
+
+**Filtros de Campañas:**
+
+- **Texto**: `name`, `code`, `description`
+- **Fechas**: `start_date_from/to`, `end_date_from/to`
+- **Presupuesto**: `budget_min/max`, `has_budget`
+- **Estratégicos**: `content_type`, `funnel_stage`
+- **Organizacionales**: `division`, `team`, `parent`
+- **Estados**: `is_active`, `is_active_now`, `has_end_date`
+- **Relaciones**: `has_subcampaigns`, `has_touchpoints`
+- **Semánticos**: `channels`, `related_industries`, `related_functions`, `target_segments`
+
+**Búsqueda de Texto Completo:**
+
+```python
+search_fields = ['name', 'code', 'description', 'division__name',
+                'team__name', 'related_industries__name',
+                'target_segments__name']
+```
+
+#### **Analytics Dashboard Empresarial**
+
+**Métricas Básicas:**
+
+- Total de campañas, activas, programadas, finalizadas
+- Análisis organizacional por división y equipo
+- Distribución por canales e industrias
+- Estadísticas financieras (presupuesto total, promedio, min/max)
+
+**Analytics Especializados:**
+
+```json
+{
+  "total_campaigns": 25,
+  "active_campaigns": 8,
+  "scheduled_campaigns": 5,
+  "finished_campaigns": 12,
+  "total_budget": "125000.00",
+  "average_budget": "5000.00",
+  "by_division": [
+    { "division__name": "Marketing", "count": 15, "total_budget": "75000.00" },
+    { "division__name": "Ventas", "count": 10, "total_budget": "50000.00" }
+  ],
+  "by_funnel_stage": [
+    { "funnel_stage": "see", "count": 8 },
+    { "funnel_stage": "think", "count": 6 },
+    { "funnel_stage": "do", "count": 7 },
+    { "funnel_stage": "care", "count": 4 }
+  ],
+  "top_channels": [
+    { "channel__name": "Email", "campaign_count": 12 },
+    { "channel__name": "Social Media", "campaign_count": 8 }
+  ]
+}
+```
+
+#### **Serializers Contextuales**
+
+**Serializers Especializados:**
+
+- **`CampaignListSerializer`**: Optimizado para listados con contadores
+- **`CampaignDetailSerializer`**: Completo con relaciones anidadas
+- **`CampaignCreateUpdateSerializer`**: Simplificado para CRUD
+- **`CampaignChoiceSerializer`**: Para formularios con displays
+- **`CampaignAnalyticsSerializer`**: Estructura de métricas empresariales
+
+**Características de Serialización:**
+
+- **Displays formatados**: Presupuesto ($X,XXX.XX), duración (X días)
+- **Estados calculados**: Activa, programada, finalizada
+- **Contadores dinámicos**: Canales, touchpoints, subcampañas, segmentos
+- **Relaciones optimizadas**: select_related y prefetch_related
+
+#### **Casos de Uso Comerciales en CRM**
+
+1. **Campañas de Awareness**: Campañas `see` con múltiples canales para brand building
+2. **Lead Generation**: Campañas `think` enfocadas en captura y educación
+3. **Conversión Directa**: Campañas `do` con CTAs específicos y landing pages
+4. **Customer Success**: Campañas `care` para retención y expansion
+5. **Campañas Jerárquicas**: Estructura padre-hijo para organización estratégica
+6. **Targeting Semántico**: Segmentación basada en industria, función y geografía
+7. **Analytics de Performance**: ROI por campaña, canal y touchpoint
+8. **Gestión Presupuestaria**: Control multi-nivel de inversión comercial
+
+#### **Valor del Sistema de Campañas para la Organización**
+
+- **Organización Estratégica**: Estructura clara para iniciativas comerciales
+- **Targeting Inteligente**: Segmentación basada en campo semántico empresarial
+- **Control Presupuestario**: Gestión multi-nivel de inversión comercial
+- **Analytics Empresariales**: Insights de performance y ROI por campaña
+- **Jerarquía Operativa**: Subcampañas para organización táctica
+- **Integración Touchpoints**: Conexión directa con customer journey
+- **Automatización Temporal**: Estados dinámicos basados en fechas
+- **Ventaja Competitiva**: Inteligencia comercial basada en datos estructurados
+
 ## Comandos de Desarrollo
 
 ### Inicio del Proyecto
@@ -1186,6 +1451,8 @@ npm run preview  # Preview build
 - **Aplicación World**: **Campo semántico empresarial** (ontología y taxonomías para CRM)
 - **Aplicación Products**: **Sistema completo de gestión de productos** con analytics
 - **Aplicación Interactions**: **Sistema completo de gestión de customer journey** (27 endpoints, 100% funcional)
+- **Aplicación Offers**: **Sistema completo de gestión de ofertas comerciales** (10 endpoints, analytics empresariales)
+- **Aplicación Campaigns**: **Sistema completo de gestión de campañas comerciales** (7 endpoints, targeting semántico)
 - Servicios API estructurados
 - Configuración por ambientes
 - Containerización híbrida

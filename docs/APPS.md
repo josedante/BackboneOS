@@ -111,6 +111,46 @@
 - **Duplicación Inteligente**: Copiar ofertas con todas las relaciones
 - **Validación Temporal**: Control automático de vigencia de ofertas
 
+### ✅ Campaigns App - Sistema de Gestión de Campañas Comerciales
+
+**Framework completo de campañas de marketing y ventas**
+
+- **🎯 Campañas**: `Campaign` (estructura planificada para promoción multi-canal)
+- **📍 Touchpoints**: `CampaignTouchpoint` (relación campaña-punto de contacto)
+- **📈 Embudo de Ventas**: Gestión por etapas (Ver, Pensar, Hacer, Cuidar)
+- **🎨 Tipos de Contenido**: Afinidad, Categoría, Producto, Marca
+- **🏗️ Estructura Jerárquica**: Campañas padre e hijas para organización
+
+**Características Avanzadas**:
+
+- **Targeting Semántico**: Segmentación por industrias, funciones y geografía
+- **Gestión Temporal**: Campañas con fechas de inicio/fin y estado automático
+- **Presupuesto Multi-nivel**: Control presupuestario por campaña y touchpoint
+- **Analytics Dashboard**: Métricas de performance y ROI por campaña
+- **API REST Completa**: 7 endpoints con filtrado avanzado y analytics
+- **Duplicación Inteligente**: Copia de campañas con todas las relaciones
+- **Touchpoints Ponderados**: Asignación de peso y prioridad por punto de contacto
+
+### ✅ Campaigns App - Sistema de Gestión de Campañas Comerciales
+
+**Framework completo de campañas de marketing y ventas**
+
+- **🎯 Campañas**: `Campaign` (estructura planificada para promoción multi-canal)
+- **📍 Touchpoints**: `CampaignTouchpoint` (relación campaña-punto de contacto)
+- **📈 Embudo de Ventas**: Gestión por etapas (Ver, Pensar, Hacer, Cuidar)
+- **🎨 Tipos de Contenido**: Afinidad, Categoría, Producto, Marca
+- **🏗️ Estructura Jerárquica**: Campañas padre e hijas para organización
+
+**Características Avanzadas**:
+
+- **Targeting Semántico**: Segmentación por industrias, funciones y geografía
+- **Gestión Temporal**: Campañas con fechas de inicio/fin y estado automático
+- **Presupuesto Multi-nivel**: Control presupuestario por campaña y touchpoint
+- **Analytics Dashboard**: Métricas de performance y ROI por campaña
+- **API REST Completa**: 7 endpoints con filtrado avanzado y analytics
+- **Duplicación Inteligente**: Copia de campañas con todas las relaciones
+- **Touchpoints Ponderados**: Asignación de peso y prioridad por punto de contacto
+
 ### ✅ Users App
 
 - Gestión de usuarios y autenticación
