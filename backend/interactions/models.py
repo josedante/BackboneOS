@@ -253,6 +253,7 @@ class Interaction(BaseUUIDModelWithActiveStatus):
     product = models.ForeignKey(
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='interactions', help_text="Producto vinculado a esta interacción"
+        
     )
     JOB_STAGES = [
         ('any', 'Cualquiera'),
