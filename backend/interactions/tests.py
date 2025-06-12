@@ -9,7 +9,7 @@ from .models import (
     Agent, Medium, Channel, ActionType, Action, 
     TouchpointClass, Touchpoint, Interaction
 )
-from world.models import Country, Industry, FunctionOrResponsibility, Skill, WorldDescriptor
+from world.models import Country, Industry, FunctionOrResponsibility, Skill, WorldDescriptor, DescriptorFamily
 from entities.models import Person, Organization
 from products.models import Product
 
@@ -890,7 +890,7 @@ class InteractionModelTest(TestCase):
         
         self.channel = Channel.objects.create(
             name='Website',
-            code='WEBSITE',
+            code='WEB',
             medium=self.medium
         )
         
@@ -1119,3 +1119,862 @@ class InteractionModelTest(TestCase):
         # Debe ordenar por -occurred_at (más reciente primero)
         self.assertEqual(interactions[0], interaction1)
         self.assertEqual(interactions[1], interaction2)
+
+
+# ============================
+# TESTS DE API ENDPOINTS
+# ============================
+
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.urls import reverse
+
+
+class InteractionsAPITestCase(APITestCase):
+    """Tests base para APIs de interactions"""
+    
+    def setUp(self):
+        """Configuración común para todos los tests de API"""
+        self.client = APIClient()
+        
+        # Crear usuario para autenticación
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='testpass123'
+        )
+        
+        # Autenticar cliente
+        self.client.force_authenticate(user=self.user)
+        
+        # Crear datos base necesarios
+        self.country = Country.objects.create(
+            iso3_code='TST',
+            iso2_code='TS',
+            name='Test Country',
+            official_name='Republic of Test Country'
+        )
+        
+        self.industry = Industry.objects.create(
+            name='Technology',
+            code='TECH'
+        )
+        
+        self.function = FunctionOrResponsibility.objects.create(
+            name='Development',
+            code='DEV'
+        )
+        
+        self.skill = Skill.objects.create(
+            name='Python',
+            code='PY'
+        )
+        
+        # Crear DescriptorFamily antes de WorldDescriptor
+        self.descriptor_family = DescriptorFamily.objects.create(
+            name='Technical Skills',
+            code='TECH_SKILLS',
+            description='Family for technical skills and competencies'
+        )
+        
+        self.descriptor = WorldDescriptor.objects.create(
+            family=self.descriptor_family,
+            name='Web Development',
+            code='WEBDEV'
+        )
+
+
+class MediumAPITests(InteractionsAPITestCase):
+    """Tests para la API de Medium"""
+    
+    def setUp(self):
+        super().setUp()
+        self.medium = Medium.objects.create(
+            name='Email Marketing',
+            code='EMAIL',
+            description='Email marketing campaigns'
+        )
+        self.list_url = reverse('medium-list')
+        self.detail_url = reverse('medium-detail', kwargs={'pk': self.medium.pk})
+    
+    def test_list_mediums(self):
+        """Test listar mediums"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['name'], 'Email Marketing')
+    
+    def test_create_medium(self):
+        """Test crear medium"""
+        data = {
+            'name': 'Social Media',
+            'code': 'SOCIAL',
+            'description': 'Social media campaigns'
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Medium.objects.count(), 2)
+    
+    def test_get_medium_detail(self):
+        """Test obtener detalle de medium"""
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Email Marketing')
+    
+    def test_update_medium(self):
+        """Test actualizar medium"""
+        data = {
+            'name': 'Email Marketing Updated',
+            'code': 'EMAIL',
+            'description': 'Updated description'
+        }
+        response = self.client.put(self.detail_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.medium.refresh_from_db()
+        self.assertEqual(self.medium.name, 'Email Marketing Updated')
+    
+    def test_delete_medium(self):
+        """Test eliminar medium"""
+        response = self.client.delete(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Medium.objects.filter(is_active=True).count(), 0)
+    
+    def test_medium_choices_endpoint(self):
+        """Test endpoint de choices"""
+        url = reverse('medium-choices')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(isinstance(response.data, list))
+    
+    def test_medium_search_functionality(self):
+        """Test funcionalidad de búsqueda"""
+        response = self.client.get(self.list_url, {'search': 'Email'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Búsqueda sin resultados
+        response = self.client.get(self.list_url, {'search': 'NoExiste'})
+        self.assertEqual(len(response.data['results']), 0)
+    
+    def test_medium_filtering(self):
+        """Test filtrado por estado activo"""
+        # Crear medium inactivo
+        Medium.objects.create(
+            name='Inactive Medium',
+            code='INACTIVE',
+            is_active=False
+        )
+        
+        # Filtrar solo activos
+        response = self.client.get(self.list_url, {'is_active': 'true'})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar solo inactivos
+        response = self.client.get(self.list_url, {'is_active': 'false'})
+        self.assertEqual(len(response.data['results']), 1)
+
+
+class ChannelAPITests(InteractionsAPITestCase):
+    """Tests para la API de Channel"""
+    
+    def setUp(self):
+        super().setUp()
+        self.medium = Medium.objects.create(
+            name='Digital',
+            code='DIGITAL'
+        )
+        self.channel = Channel.objects.create(
+            name='Website',
+            code='WEB',
+            medium=self.medium
+        )
+        self.list_url = reverse('channel-list')
+        self.detail_url = reverse('channel-detail', kwargs={'pk': self.channel.pk})
+    
+    def test_list_channels(self):
+        """Test listar channels"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_channel(self):
+        """Test crear channel"""
+        data = {
+            'name': 'Mobile App',
+            'code': 'MOBILE',
+            'medium': self.medium.id
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    
+    def test_channel_by_medium_endpoint(self):
+        """Test endpoint para filtrar channels por medium"""
+        # TODO: Implementar endpoint personalizado channel-by_medium
+        # url = reverse('channel-by_medium')
+        # response = self.client.get(url, {'medium': self.medium.id})
+        # self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertTrue(len(response.data) >= 1)
+        pass
+    
+    def test_channel_choices_endpoint(self):
+        """Test endpoint de choices"""
+        # TODO: Implementar endpoint personalizado channel-choices
+        # url = reverse('channel-choices')
+        # response = self.client.get(url)
+        # self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pass
+
+
+class ActionTypeAPITests(InteractionsAPITestCase):
+    """Tests para la API de ActionType"""
+    
+    def setUp(self):
+        super().setUp()
+        self.action_type = ActionType.objects.create(
+            name='Click',
+            code='CLICK',
+            description='Click actions'
+        )
+        self.list_url = reverse('actiontype-list')
+        self.detail_url = reverse('actiontype-detail', kwargs={'pk': self.action_type.pk})
+    
+    def test_list_action_types(self):
+        """Test listar action types"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_action_type(self):
+        """Test crear action type"""
+        data = {
+            'name': 'View',
+            'code': 'VIEW',
+            'description': 'View actions'
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class ActionAPITests(InteractionsAPITestCase):
+    """Tests para la API de Action"""
+    
+    def setUp(self):
+        super().setUp()
+        self.action_type = ActionType.objects.create(
+            name='Click',
+            code='CLICK'
+        )
+        self.action = Action.objects.create(
+            name='Button Click',
+            code='BTN_CLICK',
+            action_type=self.action_type
+        )
+        self.list_url = reverse('action-list')
+        self.detail_url = reverse('action-detail', kwargs={'pk': self.action.pk})
+    
+    def test_list_actions(self):
+        """Test listar actions"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_action(self):
+        """Test crear action"""
+        data = {
+            'name': 'Link Click',
+            'code': 'LINK_CLICK',
+            'action_type': self.action_type.id,
+            'description': 'Click on a link'
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class AgentAPITests(InteractionsAPITestCase):
+    """Tests para la API de Agent"""
+    
+    def setUp(self):
+        super().setUp()
+        self.agent = Agent.objects.create(
+            agent_type='browser',
+            name='Chrome Browser',
+            identifier='chrome_v90'
+        )
+        self.list_url = reverse('agent-list')
+        self.detail_url = reverse('agent-detail', kwargs={'pk': self.agent.pk})
+    
+    def test_list_agents(self):
+        """Test listar agents"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_agent(self):
+        """Test crear agent"""
+        data = {
+            'agent_type': 'system',
+            'name': 'API System',
+            'identifier': 'api_v1'
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    
+    def test_agent_filtering_by_type(self):
+        """Test filtrado por tipo de agente"""
+        # Crear agente de diferente tipo
+        Agent.objects.create(
+            agent_type='human',
+            name='Human User'
+        )
+        
+        response = self.client.get(self.list_url, {'agent_type': 'browser'})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        response = self.client.get(self.list_url, {'agent_type': 'human'})
+        self.assertEqual(len(response.data['results']), 1)
+
+
+class TouchpointClassAPITests(InteractionsAPITestCase):
+    """Tests para la API de TouchpointClass"""
+    
+    def setUp(self):
+        super().setUp()
+        self.touchpoint_class = TouchpointClass.objects.create(
+            name='Landing Page',
+            code='LANDING',
+            description='Landing page touchpoints'
+        )
+        self.list_url = reverse('touchpointclass-list')
+        self.detail_url = reverse('touchpointclass-detail', kwargs={'pk': self.touchpoint_class.pk})
+    
+    def test_list_touchpoint_classes(self):
+        """Test listar touchpoint classes"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_touchpoint_class(self):
+        """Test crear touchpoint class"""
+        data = {
+            'name': 'Form',
+            'code': 'FORM',
+            'description': 'Form touchpoints'
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class TouchpointAPITests(InteractionsAPITestCase):
+    """Tests para la API de Touchpoint"""
+    
+    def setUp(self):
+        super().setUp()
+        self.touchpoint_class = TouchpointClass.objects.create(
+            name='Web Page',
+            code='WEB_PAGE'
+        )
+        
+        self.product = Product.objects.create(
+            name='Test Product',
+            description='Test product description'
+        )
+        
+        self.touchpoint = Touchpoint.objects.create(
+            touchpoint_class=self.touchpoint_class,
+            name='Homepage',
+            code='HOMEPAGE',
+            description='Main website homepage',
+            url='https://example.com',
+            funnel_stage='see',
+            product=self.product,
+            assigned_staff=self.user
+        )
+        
+        self.list_url = reverse('touchpoint-list')
+        self.detail_url = reverse('touchpoint-detail', kwargs={'pk': self.touchpoint.pk})
+    
+    def test_list_touchpoints(self):
+        """Test listar touchpoints"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_touchpoint(self):
+        """Test crear touchpoint"""
+        data = {
+            'touchpoint_class': self.touchpoint_class.id,
+            'name': 'Contact Form',
+            'code': 'CONTACT_FORM',
+            'description': 'Contact form page',
+            'funnel_stage': 'do'
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    
+    def test_touchpoint_by_funnel_stage_endpoint(self):
+        """Test endpoint para filtrar por etapa del funnel"""
+        # TODO: Implementar endpoint personalizado touchpoint-by_funnel_stage
+        # url = reverse('touchpoint-by_funnel_stage')
+        # response = self.client.get(url, {'stage': 'see'})
+        # self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertTrue(len(response.data) >= 1)
+        pass
+    
+    def test_touchpoint_interactions_endpoint(self):
+        """Test endpoint para obtener interacciones de un touchpoint"""
+        url = reverse('touchpoint-interactions', kwargs={'pk': self.touchpoint.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_touchpoint_analytics_endpoint(self):
+        """Test endpoint de analytics"""
+        url = reverse('touchpoint-analytics')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('total_touchpoints', response.data)
+    
+    def test_touchpoint_filtering(self):
+        """Test filtrado de touchpoints"""
+        # Filtrar por funnel stage
+        response = self.client.get(self.list_url, {'funnel_stage': 'see'})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por touchpoint class
+        response = self.client.get(self.list_url, {'touchpoint_class': self.touchpoint_class.id})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por staff asignado
+        response = self.client.get(self.list_url, {'assigned_staff': self.user.id})
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_touchpoint_semantic_relationships(self):
+        """Test relaciones semánticas many-to-many"""
+        # Agregar relaciones semánticas
+        self.touchpoint.related_industries.add(self.industry)
+        self.touchpoint.related_functions.add(self.function)
+        self.touchpoint.related_skills.add(self.skill)
+        
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verificar que las relaciones están incluidas
+        self.assertIn('related_industries', response.data)
+        self.assertIn('related_functions', response.data)
+        self.assertIn('related_skills', response.data)
+
+
+class InteractionAPITests(InteractionsAPITestCase):
+    """Tests para la API de Interaction"""
+    
+    def setUp(self):
+        super().setUp()
+        
+        # Crear datos necesarios
+        self.action_type = ActionType.objects.create(
+            name='Click',
+            code='CLICK'
+        )
+        
+        self.action = Action.objects.create(
+            name='Button Click',
+            code='BTN_CLICK',
+            action_type=self.action_type
+        )
+        
+        self.medium = Medium.objects.create(
+            name='Digital',
+            code='DIGITAL'
+        )
+        
+        self.channel = Channel.objects.create(
+            name='Website',
+            code='WEBSITE',
+            medium=self.medium
+        )
+        
+        self.agent = Agent.objects.create(
+            agent_type='browser',
+            name='Test Browser Agent'
+        )
+        
+        self.touchpoint_class = TouchpointClass.objects.create(
+            name='Web Page',
+            code='WEB_PAGE'
+        )
+        
+        self.touchpoint = Touchpoint.objects.create(
+            touchpoint_class=self.touchpoint_class,
+            name='Homepage',
+            code='HOMEPAGE'
+        )
+        
+        # Crear persona para la interacción
+        from entities.models import Person
+        self.person = Person.objects.create(
+            first_name='John',
+            fathers_name='Doe',
+            country_of_nationality=self.country
+        )
+        
+        self.interaction = Interaction.objects.create(
+            person=self.person,
+            touchpoint=self.touchpoint,
+            action=self.action,
+            channel=self.channel,
+            agent=self.agent,
+            representative=self.user,
+            session_id='test_session_123',
+            jtbd_stage='job_awareness',
+            duration_seconds=30,
+            payload={'button': 'cta_main'}
+        )
+        
+        self.list_url = reverse('interaction-list')
+        self.detail_url = reverse('interaction-detail', kwargs={'pk': self.interaction.pk})
+    
+    def test_list_interactions(self):
+        """Test listar interactions"""
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_create_interaction(self):
+        """Test crear interaction"""
+        data = {
+            'person': self.person.id,
+            'touchpoint': self.touchpoint.id,
+            'action': self.action.id,
+            'channel': self.channel.id,
+            'agent': self.agent.id,
+            'representative': self.user.id,
+            'session_id': 'new_session_456',
+            'jtbd_stage': 'job_research',
+            'duration_seconds': 45,
+            'payload': {'page': 'about'}
+        }
+        response = self.client.post(self.list_url, data, format='json')
+        if response.status_code != status.HTTP_201_CREATED:
+            print(f"Error en creación de interaction: {response.data}")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    
+    def test_interaction_filtering(self):
+        """Test filtrado de interactions"""
+        # Filtrar por etapa JTBD
+        response = self.client.get(self.list_url, {'jtbd_stage': 'job_awareness'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Verificar que la respuesta tenga el formato correcto
+        if 'results' in response.data:
+            self.assertEqual(len(response.data['results']), 1)
+        else:
+            # Si no está paginado, debe ser una lista directa
+            self.assertEqual(len(response.data), 1)
+        
+        # Filtrar por touchpoint
+        response = self.client.get(self.list_url, {'touchpoint': self.touchpoint.id})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por action
+        response = self.client.get(self.list_url, {'action': self.action.id})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por agent
+        response = self.client.get(self.list_url, {'agent': self.agent.id})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por channel
+        response = self.client.get(self.list_url, {'channel': self.channel.id})
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_interaction_search(self):
+        """Test búsqueda en interactions"""
+        response = self.client.get(self.list_url, {'search': 'test_session'})
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Búsqueda por nombre de persona
+        response = self.client.get(self.list_url, {'search': 'John'})
+        self.assertEqual(len(response.data['results']), 1)
+    
+    def test_interaction_analytics_endpoint(self):
+        """Test endpoint de analytics de interactions"""
+        url = reverse('interaction-analytics')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('total_interactions', response.data)
+
+
+class InteractionsIntegrationTests(InteractionsAPITestCase):
+    """Tests de integración entre diferentes endpoints"""
+    
+    def test_complete_interaction_flow(self):
+        """Test flujo completo de creación de interacción"""
+        # 1. Crear medium
+        medium_data = {
+            'name': 'Digital Marketing',
+            'code': 'DIGITAL_MKT'
+        }
+        medium_response = self.client.post(
+            reverse('medium-list'),
+            medium_data,
+            format='json'
+        )
+        self.assertEqual(medium_response.status_code, status.HTTP_201_CREATED)
+        medium_id = medium_response.data['id']
+        
+        # 2. Crear channel
+        channel_data = {
+            'name': 'Company Website',
+            'code': 'COMPANY_WEB',
+            'medium': medium_id
+        }
+        channel_response = self.client.post(
+            reverse('channel-list'),
+            channel_data,
+            format='json'
+        )
+        self.assertEqual(channel_response.status_code, status.HTTP_201_CREATED)
+        channel_id = channel_response.data['id']
+        
+        # 3. Crear action type y action
+        action_type_data = {
+            'name': 'Page View',
+            'code': 'PAGE_VIEW'
+        }
+        action_type_response = self.client.post(
+            reverse('actiontype-list'),
+            action_type_data,
+            format='json'
+        )
+        self.assertEqual(action_type_response.status_code, status.HTTP_201_CREATED)
+        action_type_id = action_type_response.data['id']
+        
+        action_data = {
+            'name': 'Homepage View',
+            'code': 'HOMEPAGE_VIEW',
+            'action_type': action_type_id
+        }
+        action_response = self.client.post(
+            reverse('action-list'),
+            action_data,
+            format='json'
+        )
+        self.assertEqual(action_response.status_code, status.HTTP_201_CREATED)
+        action_id = action_response.data['id']
+        
+        # 4. Crear agent
+        agent_data = {
+            'agent_type': 'browser',
+            'name': 'Firefox Browser'
+        }
+        agent_response = self.client.post(
+            reverse('agent-list'),
+            agent_data,
+            format='json'
+        )
+        self.assertEqual(agent_response.status_code, status.HTTP_201_CREATED)
+        agent_id = agent_response.data['id']
+        
+        # 5. Crear touchpoint class y touchpoint
+        touchpoint_class_data = {
+            'name': 'Website Page',
+            'code': 'WEB_PAGE'
+        }
+        touchpoint_class_response = self.client.post(
+            reverse('touchpointclass-list'),
+            touchpoint_class_data,
+            format='json'
+        )
+        self.assertEqual(touchpoint_class_response.status_code, status.HTTP_201_CREATED)
+        touchpoint_class_id = touchpoint_class_response.data['id']
+        
+        touchpoint_data = {
+            'touchpoint_class': touchpoint_class_id,
+            'name': 'Home Page',
+            'code': 'HOME_PAGE',
+            'funnel_stage': 'see'
+        }
+        touchpoint_response = self.client.post(
+            reverse('touchpoint-list'),
+            touchpoint_data,
+            format='json'
+        )
+        self.assertEqual(touchpoint_response.status_code, status.HTTP_201_CREATED)
+        touchpoint_id = touchpoint_response.data['id']
+        
+        # 6. Crear persona
+        from entities.models import Person
+        person = Person.objects.create(
+            first_name='Jane',
+            fathers_name='Smith',
+            country_of_nationality=self.country
+        )
+        
+        # 7. Crear interaction final
+        interaction_data = {
+            'person': person.id,
+            'touchpoint': touchpoint_id,
+            'action': action_id,
+            'channel': channel_id,
+            'agent': agent_id,
+            'session_id': 'integration_test_session',
+            'jtbd_stage': 'job_awareness',
+            'duration_seconds': 60,
+            'payload': {'test': 'integration'}
+        }
+        interaction_response = self.client.post(
+            reverse('interaction-list'),
+            interaction_data,
+            format='json'
+        )
+        self.assertEqual(interaction_response.status_code, status.HTTP_201_CREATED)
+        
+        # Verificar que la interacción se creó correctamente
+        interaction_id = interaction_response.data['id']
+        detail_response = self.client.get(
+            reverse('interaction-detail', kwargs={'pk': interaction_id})
+        )
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data['session_id'], 'integration_test_session')
+    
+    def test_analytics_endpoints_integration(self):
+        """Test integración de endpoints de analytics"""
+        # Crear algunos datos de prueba
+        medium = Medium.objects.create(name='Test Medium', code='TEST_MED')
+        channel = Channel.objects.create(name='Test Channel', code='TEST_CH', medium=medium)
+        action_type = ActionType.objects.create(name='Test Action Type', code='TEST_AT')
+        action = Action.objects.create(name='Test Action', code='TEST_A', action_type=action_type)
+        
+        # Test analytics de touchpoints
+        touchpoint_analytics = self.client.get(reverse('touchpoint-analytics'))
+        self.assertEqual(touchpoint_analytics.status_code, status.HTTP_200_OK)
+        
+        # Test analytics de interactions
+        interaction_analytics = self.client.get(reverse('interaction-analytics'))
+        self.assertEqual(interaction_analytics.status_code, status.HTTP_200_OK)
+    
+    def test_choices_endpoints_consistency(self):
+        """Test consistencia de endpoints de choices"""
+        endpoints = [
+            'medium-choices',
+            'channel-choices',
+            'actiontype-choices',
+            'action-choices',
+            'agent-choices',
+            'touchpointclass-choices',
+            'touchpoint-choices'
+        ]
+        
+        for endpoint in endpoints:
+            response = self.client.get(reverse(endpoint))
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertTrue(isinstance(response.data, list))
+
+
+class InteractionsPerformanceTests(InteractionsAPITestCase):
+    """Tests de performance para APIs de interactions"""
+    
+    def test_large_dataset_performance(self):
+        """Test performance con datasets grandes"""
+        # Crear múltiples registros para test de performance
+        medium = Medium.objects.create(name='Performance Test Medium', code='PERF_MED')
+        
+        # Crear 50 channels
+        channels = []
+        for i in range(50):
+            channel = Channel.objects.create(
+                name=f'Channel {i}',
+                code=f'CH_{i}',
+                medium=medium
+            )
+            channels.append(channel)
+        
+        # Test que la API pueda manejar la lista
+        response = self.client.get(reverse('channel-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), min(50, 20))  # Considerando paginación
+    
+    def test_complex_filtering_performance(self):
+        """Test performance de filtros complejos"""
+        # Crear datos de prueba
+        touchpoint_class = TouchpointClass.objects.create(
+            name='Perf Test Class',
+            code='PERF_CLASS'
+        )
+        
+        # Crear múltiples touchpoints con relaciones semánticas
+        for i in range(20):
+            touchpoint = Touchpoint.objects.create(
+                touchpoint_class=touchpoint_class,
+                name=f'Touchpoint {i}',
+                code=f'TP_{i}',
+                funnel_stage='see'
+            )
+            touchpoint.related_industries.add(self.industry)
+        
+        # Test filtros múltiples
+        response = self.client.get(reverse('touchpoint-list'), {
+            'funnel_stage': 'see',
+            'touchpoint_class': touchpoint_class.id,
+            'related_industries': self.industry.id
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class InteractionsValidationTests(InteractionsAPITestCase):
+    """Tests de validación para APIs de interactions"""
+    
+    def test_medium_validation(self):
+        """Test validaciones de Medium"""
+        # Test campos requeridos
+        response = self.client.post(reverse('medium-list'), {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        # Test código único
+        Medium.objects.create(name='Test Medium', code='UNIQUE_CODE')
+        duplicate_data = {
+            'name': 'Another Medium',
+            'code': 'UNIQUE_CODE'
+        }
+        response = self.client.post(
+            reverse('medium-list'),
+            duplicate_data,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_touchpoint_validation(self):
+        """Test validaciones de Touchpoint"""
+        touchpoint_class = TouchpointClass.objects.create(
+            name='Test Class',
+            code='TEST_CLASS'
+        )
+        
+        # Test funnel_stage inválido
+        invalid_data = {
+            'touchpoint_class': touchpoint_class.id,
+            'name': 'Invalid Touchpoint',
+            'funnel_stage': 'invalid_stage'
+        }
+        response = self.client.post(
+            reverse('touchpoint-list'),
+            invalid_data,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_interaction_validation(self):
+        """Test validaciones de Interaction"""
+        # Test jtbd_stage inválido
+        action_type = ActionType.objects.create(name='Test Action Type', code='TEST_AT')
+        action = Action.objects.create(name='Test Action', code='TEST_A', action_type=action_type)
+        
+        invalid_data = {
+            'action': action.id,
+            'session_id': 'test_session',
+            'jtbd_stage': 'invalid_stage'
+        }
+        response = self.client.post(
+            reverse('interaction-list'),
+            invalid_data,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

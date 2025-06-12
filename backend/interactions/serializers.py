@@ -255,7 +255,7 @@ class TouchpointCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Touchpoint
         fields = [
-            'name', 'code', 'description', 'url', 'external_id',
+            'id', 'name', 'code', 'description', 'url', 'external_id',
             'touchpoint_class', 'funnel_stage', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'is_active'
@@ -370,7 +370,7 @@ class InteractionCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interaction
         fields = [
-            'person', 'organization', 'touchpoint', 'action', 'channel',
+            'id', 'person', 'organization', 'touchpoint', 'action', 'channel',
             'agent', 'representative', 'product',
             'occurred_at', 'duration_seconds', 'session_id',
             'latitude', 'longitude', 'referrer_url', 'user_agent', 'ip_address',
