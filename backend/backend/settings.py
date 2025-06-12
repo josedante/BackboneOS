@@ -35,7 +35,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_redis',  # Módulo Redis para caché y sesiones optimizadas
+    'django_celery_beat',
+    'django_redis',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -248,6 +249,18 @@ else:
 SESSION_COOKIE_SECURE = not DEBUG  # HTTPS en producción
 SESSION_COOKIE_HTTPONLY = True  # Previene XSS
 SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
+
+
+
+# =============================================================================
+# CONFIGURACIÓN DE CELERY
+# =============================================================================
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://redis:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://redis:6379/2")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+
 
 # # Configuración de seguridad adicional
 # SECURE_BROWSER_XSS_FILTER = True  # Activa el filtro XSS del navegador

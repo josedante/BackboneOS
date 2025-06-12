@@ -12,8 +12,11 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         postgresql-client \
-        build-essential \
+        postgresql-server-dev-all \
         libpq-dev \
+        build-essential \
+        gcc \
+        python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements y instalar dependencias Python
