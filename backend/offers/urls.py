@@ -9,7 +9,7 @@ router.register(r'offerings', ProductOfferingViewSet, basename='productoffering'
 app_name = 'offers'
 
 urlpatterns = [
-    path('api/offers/', include(router.urls)),
+    path('', include(router.urls)),
 ]
 
 # Endpoints disponibles:
@@ -21,3 +21,5 @@ urlpatterns = [
 # GET          /api/offers/offerings/by_channel/         # Ofertas por canal
 # GET          /api/offers/offerings/analytics/          # Analytics completo
 # POST         /api/offers/offerings/{id}/duplicate/     # Duplicar oferta
+# POST         /api/offers/offerings/bulk_create/        # Creación en lote
+# GET          /api/offers/offerings/export/             # Exportación de datos

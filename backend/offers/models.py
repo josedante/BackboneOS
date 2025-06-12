@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from backend.models import BaseUUIDModelWithActiveStatus
 
 
@@ -56,3 +57,22 @@ class ProductOffering(BaseUUIDModelWithActiveStatus):
     @property
     def price_display(self):
         return f"{self.currency_code} {self.price:,.2f}"
+    
+    def clean(self):
+        """Validaciones personalizadas del modelo"""
+        super().clean()
+        
+        # Validar que el precio sea positivo
+        if self.price is not None and self.price < 0:
+            raise ValidationError({'price': 'El precio debe ser positivo'})
+        
+        # Validar que valid_until sea posterior a valid_from
+        if self.valid_from and self.valid_until and self.valid_until < self.valid_from:
+            raise ValidationError({
+                'valid_until': 'La fecha de fin debe ser posterior a la fecha de inicio'
+            })
+    
+    def save(self, *args, **kwargs):
+        """Override save para ejecutar validaciones"""
+        self.full_clean()
+        super().save(*args, **kwargs)

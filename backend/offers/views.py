@@ -25,6 +25,11 @@ def get_permission_classes():
         return [permissions.IsAuthenticated]
 
 
+def get_analytics_permission_classes():
+    """Permisos específicos para analytics - siempre requiere autenticación"""
+    return [permissions.IsAuthenticated]
+
+
 class ProductOfferingViewSet(viewsets.ModelViewSet):
     """ViewSet completo para gestión de ofertas de productos"""
     queryset = ProductOffering.objects.select_related(
@@ -161,7 +166,7 @@ class ProductOfferingViewSet(viewsets.ModelViewSet):
         serializer = ProductOfferingListSerializer(queryset, many=True)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def analytics(self, request):
         """Analytics completo de ofertas"""
         today = timezone.now().date()
@@ -294,3 +299,93 @@ class ProductOfferingViewSet(viewsets.ModelViewSet):
         
         serializer = ProductOfferingDetailSerializer(new_offering)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def bulk_create(self, request):
+        """Creación en lote de ofertas"""
+        offers_data = request.data.get('offers', [])
+        if not offers_data:
+            return Response(
+                {'error': 'Se requiere el campo "offers" con lista de ofertas'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        created_offers = []
+        errors = []
+        
+        for i, offer_data in enumerate(offers_data):
+            serializer = ProductOfferingCreateUpdateSerializer(data=offer_data)
+            if serializer.is_valid():
+                offer = serializer.save()
+                created_offers.append(offer)
+            else:
+                errors.append({
+                    'index': i,
+                    'errors': serializer.errors
+                })
+        
+        if errors:
+            return Response(
+                {
+                    'message': f'Se crearon {len(created_offers)} ofertas con {len(errors)} errores',
+                    'created': len(created_offers),
+                    'errors': errors
+                },
+                status=status.HTTP_207_MULTI_STATUS
+            )
+        
+        serializer = ProductOfferingDetailSerializer(created_offers, many=True)
+        return Response(
+            {
+                'message': f'Se crearon {len(created_offers)} ofertas exitosamente',
+                'offers': serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def export(self, request):
+        """Exportación de ofertas en diferentes formatos"""
+        format_type = request.query_params.get('format', 'json').lower()
+        
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        if format_type == 'csv':
+            import csv
+            from django.http import HttpResponse
+            
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="offers.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow([
+                'ID', 'Nombre', 'Código', 'Producto', 'Precio', 'Moneda',
+                'Fecha Inicio', 'Fecha Fin', 'Activa'
+            ])
+            
+            for offer in queryset:
+                writer.writerow([
+                    str(offer.id),
+                    offer.name,
+                    offer.code,
+                    offer.product.name,
+                    str(offer.price),
+                    offer.currency_code,
+                    offer.valid_from,
+                    offer.valid_until,
+                    offer.is_active
+                ])
+            
+            return response
+        
+        elif format_type == 'xlsx':
+            # Para Excel se podría usar openpyxl u otra librería
+            return Response(
+                {'error': 'Formato XLSX no implementado aún'},
+                status=status.HTTP_501_NOT_IMPLEMENTED
+            )
+        
+        else:
+            # JSON por defecto
+            serializer = ProductOfferingDetailSerializer(queryset, many=True)
+            return Response(serializer.data)
