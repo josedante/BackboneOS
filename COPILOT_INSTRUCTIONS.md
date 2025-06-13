@@ -39,6 +39,7 @@ docker-compose up -d
 cd frontend && npm run dev
 
 # Django (SIEMPRE con docker-compose exec)
+docker-compose exec backend python manage.py startapp
 docker-compose exec backend python manage.py migrate
 docker-compose exec backend python manage.py shell
 docker-compose exec backend python manage.py createsuperuser
@@ -49,6 +50,7 @@ docker-compose exec backend python manage.py createsuperuser
 ```bash
 # NUNCA usar directamente:
 python manage.py runserver
+python manage.py startapp
 python manage.py migrate
 pip install -r requirements.txt
 ```
