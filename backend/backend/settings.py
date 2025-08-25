@@ -303,3 +303,21 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 #         },
 #     },
 # }
+
+
+
+# Sistema de logging de actividad
+LOG_USER_ACTIVITY = config("LOG_USER_ACTIVITY", default=False, cast=bool)  # Si se registra la actividad del usuario
+# USER_ACTIVITY_BACKEND = config("USER_ACTIVITY_BACKEND", default="mongodb")  # 'mongodb' or 'dynamodb'
+# USE_CELERY = config("USE_CELERY", default=True, cast=bool)  # Si se usa Celery para logging asíncrono
+
+# # Configuración para MongoDB
+# MONGODB_URI = config("MONGODB_URI")
+# MONGODB_DB_NAME = "backbone_logs"
+
+# # Configuración para DynamoDB (si aplica)
+# AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
+# AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
+# AWS_DYNAMODB_REGION = "us-west-2"
+# AWS_DYNAMODB_ENDPOINT = config("AWS_DYNAMODB_ENDPOINT", None)  # opcional
+# AWS_USER_ACTIVITY_TABLE = "UserActivityLogs"
