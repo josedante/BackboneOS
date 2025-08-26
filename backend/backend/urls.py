@@ -17,9 +17,21 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def health_check(request):
+    """Health check endpoint for Render deployment"""
+    return JsonResponse({
+        'status': 'healthy',
+        'service': 'backboneos-backend',
+        'timestamp': '2025-01-27T00:00:00Z'
+    })
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path('health/', health_check, name='health_check'),
     path('', include('users.urls')),
     path('api/world/', include('world.urls')),
     path('api/products/', include('products.urls')),

@@ -1,0 +1,302 @@
+# BackboneOS Render Blueprint
+# Complete production deployment configuration for Django + Nuxt.js CRM ecosystem
+
+previews:
+  generation: automatic # Enable preview environments for testing
+
+# Environment groups for shared configuration
+envVarGroups:
+  - name: backboneos-shared
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: backend.settings
+      - key: NODE_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+
+# PostgreSQL Database
+databases:
+  - name: backboneos-db
+    databaseName: backboneos
+    user: backboneos_user
+    plan: starter # Free tier for development, upgrade for production
+    ipAllowList: [] # Private network only
+
+# Redis Key-Value Store
+services:
+  - type: keyvalue
+    name: backboneos-redis
+    plan: starter # Upgraded from free for production stability
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # Private network only
+
+  # Backend API Service (Django)
+  - type: web
+    name: backboneos-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile.prod
+    dockerCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 --graceful-timeout 30 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100 backend.wsgi:application
+    plan: starter # Free tier for development
+    region: oregon # Default region
+    scaling:
+      minInstances: 2
+      maxInstances: 3
+      targetCPUPercent: 70
+    healthCheckPath: /health/
+    autoDeploy: true
+    envVars:
+      # Database connection
+      - key: DATABASE_URL
+        fromDatabase:
+          name: backboneos-db
+          property: connectionString
+      
+      # Redis connection
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      
+      # Django settings
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "backboneos-backend.onrender.com"
+      
+      # Security (prompt for these in dashboard)
+      - key: SECRET_KEY
+        sync: false
+      
+      # Security headers and CSRF
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://backboneos-backend.onrender.com,https://backboneos-frontend.onrender.com,https://backboneos.com"
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: CSRF_COOKIE_SECURE
+        value: "True"
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
+        value: "True"
+      - key: SECURE_HSTS_PRELOAD
+        value: "True"
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SECURE_BROWSER_XSS_FILTER
+        value: "True"
+      - key: SECURE_CONTENT_TYPE_NOSNIFF
+        value: "True"
+      
+      # CORS settings
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://backboneos-frontend.onrender.com,https://backboneos.com"
+      
+      # Observability (prompt for these in dashboard)
+      - key: SENTRY_DSN
+        sync: false
+      
+      # Celery configuration
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_EXPIRES
+        value: "3600"  # 1 hour - prevents Redis memory issues
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "False"
+      - key: CELERY_TASK_EAGER_PROPAGATES
+        value: "True"
+      
+      # Add shared environment variables
+      - fromGroup: backboneos-shared
+
+# Frontend Service (Nuxt.js)
+  - type: web
+    name: backboneos-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    plan: starter # Free tier for development
+    region: oregon
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetCPUPercent: 70
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      # API configuration
+      - key: NUXT_PUBLIC_API_BASE
+        value: "https://backboneos-backend.onrender.com"
+      - key: NUXT_PRIVATE_API_BASE
+        value: "https://backboneos-backend.onrender.com"
+      
+      # Nuxt configuration
+      - key: NUXT_HOST
+        value: "0.0.0.0"
+      - key: NUXT_PORT
+        value: "3000"
+      
+      # Add shared environment variables
+      - fromGroup: backboneos-shared
+
+# Celery Worker Service
+  - type: worker
+    name: backboneos-celery-worker
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile.prod
+    dockerCommand: celery -A backend worker -l info --concurrency=2
+    plan: starter
+    region: oregon
+    envVars:
+      # Database connection
+      - key: DATABASE_URL
+        fromDatabase:
+          name: backboneos-db
+          property: connectionString
+      
+      # Redis connection
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      
+      # Celery configuration
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_EXPIRES
+        value: "3600"  # 1 hour - prevents Redis memory issues
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "False"
+      - key: CELERY_TASK_EAGER_PROPAGATES
+        value: "True"
+      
+      # Django settings
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "backboneos-backend.onrender.com"
+      
+      # Security (prompt for these in dashboard)
+      - key: SECRET_KEY
+        sync: false
+      
+      # Add shared environment variables
+      - fromGroup: backboneos-shared
+
+# Celery Beat Service (Scheduler)
+  - type: worker
+    name: backboneos-celery-beat
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile.prod
+    dockerCommand: celery -A backend beat -l info
+    plan: starter
+    region: oregon
+    envVars:
+      # Database connection
+      - key: DATABASE_URL
+        fromDatabase:
+          name: backboneos-db
+          property: connectionString
+      
+      # Redis connection
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      
+      # Celery configuration
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_EXPIRES
+        value: "3600"  # 1 hour - prevents Redis memory issues
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "False"
+      - key: CELERY_TASK_EAGER_PROPAGATES
+        value: "True"
+      
+      # Django settings
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "backboneos-backend.onrender.com"
+      
+      # Security (prompt for these in dashboard)
+      - key: SECRET_KEY
+        sync: false
+      
+      # Add shared environment variables
+      - fromGroup: backboneos-shared
+
+# Flower Monitoring Service (Optional - for Celery monitoring)
+# ⚠️  COST WARNING: This service costs ~$7/month on Starter Plan
+# 🔒 SECURITY: This service is exposed publicly - consider IP restrictions
+# You can delete this service to save costs if Celery monitoring is not needed
+  - type: web
+    name: backboneos-flower
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile.prod
+    dockerCommand: celery -A backend flower --port=$PORT --basic_auth=admin:secure_password_here
+    plan: starter
+    region: oregon
+    numInstances: 1
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      # Celery configuration
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: backboneos-redis
+          property: connectionString
+      
+      # Django settings
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "backboneos-flower.onrender.com"
+      
+      # Security (prompt for these in dashboard)
+      - key: SECRET_KEY
+        sync: false
+      
+      # Add shared environment variables
+      - fromGroup: backboneos-shared

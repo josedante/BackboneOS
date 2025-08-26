@@ -8,8 +8,11 @@ django-redis==5.4.0
 djangorestframework==3.16.0
 djangorestframework-simplejwt==5.5.0
 flower==2.0.1
+gunicorn==21.2.0
 psycopg2==2.9.10
 python-decouple==3.8
 sqlparse==0.5.3
 Pillow==10.4.0
 requests==2.32.4
+sentry-sdk[django]==1.40.0
+django-storages==1.14.2

@@ -87,16 +87,40 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DATABASE_NAME', default='mydatabase'),
-        'USER': config('DATABASE_USER', default='myuser'),
-        'PASSWORD': config('DATABASE_PASSWORD', default='mypassword'),
-        'HOST': config('DATABASE_HOST', default='localhost'),
-        'PORT': config('DATABASE_PORT', default='5432'),
+# Render database configuration
+import os
+from urllib.parse import urlparse
+
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Parse DATABASE_URL for Render deployment
+    db_info = urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_info.path[1:],
+            'USER': db_info.username,
+            'PASSWORD': db_info.password,
+            'HOST': db_info.hostname,
+            'PORT': db_info.port,
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
     }
-}
+else:
+    # Local development configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DATABASE_NAME', default='mydatabase'),
+            'USER': config('DATABASE_USER', default='myuser'),
+            'PASSWORD': config('DATABASE_PASSWORD', default='mypassword'),
+            'HOST': config('DATABASE_HOST', default='localhost'),
+            'PORT': config('DATABASE_PORT', default='5432'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -170,12 +194,49 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[
     "http://localhost:3000",  # Nuxt.js development server
     "http://127.0.0.1:3000",
     "http://localhost:5173",  # Vite development server (fallback)
     "http://127.0.0.1:5173",
+    "https://backboneos-frontend.onrender.com",  # Render frontend
+    "https://backboneos.com",  # Custom domain
+]).split(',') if isinstance(config('CORS_ALLOWED_ORIGINS', default=None), str) else [
+    "http://localhost:3000",  # Nuxt.js development server
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite development server (fallback)
+    "http://127.0.0.1:5173",
+    "https://backboneos-frontend.onrender.com",  # Render frontend
+    "https://backboneos.com",  # Custom domain
 ]
+
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[
+    "https://backboneos-backend.onrender.com",
+    "https://backboneos-frontend.onrender.com",
+    "https://backboneos.com",
+]).split(',') if isinstance(config('CSRF_TRUSTED_ORIGINS', default=None), str) else [
+    "https://backboneos-backend.onrender.com",
+    "https://backboneos-frontend.onrender.com",
+    "https://backboneos.com",
+]
+
+# Security Settings for Production
+if not DEBUG:
+    # HTTPS Settings
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
+    SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
+    
+    # Cookie Security
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
+    
+    # Browser Security
+    SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
+    SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
+    X_FRAME_OPTIONS = 'DENY'
 
 # Add production origins from environment variables
 PRODUCTION_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
@@ -255,11 +316,39 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
 # =============================================================================
 # CONFIGURACIÓN DE CELERY
 # =============================================================================
-CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://redis:6379/0")
-CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://redis:6379/2")
+# Render Redis configuration
+REDIS_URL = config('REDIS_URL', default=None)
+
+if REDIS_URL:
+    # Use Render Redis URL
+    CELERY_BROKER_URL = REDIS_URL
+    CELERY_RESULT_BACKEND = REDIS_URL
+    
+    # Update cache configuration for Render
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {"max_connections": 50},
+                'IGNORE_EXCEPTIONS': True,
+            },
+            'KEY_PREFIX': "backend_cache",
+            'TIMEOUT': 300,
+        }
+    }
+    
+    # Use Redis for sessions on Render
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    # Local development configuration
+    CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://redis:6379/0")
+    CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://redis:6379/2")
+
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
-
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 
@@ -321,3 +410,52 @@ LOG_USER_ACTIVITY = config("LOG_USER_ACTIVITY", default=False, cast=bool)  # Si 
 # AWS_DYNAMODB_REGION = "us-west-2"
 # AWS_DYNAMODB_ENDPOINT = config("AWS_DYNAMODB_ENDPOINT", None)  # opcional
 # AWS_USER_ACTIVITY_TABLE = "UserActivityLogs"
+
+# =============================================================================
+# SENTRY CONFIGURATION
+# =============================================================================
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+
+SENTRY_DSN = config('SENTRY_DSN', default=None)
+
+if SENTRY_DSN and not DEBUG:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+        ],
+        # Performance monitoring
+        traces_sample_rate=0.1,  # 10% of transactions
+        # Send errors to Sentry
+        send_default_pii=True,
+        # Environment
+        environment='production',
+    )
+
+# =============================================================================
+# CELERY PRODUCTION SETTINGS
+# =============================================================================
+# Celery result expiration to prevent Redis memory issues
+CELERY_RESULT_EXPIRES = config('CELERY_RESULT_EXPIRES', default=3600, cast=int)  # 1 hour
+
+# Task routing for better performance
+CELERY_TASK_ROUTES = {
+    'users.*': {'queue': 'users'},
+    'products.*': {'queue': 'products'},
+    'entities.*': {'queue': 'entities'},
+    'interactions.*': {'queue': 'interactions'},
+    'campaigns.*': {'queue': 'campaigns'},
+    'offers.*': {'queue': 'offers'},
+}
+
+# Task serialization
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+
+# Worker settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
