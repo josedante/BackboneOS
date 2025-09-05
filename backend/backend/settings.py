@@ -459,3 +459,7 @@ CELERY_ACCEPT_CONTENT = ['json']
 # Worker settings
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# Flower monitoring configuration
+FLOWER_BASIC_AUTH = config('FLOWER_BASIC_AUTH', default='admin:secure_password_here')
+FLOWER_PORT = config('FLOWER_PORT', default=5555, cast=int)
