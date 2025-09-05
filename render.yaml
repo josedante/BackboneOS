@@ -149,6 +149,14 @@ services:
       - key: NUXT_PORT
         value: "3000"
       
+      # Build environment configuration
+      - key: CI
+        value: "true"
+      - key: NODE_ENV
+        value: "production"
+      - key: NUXT_TELEMETRY_DISABLED
+        value: "1"
+      
       # Add shared environment variables
       - fromGroup: backboneos-shared
 

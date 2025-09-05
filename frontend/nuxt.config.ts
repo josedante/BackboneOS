@@ -13,6 +13,18 @@ export default defineNuxtConfig({
     "@nuxt/test-utils",
     "@nuxt/ui",
   ],
+
+  content: {
+    // Configure content module for non-interactive environments
+    database: {
+      // Use better-sqlite3 adapter explicitly
+      adapter: 'better-sqlite3'
+    },
+    // Disable interactive prompts
+    experimental: {
+      clientDB: false
+    }
+  },
   css: ["~/assets/css/main.css"],
 
   ui: {
@@ -46,5 +58,17 @@ export default defineNuxtConfig({
   sourcemap: {
     server: false,
     client: false,
+  },
+
+  // Environment configuration for build process
+  nitro: {
+    experimental: {
+      wasm: true
+    }
+  },
+
+  // Disable interactive prompts during build
+  experimental: {
+    payloadExtraction: false
   },
 });
