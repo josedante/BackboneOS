@@ -22,7 +22,7 @@ databases:
   - name: backboneos-db
     databaseName: backboneos
     user: backboneos_user
-    plan: starter # Free tier for development, upgrade for production
+    plan: free # Free tier for development, upgrade to basic-1gb+ for production
     ipAllowList: [] # Private network only
 
 # Redis Key-Value Store
