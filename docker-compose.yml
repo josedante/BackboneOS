@@ -53,7 +53,6 @@ services:
 
   frontend:
     build: ./frontend
-    command: npm run dev
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -62,7 +61,7 @@ services:
     environment:
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
-      - NUXT_PUBLIC_API_BASE=http://localhost:8000
+      - NUXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
       - NUXT_PRIVATE_API_BASE=https://backend
     depends_on:
       - backend

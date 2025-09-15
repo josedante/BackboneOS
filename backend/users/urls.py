@@ -11,8 +11,8 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('about/', views.about, name='about'),
     path('api/', include(router.urls)),
-    path('api/auth/login/', views.login, name='api_login'),
-    path('api/auth/jwt/login/', views.jwt_login, name='jwt_login'),
-    path('api/auth/jwt/refresh/', TokenRefreshView.as_view(), name='jwt_refresh'),
-    path('api/auth/user/', views.current_user, name='current_user'),
+    path('login/', views.login, name='api_login'),
+    path('jwt/login/', views.jwt_login, name='jwt_login'),
+    path('jwt/refresh/', TokenRefreshView.as_view(), name='jwt_refresh'),
+    path('user/', views.current_user, name='current_user'),
 ]

@@ -24,7 +24,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.97.4,backend.proyecto-opensource.orb.local,frontend.proyecto-opensource.orb.local').split(',')
 
 # Application definition
 
@@ -160,9 +160,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Additional locations of static files
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+# STATICFILES_DIRS = [
+#     BASE_DIR / 'static',
+# ]
 
 # Static files finders
 STATICFILES_FINDERS = [
@@ -213,6 +213,8 @@ CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[
     "http://127.0.0.1:5173",
     "https://backboneos-frontend.onrender.com",  # Render frontend
     "https://backboneos.com",  # Custom domain
+    "https://backend.proyecto-opensource.orb.local",  # Local development domain
+    "https://frontend.proyecto-opensource.orb.local",  # Local frontend domain
 ]).split(',') if isinstance(config('CORS_ALLOWED_ORIGINS', default=None), str) else [
     "http://localhost:3000",  # Nuxt.js development server
     "http://127.0.0.1:3000",
@@ -220,6 +222,8 @@ CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[
     "http://127.0.0.1:5173",
     "https://backboneos-frontend.onrender.com",  # Render frontend
     "https://backboneos.com",  # Custom domain
+    "https://backend.proyecto-opensource.orb.local",  # Local development domain
+    "https://frontend.proyecto-opensource.orb.local",  # Local frontend domain
 ]
 
 # CSRF Configuration
@@ -227,10 +231,14 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[
     "https://backboneos-backend.onrender.com",
     "https://backboneos-frontend.onrender.com",
     "https://backboneos.com",
+    "https://backend.proyecto-opensource.orb.local",
+    "https://frontend.proyecto-opensource.orb.local",
 ]).split(',') if isinstance(config('CSRF_TRUSTED_ORIGINS', default=None), str) else [
     "https://backboneos-backend.onrender.com",
     "https://backboneos-frontend.onrender.com",
     "https://backboneos.com",
+    "https://backend.proyecto-opensource.orb.local",
+    "https://frontend.proyecto-opensource.orb.local",
 ]
 
 # Security Settings for Production
@@ -249,6 +257,15 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
     SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
     X_FRAME_OPTIONS = 'DENY'
+else:
+    # Development settings for HTTPS with self-signed certificates
+    # Allow CSRF cookies to work with self-signed certificates
+    CSRF_COOKIE_SECURE = False  # Allow CSRF cookies over HTTP/HTTPS in development
+    SESSION_COOKIE_SECURE = False  # Allow session cookies over HTTP/HTTPS in development
+    CSRF_COOKIE_SAMESITE = 'Lax'  # More permissive for development
+    SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for development
+    CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript access to CSRF token in development
+    CSRF_USE_SESSIONS = False  # Use cookies instead of sessions for CSRF
 
 # Add production origins from environment variables
 PRODUCTION_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
