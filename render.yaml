@@ -33,7 +33,7 @@ services:
     maxmemoryPolicy: allkeys-lru
     ipAllowList: [] # Private network only
 
-  # Backend API Service (Django)
+  # Backend API Service (Django) - Runs migrations and serves API
   - type: web
     name: backboneos-backend
     runtime: docker
@@ -86,7 +86,7 @@ services:
       - key: SECURE_HSTS_PRELOAD
         value: "True"
       - key: SECURE_SSL_REDIRECT
-        value: "True"
+        value: "False"
       - key: SECURE_BROWSER_XSS_FILTER
         value: "True"
       - key: SECURE_CONTENT_TYPE_NOSNIFF
@@ -160,7 +160,7 @@ services:
       # Add shared environment variables
       - fromGroup: backboneos-shared
 
-# Celery Worker Service
+# Celery Worker Service - Depends on backend for migrations
   - type: worker
     name: backboneos-celery-worker
     runtime: docker
@@ -214,7 +214,7 @@ services:
       # Add shared environment variables
       - fromGroup: backboneos-shared
 
-# Celery Beat Service (Scheduler)
+# Celery Beat Service (Scheduler) - Depends on backend for migrations
   - type: worker
     name: backboneos-celery-beat
     runtime: docker

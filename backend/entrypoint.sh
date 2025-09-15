@@ -6,9 +6,39 @@ set -e
 
 echo "🚀 Starting BackboneOS Backend..."
 
+# Function to check database connection
+check_database() {
+    echo "🔍 Checking database connection..."
+    python manage.py check --database default || {
+        echo "❌ Database connection failed, retrying in 5 seconds..."
+        sleep 5
+        return 1
+    }
+    echo "✅ Database connection successful"
+    return 0
+}
+
 # Function to run migrations with advisory lock
 run_migrations() {
     echo "📊 Running database migrations..."
+    
+    # Wait for database to be ready with retries
+    local retries=0
+    local max_retries=10
+    
+    while [ $retries -lt $max_retries ]; do
+        if check_database; then
+            break
+        fi
+        retries=$((retries + 1))
+        echo "🔄 Retry $retries/$max_retries - waiting 5 seconds..."
+        sleep 5
+    done
+    
+    if [ $retries -eq $max_retries ]; then
+        echo "❌ Failed to connect to database after $max_retries retries"
+        exit 1
+    fi
     
     # Use Django's migrate command with advisory lock
     # This prevents multiple instances from migrating simultaneously
@@ -48,16 +78,13 @@ start_app() {
 
 # Main execution flow
 main() {
-    # Wait a bit for database to be ready
-    echo "⏳ Waiting for database to be ready..."
-    sleep 2
-    
-    # Run migrations first
-    run_migrations
-    
-    # Collect static files (only for web services)
+    # Only run migrations for web services (gunicorn or default)
     if [[ "$1" == *"gunicorn"* ]] || [ $# -eq 0 ]; then
+        echo "🌐 Web service detected - running migrations and collecting static files"
+        run_migrations
         collect_static
+    else
+        echo "⚙️  Worker service detected - skipping migrations and static files"
     fi
     
     # Start the application

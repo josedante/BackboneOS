@@ -223,8 +223,8 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[
 
 # Security Settings for Production
 if not DEBUG:
-    # HTTPS Settings
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    # HTTPS Settings - Disable SSL redirect on Render since it's already behind HTTPS
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
     SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
     SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
@@ -350,6 +350,10 @@ else:
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Celery Beat specific settings
+CELERY_BEAT_SCHEDULE_FILENAME = '/tmp/celerybeat-schedule'
+CELERY_BEAT_MAX_LOOP_INTERVAL = 5  # seconds
 
 
 

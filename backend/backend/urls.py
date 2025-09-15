@@ -19,6 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 
 @csrf_exempt
 def health_check(request):
@@ -26,13 +27,36 @@ def health_check(request):
     return JsonResponse({
         'status': 'healthy',
         'service': 'backboneos-backend',
-        'timestamp': '2025-01-27T00:00:00Z'
+        'timestamp': timezone.now().isoformat()
+    })
+
+@csrf_exempt
+def root_view(request):
+    """Root endpoint for the API"""
+    return JsonResponse({
+        'message': 'BackboneOS API',
+        'version': '1.0.0',
+        'status': 'running',
+        'endpoints': {
+            'health': '/health/',
+            'admin': '/admin/',
+            'api': {
+                'world': '/api/world/',
+                'products': '/api/products/',
+                'entities': '/api/entities/',
+                'interactions': '/api/interactions/',
+                'our-institution': '/api/our-institution/',
+                'campaigns': '/api/campaigns/',
+                'offers': '/api/offers/',
+            }
+        }
     })
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('health/', health_check, name='health_check'),
-    path('', include('users.urls')),
+    path('', root_view, name='root'),
+    path('users/', include('users.urls')),
     path('api/world/', include('world.urls')),
     path('api/products/', include('products.urls')),
     path('api/entities/', include('entities.urls')),
