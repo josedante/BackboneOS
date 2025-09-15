@@ -449,6 +449,14 @@ if SENTRY_DSN and not DEBUG:
         send_default_pii=True,
         # Environment
         environment='production',
+        # Additional options to handle Python 3.13 compatibility
+        max_breadcrumbs=50,
+        attach_stacktrace=True,
+        # Disable problematic features that cause pickle errors
+        before_send=lambda event, hint: event if not any(
+            'FrameLocalsProxy' in str(error.get('value', '')) 
+            for error in event.get('exception', {}).get('values', [])
+        ) else None,
     )
 
 # =============================================================================

@@ -14,5 +14,5 @@ python-decouple==3.8
 sqlparse==0.5.3
 Pillow==10.4.0
 requests==2.32.4
-sentry-sdk[django]==1.40.0
+sentry-sdk[django]==2.18.0
 django-storages==1.14.2

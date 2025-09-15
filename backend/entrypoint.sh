@@ -44,6 +44,21 @@ run_migrations() {
     # This prevents multiple instances from migrating simultaneously
     python manage.py migrate --noinput
     
+    # For Celery Beat, also ensure the beat tables exist
+    if [[ "${@}" == *"beat"* ]]; then
+        echo "🔍 Verifying Celery Beat tables..."
+        python manage.py shell -c "
+from django.db import connection
+cursor = connection.cursor()
+try:
+    cursor.execute('SELECT 1 FROM django_celery_beat_crontabschedule LIMIT 1')
+    print('✅ Celery Beat tables verified')
+except Exception as e:
+    print(f'⚠️  Celery Beat tables not ready: {e}')
+    exit(1)
+"
+    fi
+    
     echo "✅ Database migrations completed"
 }
 
@@ -78,11 +93,16 @@ start_app() {
 
 # Main execution flow
 main() {
-    # Only run migrations for web services (gunicorn or default)
-    if [[ "$1" == *"gunicorn"* ]] || [ $# -eq 0 ]; then
-        echo "🌐 Web service detected - running migrations and collecting static files"
-        run_migrations
-        collect_static
+    # Run migrations for web services (gunicorn or default) and Celery Beat
+    if [[ "$1" == *"gunicorn"* ]] || [ $# -eq 0 ] || [[ "$1" == *"beat"* ]]; then
+        if [[ "$1" == *"beat"* ]]; then
+            echo "⏰ Celery Beat service detected - running migrations only"
+            run_migrations
+        else
+            echo "🌐 Web service detected - running migrations and collecting static files"
+            run_migrations
+            collect_static
+        fi
     else
         echo "⚙️  Worker service detected - skipping migrations and static files"
     fi

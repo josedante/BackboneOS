@@ -66,5 +66,8 @@ urlpatterns = [
     path('api/our-institution/', include('our_institution.urls')),
     path('api/campaigns/', include('campaigns.urls')),
     path('api/offers/', include('offers.urls')),
-    static(settings.STATIC_URL, document_root=settings.STATIC_ROOT),
 ]
+
+# Serve static files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
