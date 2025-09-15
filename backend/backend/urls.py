@@ -20,6 +20,8 @@ from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.conf import settings
+from django.conf.urls.static import static
 
 @csrf_exempt
 def health_check(request):
@@ -64,4 +66,5 @@ urlpatterns = [
     path('api/our-institution/', include('our_institution.urls')),
     path('api/campaigns/', include('campaigns.urls')),
     path('api/offers/', include('offers.urls')),
+    static(settings.STATIC_URL, document_root=settings.STATIC_ROOT),
 ]
