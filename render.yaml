@@ -43,7 +43,7 @@ services:
     plan: starter # Free tier for development
     region: oregon # Default region
     scaling:
-      minInstances: 2
+      minInstances: 1
       maxInstances: 3
       targetCPUPercent: 70
     healthCheckPath: /health/
