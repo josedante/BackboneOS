@@ -1,26 +1,35 @@
-FROM node:20-alpine
+# ---- Stage 1: Build ----
+# Use a specific Node.js version with a full OS for building
+FROM node:20 AS builder
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and lock file
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy the rest of your app's source code
 COPY . .
 
-# Build the application
+# Build the Nuxt.js application for production
 RUN npm run build
 
-# Expose port
+
+# ---- Stage 2: Production ----
+# Use the lightweight alpine image for the final production stage
+FROM node:20-alpine
+
+# Set the working directory
+WORKDIR /app
+
+# Copy only the built artifacts from the 'builder' stage
+COPY --from=builder /app/.output ./
+
+# Expose the port Nuxt will run on
 EXPOSE 3000
 
-# Set environment variables
-ENV NUXT_HOST=0.0.0.0
-ENV NUXT_PORT=3000
-
-# Start the application
-CMD ["npm", "run", "preview"]
+# Set the command to start the Nuxt server
+CMD ["node", "./server/index.mjs"]

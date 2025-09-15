@@ -16,21 +16,9 @@ export default defineNuxtConfig({
 
   content: {
     // Configure content module for non-interactive environments
-    database: {
-      // Use better-sqlite3 adapter explicitly
-      adapter: 'better-sqlite3'
-    },
-    // Disable interactive prompts
-    experimental: {
-      clientDB: false
-    }
   },
   css: ["~/assets/css/main.css"],
 
-  ui: {
-    global: true,
-    icons: ["heroicons", "simple-icons"],
-  },
 
   colorMode: {
     preference: "light",

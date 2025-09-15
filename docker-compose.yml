@@ -9,6 +9,8 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    networks:
+      - backboneos-network
   celery-beat:
     build: ./backend
     command: celery -A backend beat -l info
@@ -19,6 +21,8 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    networks:
+      - backboneos-network
   flower:
     build: ./backend
     command: celery -A backend flower --port=5555
@@ -30,6 +34,8 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    networks:
+      - backboneos-network
   backend:
     build: ./backend
     command: python manage.py runserver 0.0.0.0:8000
@@ -42,6 +48,8 @@ services:
     depends_on:
       - db
       - redis
+    networks:
+      - backboneos-network
 
   frontend:
     build: ./frontend
@@ -58,6 +66,8 @@ services:
       - NUXT_PRIVATE_API_BASE=https://backend
     depends_on:
       - backend
+    networks:
+      - backboneos-network
 
   redis:
     image: redis:7
@@ -67,6 +77,8 @@ services:
     volumes:
       - ../redis_data:/data
     restart: unless-stopped
+    networks:
+      - backboneos-network
   db:
     image: postgres:14
     volumes:
@@ -77,7 +89,14 @@ services:
       POSTGRES_PASSWORD: mypassword
     ports:
       - "5432:5432"
+    networks:
+      - backboneos-network
 
 volumes:
   redis_data:
   postgres_data:
+
+networks:
+  backboneos-network:
+    name: backboneos-network
+    driver: bridge
