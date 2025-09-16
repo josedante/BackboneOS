@@ -4,13 +4,15 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+# Python build directories (but not frontend build)
+backend/build/
 develop-eggs/
-dist/
+backend/dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Python lib directories (but not frontend/lib)
+backend/lib/
 lib64/
 parts/
 sdist/
@@ -22,7 +24,7 @@ wheels/
 MANIFEST
 
 # Django
-*.log
+backend/*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -108,8 +110,8 @@ frontend/.cache/
 .dockerignore
 
 # Logs
-logs
-*.log
+backend/logs
+backend/*.log
 
 # Render
 .render_logs/*
@@ -127,9 +129,9 @@ coverage/
 # nyc test coverage
 .nyc_output
 
-# Temporary folders
-tmp/
-temp/
+# Temporary folders (Python only)
+backend/tmp/
+backend/temp/
 
 # Render
 .render_logs/*

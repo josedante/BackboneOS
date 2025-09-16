@@ -23,6 +23,8 @@ from django.utils import timezone
 from django.conf import settings
 from django.conf.urls.static import static
 
+from users.views import UserViewSet
+
 @csrf_exempt
 def health_check(request):
     """Health check endpoint for Render deployment"""
@@ -67,6 +69,7 @@ urlpatterns = [
     path('api/our-institution/', include('our_institution.urls')),
     path('api/campaigns/', include('campaigns.urls')),
     path('api/offers/', include('offers.urls')),
+    path('api/users/', UserViewSet.as_view({'get': 'list'}), name='user-list'),
 ]
 
 # Serve static files in development

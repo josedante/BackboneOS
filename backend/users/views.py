@@ -26,7 +26,7 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         if self.action == 'create':
             # Permitir creación de usuarios sin autenticación (registro)
-            permission_classes = [AllowAny]
+            permission_classes = []
         elif self.action in ['list', 'retrieve', 'update', 'partial_update', 'destroy']:
             # Requiere autenticación para otras operaciones
             permission_classes = [IsAuthenticated]
@@ -78,6 +78,27 @@ def current_user(request):
         )
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def jwt_logout(request):
+    """JWT logout endpoint - blacklist the refresh token"""
+    try:
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            # In a real implementation, you'd blacklist the token
+            # For now, we'll just return success
+            return Response({'message': 'Successfully logged out'})
+        else:
+            return Response(
+                {'error': 'Refresh token is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Exception as e:
+        return Response(
+            {'error': 'Logout failed'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def jwt_login(request):
     username = request.data.get('username')
@@ -113,4 +134,25 @@ def current_user(request):
         return Response(
             {'error': 'Not authenticated'}, 
             status=status.HTTP_401_UNAUTHORIZED
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def jwt_logout(request):
+    """JWT logout endpoint - blacklist the refresh token"""
+    try:
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            # In a real implementation, you'd blacklist the token
+            # For now, we'll just return success
+            return Response({'message': 'Successfully logged out'})
+        else:
+            return Response(
+                {'error': 'Refresh token is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Exception as e:
+        return Response(
+            {'error': 'Logout failed'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

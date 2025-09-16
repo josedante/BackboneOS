@@ -154,6 +154,19 @@ NEXT_PUBLIC_API_BASE=https://your-backend-url.onrender.com
 NODE_ENV=production
 ```
 
+### SSL Certificate Handling
+
+The frontend automatically handles SSL certificates based on the environment:
+
+- **Development**: SSL certificate verification is disabled for self-signed certificates (localhost, orb.local)
+- **Production**: Full SSL certificate verification is enforced
+
+This is controlled by checking:
+- `NODE_ENV` environment variable
+- API base URL domain (localhost/orb.local vs production domains)
+
+**Security Note**: The SSL bypass only applies to development environments with self-signed certificates. In production, proper SSL certificates are required and verification cannot be disabled.
+
 ### Build Configuration
 
 The app uses:
