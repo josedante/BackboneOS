@@ -1,326 +1,469 @@
-# Frontend - BackboneOS
+# BackboneOS Frontend Documentation
 
-## 🖥️ Frontend Nuxt.js Application
+## Overview
 
-### 📋 Información General
+The BackboneOS frontend is a modern, responsive web application built with Next.js 15, TypeScript, and Tailwind CSS. It provides a comprehensive CRM dashboard interface for managing users, products, entities, interactions, campaigns, and offers.
 
-El frontend de BackboneOS está construido con Nuxt.js 3.17.4 + TypeScript, diseñado como una **Single Page Application (SPA)** que consume la API REST del backend Django de manera completamente desacoplada.
+## Architecture
 
-## 🛠️ Stack Tecnológico Frontend
+### Technology Stack
 
-### Core Framework
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript for type safety
+- **Styling**: Tailwind CSS with custom design system
+- **State Management**: React Query (TanStack Query) for server state
+- **Forms**: React Hook Form with Zod validation
+- **Charts**: Recharts for data visualization
+- **Icons**: Lucide React
+- **Notifications**: Sonner for toast notifications
+- **Authentication**: JWT-based with automatic token refresh
 
-- **Nuxt.js**: 3.17.4 (Framework full-stack Vue.js)
-- **Vue.js**: 3.x (Framework reactivo de componentes)
-- **TypeScript**: 5.8.3 (Tipado estático para JavaScript)
+### Rendering Strategy
 
-### UI & Styling
+The application uses a hybrid rendering approach:
 
-- **Nuxt UI**: 3.1.3 (Biblioteca de componentes UI)
-- **Tailwind CSS**: Integrado via Nuxt UI (CSS utility-first)
-- **Nuxt Icon**: Iconografía moderna y optimizada
-- **Nuxt Fonts**: Gestión optimizada de fuentes web
+- **Server Components**: For static content and initial data loading
+- **Client Components**: For interactive features and real-time updates
+- **Server Actions**: For mutations and form submissions (BFF pattern)
+- **React Query**: For client-side data fetching and caching
 
-### Módulos y Extensiones
-
-- **@nuxt/content**: Gestión de contenido markdown/yaml
-- **@nuxt/image**: Optimización automática de imágenes
-- **@nuxt/scripts**: Gestión optimizada de scripts externos
-- **@nuxt/test-utils**: Utilidades para testing
-
-### Herramientas de Desarrollo
-
-- **ESLint**: 9.27.0 (Linting y código limpio)
-- **TypeScript Config**: Configuración estricta
-- **Hot Module Replacement**: Desarrollo en tiempo real
-
-## 🏗️ Arquitectura Frontend
-
-### Estructura de Carpetas
+## Project Structure
 
 ```
 frontend/
-├── 📁 assets/              # Recursos estáticos (CSS, imágenes)
-├── 📁 components/          # Componentes Vue.js reutilizables
-├── 📁 composables/         # Lógica reutilizable de Vue 3
-│   └── useAuth.ts         # ✅ Sistema de autenticación
-├── 📁 layouts/            # Layouts de página
-├── 📁 middleware/         # Middleware de rutas
-│   └── auth.ts           # ✅ Middleware de autenticación
-├── 📁 pages/              # Páginas de la aplicación (routing automático)
-│   ├── index.vue         # Página principal
-│   ├── login.vue         # ✅ Página de login
-│   ├── analytics/        # 🔄 Páginas de analytics
-│   ├── customers/        # 🔄 Gestión de clientes
-│   ├── leads/           # 🔄 Gestión de leads
-│   ├── products/        # 🔄 Gestión de productos
-│   └── reports/         # 🔄 Reportes y dashboards
-├── 📁 plugins/            # Plugins de Nuxt.js
-│   └── auth.client.ts    # ✅ Plugin de autenticación cliente
-├── 📁 server/             # API routes server-side (si es necesario)
-├── 📁 src/                # Código fuente adicional
-│   ├── components/        # Componentes específicos
-│   └── services/          # Servicios de API
-│       ├── api.ts        # ✅ Servicio API centralizado
-│       └── userService.ts # ✅ Servicio de usuarios
-└── 📁 public/             # Archivos públicos estáticos
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── analytics/         # Analytics dashboard
+│   │   ├── users/            # User management
+│   │   ├── products/         # Product management (planned)
+│   │   ├── entities/         # Entity management (planned)
+│   │   ├── interactions/     # Interaction management (planned)
+│   │   ├── campaigns/        # Campaign management (planned)
+│   │   ├── offers/           # Offer management (planned)
+│   │   ├── settings/         # Settings page (planned)
+│   │   ├── login/            # Authentication
+│   │   ├── layout.tsx        # Root layout
+│   │   ├── page.tsx          # Dashboard home
+│   │   ├── providers.tsx     # React Query provider
+│   │   └── globals.css       # Global styles
+│   ├── components/           # Reusable UI components
+│   │   ├── analytics/        # Analytics components
+│   │   ├── dashboard/        # Dashboard components
+│   │   ├── layout/           # Layout components
+│   │   └── users/            # User management components
+│   ├── lib/                  # Utility functions and configurations
+│   │   ├── api.ts           # API client and endpoints
+│   │   ├── server-actions.ts # Server Actions for mutations
+│   │   └── utils.ts         # Utility functions
+│   └── types/               # TypeScript type definitions
+│       └── index.ts         # Shared types
+├── public/                  # Static assets
+├── Dockerfile              # Production Docker image
+├── Dockerfile.dev          # Development Docker image
+├── next.config.js          # Next.js configuration
+├── tailwind.config.js      # Tailwind CSS configuration
+├── package.json            # Dependencies and scripts
+└── README.md               # Project documentation
 ```
 
-### Sistema de Autenticación
+## Core Features
 
-**🔑 Autenticación JWT Completa Implementada**
+### 1. Authentication System
+
+**Login Page** (`/login`)
+- JWT-based authentication
+- Form validation with error handling
+- Automatic token storage in localStorage
+- Redirect to dashboard on successful login
+
+**Authentication Flow**:
+1. User submits credentials via Server Action
+2. Backend validates and returns JWT token
+3. Token stored in localStorage (development) or httpOnly cookies (production)
+4. Automatic token injection in API requests
+5. Token refresh handling for expired tokens
+
+### 2. Dashboard Layout
+
+**Responsive Design**:
+- Mobile-first approach with responsive breakpoints
+- Collapsible sidebar for mobile devices
+- Fixed header with user information and notifications
+
+**Navigation Structure**:
+- Dashboard (home)
+- Users management
+- Products management
+- Entities management
+- Interactions management
+- Campaigns management
+- Offers management
+- Analytics dashboard
+- Settings
+
+### 3. User Management
+
+**Users Page** (`/users`)
+- Comprehensive user table with search and filtering
+- User statistics overview
+- CRUD operations for user management
+- Role-based access control display
+- Pagination for large datasets
+
+**Features**:
+- Real-time search functionality
+- Role filtering (Admin/User)
+- Status indicators (Active/Inactive)
+- Action buttons for view, edit, delete operations
+- Responsive table design
+
+### 4. Analytics Dashboard
+
+**Analytics Page** (`/analytics`)
+- Revenue charts and trends
+- User growth analytics
+- Top products performance
+- Recent interactions overview
+- Comprehensive business metrics
+
+**Components**:
+- `AnalyticsOverview`: Key performance indicators
+- `RevenueChart`: Revenue trends over time
+- `UserGrowthChart`: User acquisition metrics
+- `TopProducts`: Best-performing products
+- `RecentInteractions`: Latest user interactions
+
+## API Integration
+
+### Server Actions (BFF Pattern)
+
+The frontend uses Next.js Server Actions as a Backend-for-Frontend (BFF) layer to handle mutations:
 
 ```typescript
-// composables/useAuth.ts - Gestión de estado de autenticación
-const { login, logout, user, token, isAuthenticated } = useAuth();
+// Authentication
+loginAction(formData: FormData)
+logoutAction()
 
-// middleware/auth.ts - Protección de rutas
-export default defineNuxtRouteMiddleware((to, from) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated.value) {
-    return navigateTo("/login");
-  }
-});
+// User Management
+createUserAction(formData: FormData)
+updateUserAction(id: number, formData: FormData)
+deleteUserAction(id: number)
 
-// plugins/auth.client.ts - Inicialización de autenticación
-// Recupera tokens del localStorage al cargar la aplicación
+// Product Management
+createProductAction(formData: FormData)
+updateProductAction(id: number, formData: FormData)
+deleteProductAction(id: number)
 ```
 
-### Comunicación con Backend
+### Client-side API
 
-**🔗 API Service Centralizado**
+For data fetching, the application uses a centralized API client:
 
 ```typescript
-// src/services/api.ts
-const api = {
-  // Configuración base de la API
-  baseURL: 'http://localhost:8000/api/',
-
-  // Métodos HTTP con autenticación automática
-  get, post, put, delete,
-
-  // Interceptors para tokens JWT
-  // Manejo de errores centralizado
-}
+// API Modules
+authApi        // Authentication endpoints
+usersApi       // User management
+productsApi    // Product management
+entitiesApi    // Entity management
+interactionsApi // Interaction management
+campaignsApi   // Campaign management
+offersApi      // Offer management
 ```
 
-## 🎯 Páginas y Funcionalidades
+### API Client Features
 
-### ✅ Implementadas
+- **Automatic Token Injection**: JWT tokens automatically added to requests
+- **Error Handling**: Centralized error handling with 401 redirects
+- **Request Logging**: Development-mode request logging
+- **SSL Configuration**: Automatic SSL certificate handling for development
 
-1. **Página Principal (`index.vue`)**
+## Component Architecture
 
-   - Dashboard principal del CRM
-   - Resumen de métricas clave
-   - Navegación a módulos principales
+### Layout Components
 
-2. **Autenticación (`login.vue`)**
+**DashboardLayout**
+- Main layout wrapper for authenticated pages
+- Manages sidebar state and responsive behavior
+- Provides consistent page structure
 
-   - Login con email/password
-   - Integración con JWT backend
-   - Redirección automática post-login
+**Sidebar**
+- Navigation menu with active state indicators
+- Responsive design with mobile overlay
+- Icon-based navigation with labels
 
-3. **Sistema de Autenticación Completo**
-   - Middleware de protección de rutas
-   - Composable de gestión de estado
-   - Plugin de inicialización
+**Header**
+- Top navigation bar with user information
+- Notification bell with badge
+- Logout functionality
+- Mobile menu toggle
 
-### 🔄 En Desarrollo
+### Feature Components
 
-1. **Analytics Dashboard (`/analytics/`)**
+**Dashboard Components**:
+- `DashboardStats`: Key metrics cards
+- `QuickActions`: Shortcut buttons for common tasks
+- `RecentActivity`: Latest system activities
 
-   - Métricas de ventas y CRM
-   - Gráficos interactivos
-   - Filtros temporales
+**User Management Components**:
+- `UsersTable`: Comprehensive user data table
+- `UsersStats`: User-related statistics
 
-2. **Gestión de Clientes (`/customers/`)**
+**Analytics Components**:
+- `AnalyticsOverview`: KPI summary cards
+- `RevenueChart`: Revenue visualization
+- `UserGrowthChart`: User growth trends
+- `TopProducts`: Product performance
+- `RecentInteractions`: Latest interactions
 
-   - CRUD de personas y organizaciones
-   - Perfilado semántico
-   - Historial de interacciones
+## Styling System
 
-3. **Gestión de Leads (`/leads/`)**
+### Design System
 
-   - Pipeline de ventas
-   - Seguimiento de oportunidades
-   - Asignación de responsables
+**Color Palette**:
+- Primary: Blue (#3B82F6)
+- Secondary: Gray variants
+- Success: Green
+- Warning: Yellow
+- Error: Red
+- Neutral: Gray scale
 
-4. **Gestión de Productos (`/products/`)**
+**Typography**:
+- Font: Inter (Google Fonts)
+- Responsive text sizing
+- Consistent font weights
 
-   - Catálogo de productos
-   - Gestión de categorías
-   - Pricing y configuración
+**Spacing**:
+- Tailwind CSS spacing scale
+- Consistent component padding
+- Responsive margins
 
-5. **Reportes (`/reports/`)**
-   - Reportes personalizables
-   - Exportación de datos
-   - Business Intelligence
-
-## 🚀 Comandos de Desarrollo Frontend
-
-### Ambiente Local (Recomendado)
-
-```bash
-cd frontend
-
-# Instalar dependencias
-npm install
-
-# Desarrollo con hot reload
-npm run dev
-
-# Build para producción
-npm run build
-
-# Preview del build
-npm run preview
-
-# Linting y formato
-npm run lint
-npm run lint:fix
-```
-
-### Desarrollo
-
-```bash
-# Ejecutar en modo desarrollo
-npm run dev
-# Aplicación disponible en: http://localhost:3000
-
-# Desarrollo con inspector Vue
-npm run dev -- --inspect
-
-# Desarrollo con puerto específico
-npm run dev -- --port 3001
-```
-
-### Testing
-
-```bash
-# Tests unitarios (cuando se implementen)
-npm run test
-
-# Tests E2E (cuando se implementen)
-npm run test:e2e
-
-# Coverage de tests
-npm run test:coverage
-```
-
-## 📱 Diseño Responsive
-
-### Breakpoints Tailwind CSS
+### Custom CSS Classes
 
 ```css
-/* Mobile First Approach */
-sm:   640px   /* Tablet pequeña */
-md:   768px   /* Tablet */
-lg:   1024px  /* Desktop pequeño */
-xl:   1280px  /* Desktop */
-2xl:  1536px  /* Desktop grande */
+/* Button variants */
+.btn, .btn-primary, .btn-secondary, .btn-destructive
+.btn-outline, .btn-ghost
+.btn-sm, .btn-lg
+
+/* Form elements */
+.input
+
+/* Cards */
+.card
 ```
 
-### Componentes UI
+## State Management
 
-El frontend utiliza **Nuxt UI** que proporciona:
-
-- ✅ **Componentes prediseñados** con Tailwind CSS
-- ✅ **Dark mode** integrado
-- ✅ **Accesibilidad** WCAG compliant
-- ✅ **Responsive design** automático
-- ✅ **Theming** personalizable
-
-## 🔮 Roadmap Frontend
-
-### Próximas Funcionalidades
-
-1. **🔄 Dashboard Principal**
-
-   - Widgets personalizables
-   - Métricas en tiempo real
-   - Notificaciones push
-
-2. **👥 CRM Completo**
-
-   - Gestión de contactos avanzada
-   - Timeline de interacciones
-   - Segmentación de clientes
-
-3. **📊 Analytics Avanzados**
-
-   - Gráficos interactivos con Chart.js
-   - Filtros dinámicos
-   - Exportación de reportes
-
-4. **📱 Progressive Web App (PWA)**
-
-   - Funcionamiento offline
-   - Notificaciones push
-   - Instalación en dispositivos
-
-5. **🌐 Internacionalización (i18n)**
-   - Múltiples idiomas
-   - Formatos de fecha/moneda
-   - RTL support
-
-## 🔧 Configuración y Personalización
-
-### Variables de Entorno
-
-```bash
-# .env
-NUXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/
-NUXT_PUBLIC_APP_NAME=BackboneOS
-NUXT_PUBLIC_VERSION=1.0.0
-```
-
-### Configuración Nuxt
+### React Query Configuration
 
 ```typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  // Configuración de módulos
-  modules: ["@nuxt/ui", "@nuxt/content", "@nuxt/image"],
-
-  // Configuración CSS
-  css: ["~/assets/css/main.css"],
-
-  // Configuración de runtime
-  runtimeConfig: {
-    public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL,
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      retry: 1,
     },
   },
-});
+})
 ```
 
-## 🔗 Integración con Backend
+### Data Flow
 
-### Consumo de API
+1. **Server Components**: Initial data loading with `fetch()`
+2. **Client Components**: Real-time updates with React Query
+3. **Mutations**: Server Actions for form submissions
+4. **Cache Management**: Automatic revalidation and cache updates
 
-El frontend está diseñado para consumir todos los endpoints de la API REST del backend:
+## Security Features
 
-```typescript
-// Ejemplos de consumo de API
-const { data: users } = await api.get("/users/");
-const { data: products } = await api.get("/products/products/");
-const { data: offers } = await api.get("/offers/offerings/");
-const { data: interactions } = await api.get("/interactions/interactions/");
+### Authentication Security
+
+- JWT token-based authentication
+- Automatic token refresh
+- Secure token storage (localStorage in dev, httpOnly cookies in prod)
+- Automatic logout on token expiration
+
+### Request Security
+
+- CSRF protection via Server Actions
+- XSS prevention through React's built-in protection
+- Content Security Policy headers
+- Secure HTTP headers configuration
+
+### SSL Configuration
+
+- Development: SSL certificate verification disabled for self-signed certificates
+- Production: Full SSL certificate verification enforced
+- Automatic environment detection
+
+## Performance Optimizations
+
+### Next.js Optimizations
+
+- **Server Components**: Reduced client-side JavaScript
+- **Streaming**: RSC streaming for faster page loads
+- **Image Optimization**: Next.js Image component
+- **Font Optimization**: Next.js Font optimization
+- **Bundle Optimization**: Tree shaking and code splitting
+
+### Caching Strategy
+
+- **Server-side**: Smart revalidation with `fetch()`
+- **Client-side**: React Query caching with stale-while-revalidate
+- **Static Assets**: CDN-ready static file serving
+
+## Development Workflow
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run type-check   # Run TypeScript type checking
 ```
 
-### Sincronización de Datos
+### Environment Configuration
 
-- **Estado reactivo** con refs y computed
-- **Cache inteligente** para datos frecuentes
-- **Actualizaciones en tiempo real** (futuro: WebSockets)
-- **Optimistic updates** para mejor UX
+**Development**:
+```bash
+NEXT_PUBLIC_API_BASE=http://localhost:8000
+NODE_ENV=development
+```
 
-## 📚 Documentación Específica
+**Production**:
+```bash
+NEXT_PUBLIC_API_BASE=https://your-backend-url.onrender.com
+NODE_ENV=production
+```
 
-- **[README.md](../frontend/README.md)** - Guía de inicio rápido
-- **[DASHBOARD_README.md](../frontend/DASHBOARD_README.md)** - Documentación del dashboard
-- **[TROUBLESHOOTING.md](../frontend/TROUBLESHOOTING.md)** - Solución de problemas comunes
+## Deployment
+
+### Docker Configuration
+
+**Production Dockerfile**:
+- Multi-stage build for optimization
+- Node.js 20 Alpine base image
+- Standalone output for smaller images
+- Non-root user for security
+
+**Development Dockerfile**:
+- Development dependencies
+- Hot reload support
+- Volume mounting for live updates
+
+### Render.com Deployment
+
+- **Build Command**: `npm run build`
+- **Start Command**: `npm start`
+- **Environment Variables**: Configured for production
+- **Health Checks**: Built-in health check endpoint
+
+### Build Configuration
+
+- **Output**: `standalone` for Docker deployment
+- **Compression**: Enabled for better performance
+- **Security Headers**: Configured for production
+- **Image Optimization**: Next.js Image component
+
+## Testing Strategy
+
+### Component Testing
+
+- Unit tests for individual components
+- Integration tests for component interactions
+- Visual regression testing for UI consistency
+
+### API Testing
+
+- Mock API responses for development
+- Integration tests with real backend
+- Error handling validation
+
+## Future Enhancements
+
+### Planned Features
+
+1. **Product Management**: Complete CRUD interface for products
+2. **Entity Management**: Business entity management system
+3. **Interaction Tracking**: Customer interaction logging
+4. **Campaign Management**: Marketing campaign tools
+5. **Offer Management**: Promotional offer system
+6. **Settings Page**: System configuration interface
+7. **Real-time Updates**: WebSocket integration for live data
+8. **Advanced Analytics**: More detailed reporting and insights
+
+### Technical Improvements
+
+1. **PWA Support**: Progressive Web App capabilities
+2. **Offline Support**: Service worker implementation
+3. **Advanced Caching**: More sophisticated caching strategies
+4. **Performance Monitoring**: Real-time performance tracking
+5. **Accessibility**: Enhanced accessibility features
+6. **Internationalization**: Multi-language support
+
+## Contributing
+
+### Development Setup
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables
+4. Start development server: `npm run dev`
+
+### Code Standards
+
+- TypeScript for all new code
+- ESLint configuration for code quality
+- Prettier for code formatting
+- Conventional commits for version control
+
+### Pull Request Process
+
+1. Create feature branch
+2. Implement changes with tests
+3. Run linting and type checking
+4. Submit pull request with description
+5. Code review and approval process
+
+## Troubleshooting
+
+### Common Issues
+
+**SSL Certificate Errors**:
+- Development: Automatically handled for localhost/orb.local
+- Production: Ensure valid SSL certificates
+
+**API Connection Issues**:
+- Check `NEXT_PUBLIC_API_BASE` environment variable
+- Verify backend server is running
+- Check network connectivity
+
+**Build Errors**:
+- Clear `.next` directory
+- Reinstall dependencies
+- Check TypeScript errors
+
+### Debug Mode
+
+Enable debug logging by setting:
+```bash
+NODE_ENV=development
+```
+
+This will show detailed API request logs and error information.
+
+## Support
+
+For technical support or questions about the frontend:
+
+1. Check the troubleshooting section
+2. Review the component documentation
+3. Check GitHub issues
+4. Contact the development team
 
 ---
 
-> **Frontend BackboneOS** - Interfaz moderna y escalable para el ecosistema CRM
+*Last updated: December 2024*
+*Version: 0.1.0*
