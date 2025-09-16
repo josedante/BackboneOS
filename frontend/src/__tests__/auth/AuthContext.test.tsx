@@ -28,6 +28,14 @@ vi.mock('sonner', () => ({
   },
 }))
 
+// Mock fetch globally to prevent TokenRefreshManager from making real API calls
+global.fetch = vi.fn()
+
+// Mock TokenRefreshManager to prevent it from interfering with tests
+vi.mock('@/components/auth/TokenRefreshManager', () => ({
+  TokenRefreshManager: () => null,
+}))
+
 // Test component that uses the auth context
 function TestComponent() {
   const { user, isAuthenticated, login, logout } = useAuth()
@@ -76,6 +84,13 @@ describe('AuthContext', () => {
     Object.defineProperty(window, 'localStorage', {
       value: localStorageMock,
       writable: true,
+    })
+    
+    // Mock fetch to prevent TokenRefreshManager from making real API calls
+    ;(global.fetch as any).mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ detail: 'Token is invalid or expired' }),
     })
   })
 
@@ -127,9 +142,9 @@ describe('AuthContext', () => {
     
     ;(authApi.login as any).mockResolvedValue(mockResponse)
     
-    // Mock localStorage to track setItem calls
+    // Mock localStorage to track setItem calls and return null initially
     const localStorageMock = {
-      getItem: vi.fn(() => null),
+      getItem: vi.fn(() => null), // Start with no tokens
       setItem: vi.fn(),
       removeItem: vi.fn(),
       clear: vi.fn(),
@@ -143,21 +158,30 @@ describe('AuthContext', () => {
     
     renderWithProviders(<TestComponent />)
     
+    // Wait for initial state to be ready
+    await waitFor(() => {
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('false')
+    })
+    
     const loginButton = screen.getByText('Login')
     await act(async () => {
       loginButton.click()
     })
     
+    // Wait for login to complete and state to update
     await waitFor(() => {
       expect(authApi.login).toHaveBeenCalledWith('testuser', 'password')
       expect(screen.getByTestId('user')).toHaveTextContent('testuser')
       expect(screen.getByTestId('authenticated')).toHaveTextContent('true')
-    })
+    }, { timeout: 3000 })
     
     // Check that tokens are stored in localStorage
     expect(localStorageMock.setItem).toHaveBeenCalledWith('auth_tokens', JSON.stringify({
       access: 'new-access-token',
       refresh: 'new-refresh-token'
+    }))
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify({
+      id: 1, username: 'testuser', email: 'test@example.com'
     }))
   })
 
@@ -223,8 +247,22 @@ describe('AuthContext', () => {
   })
 
   it('should handle corrupted localStorage data gracefully', async () => {
-    localStorage.setItem('user', 'invalid-json')
-    localStorage.setItem('auth_tokens', 'invalid-json')
+    // Mock localStorage to return corrupted data initially, then null after clearing
+    const localStorageMock = {
+      getItem: vi.fn((key) => {
+        if (key === 'user' || key === 'auth_tokens') return 'invalid-json'
+        return null
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(),
+    }
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+    })
     
     renderWithProviders(<TestComponent />)
     
@@ -234,7 +272,7 @@ describe('AuthContext', () => {
     })
     
     // Check that corrupted data was cleared
-    expect(localStorage.getItem('auth_tokens')).toBeNull()
-    expect(localStorage.getItem('user')).toBeNull()
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('auth_tokens')
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('user')
   })
 })
