@@ -51,22 +51,22 @@ services:
     networks:
       - backboneos-network
 
-  frontend:
-    build: ./frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    environment:
-      - NUXT_HOST=0.0.0.0
-      - NUXT_PORT=3000
-      - NUXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
-      - NUXT_PRIVATE_API_BASE=https://backend
-    depends_on:
-      - backend
-    networks:
-      - backboneos-network
+  # frontend:
+  #   build: ./frontend
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NUXT_HOST=0.0.0.0
+  #     - NUXT_PORT=3000
+  #     - NUXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
+  #     - NUXT_PRIVATE_API_BASE=https://backend
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - backboneos-network
 
   redis:
     image: redis:7

@@ -113,21 +113,21 @@ const sidebarOpen = ref(false);
 const navigation = [
   { name: "Dashboard", href: "/", icon: "i-heroicons-home" },
   { name: "Leads", href: "/leads", icon: "i-heroicons-user-plus" },
-  {
-    name: "Opportunities",
-    href: "/opportunities",
-    icon: "i-heroicons-light-bulb",
-  },
-  { name: "Customers", href: "/customers", icon: "i-heroicons-users" },
-  { name: "Pipeline", href: "/pipeline", icon: "i-heroicons-chart-bar" },
-  { name: "Deals", href: "/deals", icon: "i-heroicons-banknotes" },
-  { name: "Quotes", href: "/quotes", icon: "i-heroicons-document-text" },
-  { name: "Reports", href: "/reports", icon: "i-heroicons-chart-pie" },
-  {
-    name: "Analytics",
-    href: "/analytics",
-    icon: "i-heroicons-presentation-chart-line",
-  },
+  // {
+  //   name: "Opportunities",
+  //   href: "/opportunities",
+  //   icon: "i-heroicons-light-bulb",
+  // },
+  // { name: "Customers", href: "/customers", icon: "i-heroicons-users" },
+  // { name: "Pipeline", href: "/pipeline", icon: "i-heroicons-chart-bar" },
+  // { name: "Deals", href: "/deals", icon: "i-heroicons-banknotes" },
+  // { name: "Quotes", href: "/quotes", icon: "i-heroicons-document-text" },
+  // { name: "Reports", href: "/reports", icon: "i-heroicons-chart-pie" },
+  // {
+  //   name: "Analytics",
+  //   href: "/analytics",
+  //   icon: "i-heroicons-presentation-chart-line",
+  // },
   { name: "Users", href: "/users", icon: "i-heroicons-user-group" },
   { name: "Settings", href: "/settings", icon: "i-heroicons-cog-6-tooth" },
 ];
