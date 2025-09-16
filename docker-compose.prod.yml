@@ -52,19 +52,13 @@ services:
       - backboneos-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    build: ./frontend
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-      - NUXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
-      - NUXT_PRIVATE_API_BASE=https://backend
+      - NEXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
     depends_on:
       - backend
     networks:
