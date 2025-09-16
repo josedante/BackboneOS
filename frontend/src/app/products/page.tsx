@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Filter, Edit, Trash2, Eye, Package } from 'lucide-react'
-import { productsApi, type Product, type ProductCreateData } from '@/lib/api'
+import { productsApi, type Product, type ProductCreateData, type ProductsResponse, type CategoriesResponse, getResults } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Pagination, PaginationInfo } from '@/components/ui/pagination'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { toast } from 'sonner'
 
@@ -75,38 +76,53 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const queryClient = useQueryClient()
 
+  // Calculate offset from current page and page size
+  const offset = (currentPage - 1) * pageSize
+
   // Fetch products
-  const { data: productsResponse, isLoading, error } = useQuery({
-    queryKey: ['products', { search: searchTerm, category: selectedCategory }],
+  const { data: productsResponse, isLoading, error } = useQuery<ProductsResponse>({
+    queryKey: ['products', { search: searchTerm, category: selectedCategory, offset, limit: pageSize }],
     queryFn: () => productsApi.getProducts({ 
       ...(searchTerm && { search: searchTerm }),
       ...(selectedCategory !== 'all' && { category: selectedCategory }),
+      offset,
+      limit: pageSize,
     }),
-    // Use mock data in development
-    placeholderData: process.env.NODE_ENV === 'development' ? {
-      data: mockProducts,
-      count: mockProducts.length
-    } : undefined,
   })
 
-  const products = productsResponse?.data || []
+  const products = getResults(productsResponse)
+  const totalItems = productsResponse?.count || 0
+  const totalPages = Math.ceil(totalItems / pageSize)
+
+  // Debug pagination response (remove in production)
+  if (productsResponse) {
+    console.log('Pagination Response:', {
+      count: productsResponse.count,
+      next: productsResponse.next,
+      previous: productsResponse.previous,
+      resultsLength: productsResponse.results?.length,
+      currentPage,
+      pageSize,
+      offset
+    })
+  }
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedCategory])
 
   // Fetch categories for filter
-  const { data: categoriesResponse } = useQuery({
+  const { data: categoriesResponse } = useQuery<CategoriesResponse>({
     queryKey: ['categories'],
     queryFn: () => productsApi.getCategories(),
-    placeholderData: process.env.NODE_ENV === 'development' ? {
-      data: [
-        { id: 1, name: 'Desarrollo Web', description: 'Cursos de desarrollo web' },
-        { id: 2, name: 'Consultoría', description: 'Servicios de consultoría' },
-      ],
-      count: 2
-    } : undefined,
   })
 
-  const categories = categoriesResponse?.data || []
+  const categories = getResults(categoriesResponse)
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
@@ -132,15 +148,8 @@ export default function ProductsPage() {
     setIsCreateDialogOpen(true)
   }
 
-  const filteredProducts = products.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-    
-    return matchesSearch && matchesCategory
-  })
+  // Products are already filtered on the server, so we use them directly
+  const filteredProducts = products
 
   if (error) {
     return (
@@ -324,6 +333,46 @@ export default function ProductsPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+
+          {/* Pagination Controls */}
+          {!isLoading && products.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <PaginationInfo
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={pageSize}
+              />
+              
+              <div className="flex items-center gap-4">
+                {/* Page Size Selector */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Mostrar:</label>
+                  <Select value={pageSize.toString()} onValueChange={(value: string) => {
+                    setPageSize(parseInt(value))
+                    setCurrentPage(1)
+                  }}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            </div>
           )}
           
           {!isLoading && filteredProducts.length === 0 && (

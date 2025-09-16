@@ -18,6 +18,19 @@ if (isDevelopment && httpsAgent) {
   console.warn('⚠️  DEVELOPMENT MODE: SSL certificate verification disabled for self-signed certificates')
 }
 
+// Django REST Framework Response Types
+export interface PaginatedResponse<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
+// Helper function to extract results from DRF paginated response
+export const getResults = <T>(response: PaginatedResponse<T> | undefined): T[] => {
+  return response?.results || []
+}
+
 // Type definitions
 export interface User {
   id: number
@@ -263,8 +276,8 @@ export interface Offer {
 }
 
 export interface ApiParams {
-  page?: number
-  page_size?: number
+  offset?: number
+  limit?: number
   search?: string
   ordering?: string
   [key: string]: unknown
@@ -361,46 +374,53 @@ export const usersApi = {
   },
 }
 
+// API Response Types
+export type ProductsResponse = PaginatedResponse<Product>
+export type CategoriesResponse = PaginatedResponse<ProductCategory>
+export type DivisionsResponse = PaginatedResponse<Division>
+export type ModalitiesResponse = PaginatedResponse<Modality>
+export type CustomizationsResponse = PaginatedResponse<Customization>
+
 export const productsApi = {
   // Products CRUD
-  getProducts: async (params?: ApiParams) => {
+  getProducts: async (params?: ApiParams): Promise<ProductsResponse> => {
     const response = await api.get('/api/products/products/', { params })
     return response.data
   },
 
-  getProduct: async (id: number) => {
+  getProduct: async (id: number): Promise<ProductDetail> => {
     const response = await api.get(`/api/products/products/${id}/`)
     return response.data
   },
 
-  createProduct: async (productData: ProductCreateData) => {
+  createProduct: async (productData: ProductCreateData): Promise<ProductDetail> => {
     const response = await api.post('/api/products/products/', productData)
     return response.data
   },
 
-  updateProduct: async (id: number, productData: ProductUpdateData) => {
+  updateProduct: async (id: number, productData: ProductUpdateData): Promise<ProductDetail> => {
     const response = await api.patch(`/api/products/products/${id}/`, productData)
     return response.data
   },
 
-  deleteProduct: async (id: number) => {
+  deleteProduct: async (id: number): Promise<void> => {
     const response = await api.delete(`/api/products/products/${id}/`)
     return response.data
   },
 
   // Divisions
-  getDivisions: async (params?: ApiParams) => {
+  getDivisions: async (params?: ApiParams): Promise<DivisionsResponse> => {
     const response = await api.get('/api/products/divisions/', { params })
     return response.data
   },
 
-  getDivision: async (id: number) => {
+  getDivision: async (id: number): Promise<Division> => {
     const response = await api.get(`/api/products/divisions/${id}/`)
     return response.data
   },
 
   // Categories
-  getCategories: async (params?: ApiParams) => {
+  getCategories: async (params?: ApiParams): Promise<CategoriesResponse> => {
     const response = await api.get('/api/products/categories/', { params })
     return response.data
   },
