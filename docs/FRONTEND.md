@@ -133,6 +133,72 @@ frontend/
 - `TopProducts`: Best-performing products
 - `RecentInteractions`: Latest user interactions
 
+## Backend Integration
+
+> **⚠️ Critical for Developers and AI Assistants**: The frontend is tightly coupled with the Django backend. **ALWAYS** reference the backend codebase when implementing frontend features to understand data models, API contracts, and field structures.
+
+### Backend Codebase Reference Guide
+
+**Essential Backend Files to Review:**
+
+1. **Data Models** (Source of Truth):
+   - `backend/world/models.py` - Industries, skills, market segments, tags, countries, etc.
+   - `backend/products/models.py` - Product models and relationships
+   - `backend/entities/models.py` - People, organizations, contacts
+   - `backend/interactions/models.py` - Interactions, touchpoints, agents
+   - `backend/campaigns/models.py` - Campaign models and hierarchies
+   - `backend/offers/models.py` - Offer models and validity
+
+2. **API Serializers** (Response Structure):
+   - `backend/*/serializers.py` - Defines exact API response format
+   - Pay attention to field names, data types, and nested structures
+
+3. **API Views** (Endpoints and Behavior):
+   - `backend/*/views.py` - Available endpoints, parameters, and business logic
+
+### Common Backend-Frontend Integration Issues
+
+| Issue | Backend Model | Frontend Mistake | Correct Approach |
+|-------|---------------|------------------|------------------|
+| Tag Primary Key | `Tag.slug` (primary key) | Using `tag.id` | Use `tag.slug` |
+| UUID Fields | Most models use UUID | Using string/number | Use UUID type |
+| Active Filtering | `is_active` boolean | Not filtering | Always filter by `is_active=True` |
+| Relationship Fields | Foreign key structure | Wrong field names | Check model relationships |
+
+### Development Checklist
+
+Before implementing any frontend feature:
+
+- [ ] **Review Backend Model**: Check the corresponding model in `backend/*/models.py`
+- [ ] **Check Serializer**: Review `backend/*/serializers.py` for response structure
+- [ ] **Verify Endpoints**: Check `backend/*/views.py` for available endpoints
+- [ ] **Test with Real Data**: Use actual backend data to validate field names
+- [ ] **Handle Edge Cases**: Check for nullable fields, default values, and constraints
+
+### Example: Tag Model Integration
+
+```python
+# backend/world/models.py
+class Tag(models.Model):
+    slug = models.SlugField(primary_key=True)  # ← Primary key is slug, not id
+    name = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)
+```
+
+```typescript
+// frontend - CORRECT approach
+{tags.filter((tag: any) => tag.slug).map((tag: any) => (
+  <label key={`tag-${tag.slug}`}>  // ← Use slug as key
+    <input 
+      checked={formData.tags_ids?.includes(tag.slug)}  // ← Use slug
+      onChange={(e) => {
+        // Handle slug, not id
+      }}
+    />
+  </label>
+))}
+```
+
 ## API Integration
 
 ### Server Actions (BFF Pattern)
@@ -311,6 +377,40 @@ const queryClient = new QueryClient({
 - **Server-side**: Smart revalidation with `fetch()`
 - **Client-side**: React Query caching with stale-while-revalidate
 - **Static Assets**: CDN-ready static file serving
+
+## AI Assistant and Developer Guidance
+
+### For AI Assistants Working on Frontend
+
+When helping with frontend development, **ALWAYS**:
+
+1. **Read Backend Models First**: Before suggesting any frontend implementation, examine the corresponding backend model to understand:
+   - Primary key structure (UUID, slug, integer)
+   - Field names and data types
+   - Required vs optional fields
+   - Relationships and foreign keys
+
+2. **Check API Serializers**: Review the serializer to understand the exact response structure and field names.
+
+3. **Validate Field Names**: Use the exact field names from the backend models, not assumptions.
+
+4. **Handle Edge Cases**: Consider nullable fields, default values, and data validation rules from the backend.
+
+### Common AI Assistant Mistakes to Avoid
+
+- ❌ Assuming all models use `id` as primary key (Tag uses `slug`)
+- ❌ Using generic field names without checking backend models
+- ❌ Not filtering by `is_active` fields when appropriate
+- ❌ Incorrect data type handling (UUID vs string vs number)
+- ❌ Missing required fields in form submissions
+
+### AI Assistant Workflow
+
+1. **User asks about frontend feature**
+2. **AI reads corresponding backend model** (e.g., `backend/world/models.py` for Tag)
+3. **AI checks serializer structure** (e.g., `backend/world/serializers.py`)
+4. **AI implements frontend with correct field names and types**
+5. **AI includes backend model references in response**
 
 ## Development Workflow
 

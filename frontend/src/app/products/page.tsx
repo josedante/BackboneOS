@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Filter, Edit, Trash2, Eye, Package } from 'lucide-react'
-import { productsApi, type Product, type ProductCreateData, type ProductsResponse, type CategoriesResponse, getResults } from '@/lib/api'
+import { Plus, Search, Filter, Edit, Trash2, Eye, Package, ChevronDown, ChevronRight } from 'lucide-react'
+import { productsApi, type Product, type ProductCreateData, type ProductsResponse, type CategoriesResponse, type Industry, type Skill, type MarketSegment, type FunctionOrResponsibility, type WorldDescriptor, type Tag, getResults } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -72,6 +73,7 @@ const mockProducts: Product[] = [
 ]
 
 export default function ProductsPage() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -131,8 +133,8 @@ export default function ProductsPage() {
   }
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct(product)
-    setIsCreateDialogOpen(true)
+    // Navigate to product detail page
+    router.push(`/products/${product.id}`)
   }
 
   // Products are already filtered on the server, so we use them directly
@@ -269,7 +271,12 @@ export default function ProductsPage() {
                   <TableRow key={product.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{product.name}</div>
+                        <div 
+                          className="font-medium cursor-pointer hover:text-blue-600 hover:underline"
+                          onClick={() => router.push(`/products/${product.id}`)}
+                        >
+                          {product.name}
+                        </div>
                         <div className="text-sm text-muted-foreground line-clamp-2">
                           {product.description}
                         </div>
@@ -304,11 +311,16 @@ export default function ProductsPage() {
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleEditProduct(product)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
                         </Button>
                         <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleDeleteProduct(product)}
                           disabled={deleteProductMutation.isPending}
                         >
@@ -394,24 +406,59 @@ interface ProductFormProps {
 }
 
 function ProductForm({ product, onSuccess }: ProductFormProps) {
-  const [formData, setFormData] = useState<ProductCreateData>({
-    name: product?.name || '',
-    code: product?.code || '',
-    description: product?.description || '',
-    canonical_url: product?.canonical_url || '',
-    base_price: product?.base_price,
-    currency_code: product?.currency_code || 'PEN',
-    is_active: product?.is_active ?? true,
+  const router = useRouter()
+  const [formData, setFormData] = useState<ProductCreateData>(() => {
+    const data: ProductCreateData = {
+      name: product?.name || '',
+      code: product?.code || '',
+      description: product?.description || '',
+      canonical_url: product?.canonical_url || '',
+      base_price: product?.base_price,
+      currency_code: product?.currency_code || 'PEN',
+      is_active: product?.is_active ?? true,
+      modalities_ids: [],
+      target_segments_ids: [],
+      related_industries_ids: [],
+      related_functions_ids: [],
+      related_skills_ids: [],
+      descriptors_ids: [],
+      tags_ids: [],
+      included_products_ids: [],
+    }
+    
+    if (product?.category) {
+      data.category_id = product.category
+    }
+    
+    return data
   })
+
+  // Only fetch categories for editing existing products
+  const { data: categoriesResponse } = useQuery<CategoriesResponse>({
+    queryKey: ['categories'],
+    queryFn: () => productsApi.getCategories(),
+    enabled: !!product, // Only fetch when editing
+  })
+
+  const categories = getResults(categoriesResponse)
 
   const createProductMutation = useMutation({
     mutationFn: (data: ProductCreateData) => 
       product 
         ? productsApi.updateProduct(product.id, data)
         : productsApi.createProduct(data),
-    onSuccess: () => {
-      toast.success(product ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente')
-      onSuccess()
+    onSuccess: (newProduct) => {
+      if (product) {
+        // Update existing product
+        toast.success('Producto actualizado exitosamente')
+        onSuccess()
+      } else {
+        // Create new product - redirect to detail page
+        toast.success('Producto creado exitosamente')
+        onSuccess()
+        // Redirect to product detail page
+        router.push(`/products/${newProduct.id}`)
+      }
     },
     onError: (error) => {
       toast.error(product ? 'Error al actualizar el producto' : 'Error al crear el producto')
@@ -424,14 +471,82 @@ function ProductForm({ product, onSuccess }: ProductFormProps) {
     createProductMutation.mutate(formData)
   }
 
+  // For editing existing products, show full form
+  if (product) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="text-sm text-muted-foreground mb-4">
+          Editando producto: <strong>{product.name}</strong>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Nombre *</label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Código *</label>
+            <Input
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Descripción</label>
+          <textarea
+            className="w-full p-2 border rounded-md"
+            rows={3}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="is_active"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            className="rounded"
+          />
+          <label htmlFor="is_active" className="text-sm font-medium">
+            Producto activo
+          </label>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onSuccess}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={createProductMutation.isPending}>
+            {createProductMutation.isPending ? 'Guardando...' : 'Actualizar'}
+          </Button>
+        </div>
+      </form>
+    )
+  }
+
+  // For creating new products, show only required fields
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="text-sm text-muted-foreground mb-4">
+        Complete los campos obligatorios para crear el producto. Podrá agregar más detalles después.
+      </div>
+      
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Nombre *</label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Nombre del producto"
             required
           />
         </div>
@@ -440,6 +555,7 @@ function ProductForm({ product, onSuccess }: ProductFormProps) {
           <Input
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+            placeholder="Código único del producto"
             required
           />
         </div>
@@ -452,41 +568,8 @@ function ProductForm({ product, onSuccess }: ProductFormProps) {
           rows={3}
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Descripción del producto (opcional)"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">URL Canónica</label>
-        <Input
-          type="url"
-          value={formData.canonical_url}
-          onChange={(e) => setFormData({ ...formData, canonical_url: e.target.value })}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Precio Base</label>
-          <Input
-            type="number"
-            step="0.01"
-            value={formData.base_price || ''}
-            onChange={(e) => setFormData({ ...formData, base_price: parseFloat(e.target.value) || undefined })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Moneda</label>
-          <Select value={formData.currency_code || 'PEN'} onValueChange={(value: string) => setFormData({ ...formData, currency_code: value })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PEN">PEN (Soles)</SelectItem>
-              <SelectItem value="USD">USD (Dólares)</SelectItem>
-              <SelectItem value="EUR">EUR (Euros)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="flex items-center space-x-2">
@@ -507,10 +590,7 @@ function ProductForm({ product, onSuccess }: ProductFormProps) {
           Cancelar
         </Button>
         <Button type="submit" disabled={createProductMutation.isPending}>
-          {createProductMutation.isPending 
-            ? 'Guardando...' 
-            : product ? 'Actualizar' : 'Crear'
-          }
+          {createProductMutation.isPending ? 'Creando...' : 'Crear Producto'}
         </Button>
       </div>
     </form>

@@ -102,6 +102,30 @@ src/
     └── index.ts         # Shared types
 ```
 
+## Backend Integration
+
+> **⚠️ Important for Developers and AI Assistants**: When working with the frontend, you **MUST** reference the backend codebase to understand data models, API endpoints, and field structures. The backend contains the source of truth for all data models and API contracts.
+
+### Backend Codebase Reference
+
+**Key Backend Files to Reference:**
+- `backend/world/models.py` - Data models for industries, skills, market segments, tags, etc.
+- `backend/products/models.py` - Product-related data models
+- `backend/entities/models.py` - Entity and organization models
+- `backend/interactions/models.py` - Interaction and touchpoint models
+- `backend/campaigns/models.py` - Campaign models
+- `backend/offers/models.py` - Offer models
+- `backend/*/serializers.py` - API serializers that define response structure
+- `backend/*/views.py` - API endpoints and their behavior
+
+**Common Issues When Not Referencing Backend:**
+- Using wrong field names (e.g., `id` vs `slug` for Tag model)
+- Incorrect data types in form handling
+- Missing required fields in API requests
+- Incorrect relationship handling
+
+**Example**: The `Tag` model uses `slug` as primary key, not `id`. Always check the backend models to understand the correct field structure.
+
 ## API Integration
 
 The frontend integrates with the Django REST API backend through:
@@ -192,13 +216,44 @@ The app uses:
 - **Secure Headers**: Security headers for production
 - **Input Validation**: Zod schema validation
 
+## Development Workflow
+
+### Before Starting Development
+
+1. **Always Reference Backend Models**: Before implementing any frontend feature, examine the corresponding backend models to understand:
+   - Field names and types
+   - Required vs optional fields
+   - Relationships and foreign keys
+   - Primary key structure (UUID, slug, etc.)
+
+2. **Check API Serializers**: Review the serializer files to understand the exact API response structure and field names.
+
+3. **Verify API Endpoints**: Check the views.py files to understand available endpoints and their parameters.
+
+### Development Process
+
+1. **Backend-First Approach**: 
+   - Start by understanding the backend data model
+   - Check existing API endpoints
+   - Review serializer structure
+   - Then implement frontend accordingly
+
+2. **Common Patterns**:
+   - Use `slug` for Tag model (not `id`)
+   - Use `UUID` for most other models
+   - Check `is_active` fields for filtering
+   - Understand relationship field structures
+
+3. **Testing with Real Data**: Always test with actual backend data to catch field mismatches early.
+
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+2. **Reference backend models** before implementing features
+3. Create a feature branch
+4. Make your changes with proper backend integration
+5. Run tests and linting
+6. Submit a pull request with backend model references
 
 ## License
 

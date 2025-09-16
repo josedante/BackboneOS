@@ -240,6 +240,67 @@ export interface Tag {
   updated_at: string
 }
 
+// World entities interfaces
+export interface Industry {
+  id: string
+  name: string
+  code: string
+  description: string
+  parent?: string
+  level: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Skill {
+  id: string
+  name: string
+  code: string
+  description: string
+  skill_type: string
+  typical_level_required: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MarketSegment {
+  id: string
+  name: string
+  code: string
+  description: string
+  segment_type: string
+  display_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface FunctionOrResponsibility {
+  id: string
+  name: string
+  code: string
+  description: string
+  level: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface WorldDescriptor {
+  id: string
+  name: string
+  code: string
+  description: string
+  family: string
+  parent?: string
+  level: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Entity {
   id: number
   name: string
@@ -436,6 +497,37 @@ export const productsApi = {
 
   getCustomizations: async (params?: ApiParams) => {
     const response = await api.get('/api/products/customizations/', { params })
+    return response.data
+  },
+
+  // World entities for advanced product fields
+  getIndustries: async (params?: ApiParams) => {
+    const response = await api.get('/api/world/industries/', { params })
+    return response.data
+  },
+
+  getSkills: async (params?: ApiParams) => {
+    const response = await api.get('/api/world/skills/', { params })
+    return response.data
+  },
+
+  getMarketSegments: async (params?: ApiParams) => {
+    const response = await api.get('/api/world/market-segments/', { params })
+    return response.data
+  },
+
+  getFunctions: async (params?: ApiParams) => {
+    const response = await api.get('/api/world/functions/', { params })
+    return response.data
+  },
+
+  getDescriptors: async (params?: ApiParams) => {
+    const response = await api.get('/api/world/world-descriptors/', { params })
+    return response.data
+  },
+
+  getTags: async (params?: ApiParams) => {
+    const response = await api.get('/api/world/tags/', { params })
     return response.data
   },
 
