@@ -31,6 +31,28 @@
 - 🔄 **Deployment**: Configuración de producción
 - 🔄 **Performance**: Optimización adicional de consultas
 
+### ⚠️ Pendiente - JWT Frontend Implementation
+
+- ⚠️ **Refresh Token Storage**: Frontend no almacena ni utiliza refresh tokens
+- ⚠️ **Automatic Token Refresh**: No hay lógica para renovar tokens automáticamente
+- ⚠️ **Token Expiration Handling**: Usuarios son deslogueados cada 60 minutos en lugar de renovar tokens
+- ⚠️ **Token Rotation**: No aprovecha la funcionalidad de rotación de tokens del backend
+- ⚠️ **Proper Logout**: Implementación inconsistente entre server-actions y API client
+- ⚠️ **Token Management**: Falta contexto de autenticación centralizado para manejo de tokens
+
+### 🧪 Testing Pendiente - JWT Frontend
+
+- 🧪 **Authentication Context Tests**: Tests unitarios para contexto de autenticación
+- 🧪 **Token Refresh Logic Tests**: Tests para lógica de renovación automática de tokens
+- 🧪 **Token Storage Tests**: Tests para almacenamiento seguro de tokens (localStorage/cookies)
+- 🧪 **API Interceptor Tests**: Tests para interceptores de axios (request/response)
+- 🧪 **Logout Flow Tests**: Tests para flujo completo de logout y limpieza de tokens
+- 🧪 **Token Expiration Tests**: Tests para manejo de tokens expirados y renovación
+- 🧪 **Error Handling Tests**: Tests para manejo de errores de autenticación (401, 403)
+- 🧪 **Integration Tests**: Tests de integración frontend-backend para flujo JWT completo
+- 🧪 **Security Tests**: Tests de seguridad para validar que tokens no se expongan
+- 🧪 **Performance Tests**: Tests de rendimiento para operaciones de token refresh
+
 ### 📋 Roadmap
 
 - 📋 **Gestión de Clientes**: CRUD completo con perfilado semántico
@@ -50,6 +72,14 @@
 - **Interactions App**: Tests de customer journey
 - **Offers App**: Tests de ofertas comerciales
 - **Campaigns App**: Tests de campañas comerciales
+- **Backend JWT**: Tests de autenticación y tokens (completo)
+
+### Tests Pendientes
+
+- **Frontend JWT**: Tests de autenticación frontend (0% implementado)
+- **Frontend Components**: Tests de componentes React
+- **Frontend Integration**: Tests de integración frontend-backend
+- **E2E Tests**: Tests end-to-end para flujos completos
 
 ### Métricas de Performance
 

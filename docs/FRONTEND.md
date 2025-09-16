@@ -16,7 +16,7 @@ The BackboneOS frontend is a modern, responsive web application built with Next.
 - **Charts**: Recharts for data visualization
 - **Icons**: Lucide React
 - **Notifications**: Sonner for toast notifications
-- **Authentication**: JWT-based with automatic token refresh
+- **Authentication**: JWT-based (basic implementation - refresh token functionality pending)
 
 ### Rendering Strategy
 
@@ -78,10 +78,10 @@ frontend/
 
 **Authentication Flow**:
 1. User submits credentials via Server Action
-2. Backend validates and returns JWT token
-3. Token stored in localStorage (development) or httpOnly cookies (production)
+2. Backend validates and returns JWT access + refresh tokens
+3. Only access token stored in localStorage (refresh token not implemented)
 4. Automatic token injection in API requests
-5. Token refresh handling for expired tokens
+5. **PENDING**: Token refresh handling for expired tokens (currently redirects to login)
 
 ### 2. Dashboard Layout
 
@@ -345,9 +345,21 @@ const queryClient = new QueryClient({
 ### Authentication Security
 
 - JWT token-based authentication
-- Automatic token refresh
-- Secure token storage (localStorage in dev, httpOnly cookies in prod)
-- Automatic logout on token expiration
+- **PENDING**: Automatic token refresh (currently redirects to login on expiration)
+- **PENDING**: Secure token storage (only localStorage implemented, httpOnly cookies pending)
+- **PENDING**: Proper logout flow with token cleanup
+- **PENDING**: Token rotation and refresh token management
+
+### Testing Requirements
+
+**Authentication Tests Needed**:
+- Unit tests for authentication context and hooks
+- Token refresh logic tests
+- API interceptor tests (request/response)
+- Token storage security tests
+- Logout flow integration tests
+- Error handling tests (401, 403 responses)
+- End-to-end authentication flow tests
 
 ### Request Security
 
