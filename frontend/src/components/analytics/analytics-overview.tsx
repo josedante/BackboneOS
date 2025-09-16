@@ -1,5 +1,6 @@
 import { TrendingUp, Users, DollarSign, Activity, Package, Building2 } from 'lucide-react'
-import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils'
+
+// import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils'
 
 const overviewStats = [
   {

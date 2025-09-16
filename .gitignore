@@ -53,8 +53,42 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Frontend build
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+frontend/build/
 frontend/dist/
+
+# Next.js cache
+frontend/.next/cache/
+frontend/.swc/
+
+# Next.js environment files
+frontend/.env*.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Next.js debug
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Next.js TypeScript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Vercel
+.vercel
+
+# Frontend build (legacy)
 frontend/.tmp/
 frontend/.cache/
 

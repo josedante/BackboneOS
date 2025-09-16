@@ -1,7 +1,9 @@
 'use client'
 
+import { Menu, Bell, User as UserIcon, LogOut } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { Menu, Bell, User, LogOut } from 'lucide-react'
+
+import type { User } from '@/lib/api'
 import { logoutAction } from '@/lib/server-actions'
 
 interface HeaderProps {
@@ -10,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, title }: HeaderProps) {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -51,7 +53,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
 
           <div className="flex items-center space-x-3">
             <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-              <User className="h-5 w-5 text-white" />
+              <UserIcon className="h-5 w-5 text-white" />
             </div>
             <div className="hidden md:block">
               <p className="text-sm font-medium text-gray-900">

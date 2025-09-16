@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Sidebar } from './sidebar'
+
 import { Header } from './header'
+import { Sidebar } from './sidebar'
 
 interface DashboardLayoutProps {
   children: React.ReactNode

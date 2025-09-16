@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Enable React Server Components
-    serverComponentsExternalPackages: ['axios'],
-    // Enable instrumentation for observability
-    instrumentationHook: true,
-  },
+  // External packages for server components
+  serverExternalPackages: ['axios'],
   
   // Environment variables
   env: {
@@ -66,4 +62,4 @@ const nextConfig = {
   compress: true,
 }
 
-module.exports = nextConfig
+export default nextConfig

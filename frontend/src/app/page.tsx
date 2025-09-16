@@ -1,7 +1,7 @@
-import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
-import { RecentActivity } from '@/components/dashboard/recent-activity'
 import { QuickActions } from '@/components/dashboard/quick-actions'
+import { RecentActivity } from '@/components/dashboard/recent-activity'
+import { DashboardLayout } from '@/components/layout/dashboard-layout'
 
 export default function DashboardPage() {
   return (
@@ -13,7 +13,7 @@ export default function DashboardPage() {
             Welcome to BackboneOS
           </h1>
           <p className="text-gray-600">
-            Here's what's happening with your business today.
+            Here&apos;s what&apos;s happening with your business today.
           </p>
         </div>
 

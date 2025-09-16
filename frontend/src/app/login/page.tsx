@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { loginAction } from '@/lib/server-actions'
+import { useState } from 'react'
 import { toast } from 'sonner'
+
+import { loginAction } from '@/lib/server-actions'
+
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)

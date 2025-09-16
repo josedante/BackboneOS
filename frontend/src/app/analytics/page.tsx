@@ -1,9 +1,9 @@
-import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { AnalyticsOverview } from '@/components/analytics/analytics-overview'
-import { RevenueChart } from '@/components/analytics/revenue-chart'
-import { UserGrowthChart } from '@/components/analytics/user-growth-chart'
-import { TopProducts } from '@/components/analytics/top-products'
 import { RecentInteractions } from '@/components/analytics/recent-interactions'
+import { RevenueChart } from '@/components/analytics/revenue-chart'
+import { TopProducts } from '@/components/analytics/top-products'
+import { UserGrowthChart } from '@/components/analytics/user-growth-chart'
+import { DashboardLayout } from '@/components/layout/dashboard-layout'
 
 export default function AnalyticsPage() {
   return (

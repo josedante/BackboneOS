@@ -1,4 +1,5 @@
 import { Package, TrendingUp, DollarSign } from 'lucide-react'
+
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
 const topProducts = [

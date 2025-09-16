@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react'
+import { useState } from 'react'
+
 import { usersApi } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react'
 import { User } from '@/types'
 
 export function UsersTable() {
@@ -110,7 +111,7 @@ export function UsersTable() {
                     <div className="h-10 w-10 flex-shrink-0">
                       <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
                         <span className="text-sm font-medium text-white">
-                          {user.first_name?.[0] || user.username[0].toUpperCase()}
+                          {user.first_name?.[0] || user.username?.[0]?.toUpperCase() || 'U'}
                         </span>
                       </div>
                     </div>
