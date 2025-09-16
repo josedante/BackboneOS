@@ -9,7 +9,7 @@ from decimal import Decimal
 from datetime import date, timedelta
 from unittest.mock import patch
 
-from world.models import Country, PersonalIDType, OrganizationType, Industry, OrganizationalIDType
+from world.models import Country, PersonalIDType, OrganizationType, Industry, OrganizationalIDType, Gender, MaritalStatus
 from .models import Person, ContactDetail, IndividualProfile, Organization, PhysicalAddress
 from .serializers import (
     PersonListSerializer, PersonDetailSerializer, PersonCreateUpdateSerializer,
@@ -252,11 +252,16 @@ class PersonAPITestCase(APITestCase):
         )
         
         # Persona de prueba
+        # Get or create gender and marital status
+        self.gender = Gender.objects.filter(code='M').first()
+        self.marital_status = MaritalStatus.objects.filter(code='SG').first()
+        
         self.person = Person.objects.create(
             first_name='Juan',
             last_name='Pérez',
             second_last_name='García',
-            gender='M',
+            gender=self.gender,
+            marital_status=self.marital_status,
             country_of_nationality=self.country,
             id_type=self.id_type,
             id_number='12345678',

@@ -38,7 +38,7 @@ from our_institution.models import OurOrganization, Division as OrgDivision, Tea
 from world.models import (
     Country, Industry, FunctionOrResponsibility, Skill, PersonalIDType, 
     OrganizationalIDType, OrganizationType, DescriptorFamily, WorldDescriptor,
-    MarketSegment, Tag, AcademicDegree, Position
+    MarketSegment, Tag, AcademicDegree, Position, Gender, MaritalStatus
 )
 
 User = get_user_model()

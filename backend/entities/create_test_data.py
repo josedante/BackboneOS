@@ -20,7 +20,8 @@ from django.utils import timezone
 from entities.models import Person, Organization, ContactDetail, IndividualProfile, PhysicalAddress
 from world.models import (
     Country, PersonalIDType, OrganizationalIDType, OrganizationType,
-    Industry, FunctionOrResponsibility, Skill, AcademicDegree
+    Industry, FunctionOrResponsibility, Skill, AcademicDegree,
+    Gender, MaritalStatus
 )
 
 # Configuración
@@ -67,7 +68,9 @@ def create_base_data():
         'industries': list(Industry.objects.filter(is_active=True)[:50]),
         'functions': list(FunctionOrResponsibility.objects.filter(is_active=True)[:30]),
         'skills': list(Skill.objects.filter(is_active=True)[:100]),
-        'academic_degrees': list(AcademicDegree.objects.filter(is_active=True))
+        'academic_degrees': list(AcademicDegree.objects.filter(is_active=True)),
+        'genders': list(Gender.objects.filter(is_active=True)),
+        'marital_statuses': list(MaritalStatus.objects.filter(is_active=True))
     }
 
 def create_test_persons(base_data, num_persons=NUM_PERSONS):
@@ -101,9 +104,9 @@ def create_test_persons(base_data, num_persons=NUM_PERSONS):
                 middle_name=random.choice(first_names) if random.random() < 0.3 else '',
                 last_name=random.choice(last_names),
                 second_last_name=random.choice(last_names) if random.random() < 0.8 else '',
-                gender=get_random_choice(Person._meta.get_field('gender').choices),
+                gender=random.choice(base_data['genders']) if base_data['genders'] else None,
                 birthday=get_random_date() if random.random() < 0.9 else None,
-                marital_status=get_random_choice(Person._meta.get_field('marital_status').choices),
+                marital_status=random.choice(base_data['marital_statuses']) if base_data['marital_statuses'] else None,
                 country_of_nationality=random.choice(base_data['countries']) if base_data['countries'] else None,
                 id_type=random.choice(base_data['personal_id_types']) if base_data['personal_id_types'] else None,
                 id_number=f"{random.randint(10000000, 99999999)}" if random.random() < 0.8 else '',

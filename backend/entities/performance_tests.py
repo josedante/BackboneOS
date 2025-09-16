@@ -92,8 +92,13 @@ def test_person_queries():
     print("="*50)
     
     # 1. Búsqueda básica con índice
+    from world.models import Gender, MaritalStatus
+    male_gender = Gender.objects.filter(code='M').first()
+    female_gender = Gender.objects.filter(code='F').first()
+    single_status = MaritalStatus.objects.filter(code='SG').first()
+    
     result = runner.time_query(
-        lambda: Person.objects.filter(is_active=True, gender='M').count(),
+        lambda: Person.objects.filter(is_active=True, gender=male_gender).count(),
         "Filtrado por género activo (con índice)"
     )
     runner.print_result(result)
@@ -102,8 +107,8 @@ def test_person_queries():
     result = runner.time_query(
         lambda: Person.objects.filter(
             is_active=True, 
-            gender='F', 
-            marital_status='SG'
+            gender=female_gender, 
+            marital_status=single_status
         ).count(),
         "Filtrado demográfico compuesto"
     )
