@@ -49,7 +49,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 shadow-xl transform transition-transform duration-200 ease-in-out lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -78,8 +78,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   className={cn(
                     'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary/10 text-primary border-r-2 border-primary'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-primary text-white border-r-2 border-primary'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   )}
                   onClick={onClose}
                 >
