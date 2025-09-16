@@ -1,0 +1,155 @@
+# Docker Compose configuration for running tests
+# This file extends the main docker-compose.yml with test-specific configurations
+
+version: '3.8'
+
+services:
+  # Test database service
+  test-db:
+    image: postgres:14
+    container_name: backboneos-test-db
+    environment:
+      POSTGRES_DB: test_mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    networks:
+      - backboneos-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d test_mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Redis service
+  test-redis:
+    image: redis:7
+    container_name: backboneos-test-redis
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    volumes:
+      - test_redis_data:/data
+    networks:
+      - backboneos-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test backend service
+  test-backend:
+    build: ./backend
+    container_name: backboneos-test-backend
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        python manage.py wait_for_db &&
+        echo 'Running migrations...' &&
+        python manage.py migrate --settings=backend.docker_test_settings &&
+        echo 'Running tests...' &&
+        python manage.py run_tests --type=all --coverage --html-report --xml-report
+      "
+    volumes:
+      - ./backend:/app
+      - test_media:/app/test_media
+      - test_logs:/app/logs
+      - test_coverage:/app/coverage_reports
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.docker_test_settings
+      - POSTGRES_DB=test_mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_HOST=test-db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://test-redis:6379/1
+      - CELERY_BROKER_URL=redis://test-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://test-redis:6379/2
+      - TESTING=True
+      - DOCKER_ENV=True
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - backboneos-test-network
+
+  # Test Celery worker service
+  test-celery:
+    build: ./backend
+    container_name: backboneos-test-celery
+    command: celery -A backend worker -l info --settings=backend.docker_test_settings
+    volumes:
+      - ./backend:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.docker_test_settings
+      - POSTGRES_DB=test_mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_HOST=test-db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://test-redis:6379/1
+      - CELERY_BROKER_URL=redis://test-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://test-redis:6379/2
+      - TESTING=True
+      - DOCKER_ENV=True
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - backboneos-test-network
+
+  # Test runner service (for interactive testing)
+  test-runner:
+    build: ./backend
+    container_name: backboneos-test-runner
+    command: tail -f /dev/null  # Keep container running
+    volumes:
+      - ./backend:/app
+      - test_media:/app/test_media
+      - test_logs:/app/logs
+      - test_coverage:/app/coverage_reports
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.docker_test_settings
+      - POSTGRES_DB=test_mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_HOST=test-db
+      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://test-redis:6379/1
+      - CELERY_BROKER_URL=redis://test-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://test-redis:6379/2
+      - TESTING=True
+      - DOCKER_ENV=True
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - backboneos-test-network
+    stdin_open: true
+    tty: true
+
+volumes:
+  test_postgres_data:
+    name: backboneos-test-postgres-data
+  test_redis_data:
+    name: backboneos-test-redis-data
+  test_media:
+    name: backboneos-test-media
+  test_logs:
+    name: backboneos-test-logs
+  test_coverage:
+    name: backboneos-test-coverage
+
+networks:
+  backboneos-test-network:
+    name: backboneos-test-network
+    driver: bridge
