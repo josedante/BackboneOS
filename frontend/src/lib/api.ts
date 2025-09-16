@@ -49,7 +49,72 @@ export interface Product {
   name: string
   description: string
   price: number
-  category: string
+  category: number
+  division: number
+  modality: number
+  customization: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductCreateData {
+  name: string
+  description: string
+  price: number
+  category: number
+  division: number
+  modality?: number
+  customization?: number
+  is_active?: boolean
+}
+
+export interface ProductUpdateData {
+  name?: string
+  description?: string
+  price?: number
+  category?: number
+  division?: number
+  modality?: number
+  customization?: number
+  is_active?: boolean
+}
+
+export interface Division {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductCategory {
+  id: number
+  name: string
+  description: string
+  division: number
+  parent: number | null
+  level: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Modality {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Customization {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -189,18 +254,126 @@ export const usersApi = {
 }
 
 export const productsApi = {
+  // Products CRUD
   getProducts: async (params?: ApiParams) => {
-    const response = await api.get('/api/products/', { params })
+    const response = await api.get('/api/products/products/', { params })
     return response.data
   },
 
   getProduct: async (id: number) => {
-    const response = await api.get(`/api/products/${id}/`)
+    const response = await api.get(`/api/products/products/${id}/`)
     return response.data
   },
 
+  createProduct: async (productData: ProductCreateData) => {
+    const response = await api.post('/api/products/products/', productData)
+    return response.data
+  },
+
+  updateProduct: async (id: number, productData: ProductUpdateData) => {
+    const response = await api.patch(`/api/products/products/${id}/`, productData)
+    return response.data
+  },
+
+  deleteProduct: async (id: number) => {
+    const response = await api.delete(`/api/products/products/${id}/`)
+    return response.data
+  },
+
+  // Divisions
+  getDivisions: async (params?: ApiParams) => {
+    const response = await api.get('/api/products/divisions/', { params })
+    return response.data
+  },
+
+  getDivision: async (id: number) => {
+    const response = await api.get(`/api/products/divisions/${id}/`)
+    return response.data
+  },
+
+  // Categories
+  getCategories: async (params?: ApiParams) => {
+    const response = await api.get('/api/products/categories/', { params })
+    return response.data
+  },
+
+  getCategory: async (id: number) => {
+    const response = await api.get(`/api/products/categories/${id}/`)
+    return response.data
+  },
+
+  getCategoriesTree: async () => {
+    const response = await api.get('/api/products/categories/tree/')
+    return response.data
+  },
+
+  // Modalities and Customizations
+  getModalities: async (params?: ApiParams) => {
+    const response = await api.get('/api/products/modalities/', { params })
+    return response.data
+  },
+
+  getCustomizations: async (params?: ApiParams) => {
+    const response = await api.get('/api/products/customizations/', { params })
+    return response.data
+  },
+
+  // Analytics
   getAnalytics: async (type: string) => {
     const response = await api.get(`/api/products/analytics/${type}/`)
+    return response.data
+  },
+
+  getAnalyticsDashboard: async () => {
+    const response = await api.get('/api/products/analytics/dashboard/')
+    return response.data
+  },
+
+  getDivisionAnalytics: async () => {
+    const response = await api.get('/api/products/analytics/divisions/')
+    return response.data
+  },
+
+  getCategoryAnalytics: async () => {
+    const response = await api.get('/api/products/analytics/categories/')
+    return response.data
+  },
+
+  getMarketSegmentationAnalytics: async () => {
+    const response = await api.get('/api/products/analytics/market-segmentation/')
+    return response.data
+  },
+
+  getPricingAnalytics: async () => {
+    const response = await api.get('/api/products/analytics/pricing/')
+    return response.data
+  },
+
+  getGrowthAnalytics: async () => {
+    const response = await api.get('/api/products/analytics/growth/')
+    return response.data
+  },
+
+  getProductRecommendations: async () => {
+    const response = await api.get('/api/products/analytics/recommendations/')
+    return response.data
+  },
+
+  // Advanced features
+  searchProducts: async (query: string, params?: ApiParams) => {
+    const response = await api.get('/api/products/products/search_advanced/', { 
+      params: { search: query, ...params } 
+    })
+    return response.data
+  },
+
+  duplicateProduct: async (id: number) => {
+    const response = await api.post(`/api/products/products/${id}/duplicate/`)
+    return response.data
+  },
+
+  getProductStats: async () => {
+    const response = await api.get('/api/products/products/stats/')
     return response.data
   },
 }

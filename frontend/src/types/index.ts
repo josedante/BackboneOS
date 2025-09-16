@@ -14,7 +14,72 @@ export interface Product {
   name: string
   description: string
   price: number
-  category: string
+  category: number
+  division: number
+  modality: number
+  customization: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductCreateData {
+  name: string
+  description: string
+  price: number
+  category: number
+  division: number
+  modality?: number
+  customization?: number
+  is_active?: boolean
+}
+
+export interface ProductUpdateData {
+  name?: string
+  description?: string
+  price?: number
+  category?: number
+  division?: number
+  modality?: number
+  customization?: number
+  is_active?: boolean
+}
+
+export interface Division {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductCategory {
+  id: number
+  name: string
+  description: string
+  division: number
+  parent: number | null
+  level: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Modality {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Customization {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
   created_at: string
   updated_at: string
 }
