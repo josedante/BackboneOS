@@ -591,14 +591,272 @@ export const productsApi = {
   },
 }
 
+// Entities API Types
+export interface Person {
+  id: string
+  first_name: string
+  middle_name?: string
+  last_name: string
+  second_last_name?: string
+  full_name: string
+  gender?: string
+  birthday?: string
+  marital_status?: string
+  country_of_nationality?: string
+  country_name?: string
+  id_type?: string
+  id_number?: string
+  portrait?: string
+  primary_contact?: {
+    type: 'email' | 'phone'
+    value: string
+    verified: boolean
+  }
+  contacts?: ContactDetail[]
+  profile?: IndividualProfile
+  addresses?: PhysicalAddress[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Organization {
+  id: string
+  name: string
+  legal_name?: string
+  org_type?: string
+  org_type_name?: string
+  industry?: string
+  industry_name?: string
+  country?: string
+  country_name?: string
+  id_type?: string
+  id_number?: string
+  main_address?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ContactDetail {
+  id: string
+  person?: string
+  organization?: string
+  email?: string
+  phone?: string
+  is_primary: boolean
+  verified: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface IndividualProfile {
+  id: string
+  person: string
+  academic_degree?: string
+  academic_degree_name?: string
+  industries: string[]
+  skills: string[]
+  functions: string[]
+  preferred_contact_medium?: string
+  allows_marketing: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PhysicalAddress {
+  id: string
+  person?: string
+  organization?: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state_province?: string
+  postal_code?: string
+  country: string
+  country_name?: string
+  is_primary: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PersonCreateData {
+  first_name: string
+  middle_name?: string
+  last_name: string
+  second_last_name?: string
+  gender?: string
+  birthday?: string
+  marital_status?: string
+  country_of_nationality?: string
+  id_type?: string
+  id_number?: string
+  is_active?: boolean
+}
+
+export interface OrganizationCreateData {
+  name: string
+  legal_name?: string
+  org_type?: string
+  industry?: string
+  country?: string
+  id_type?: string
+  id_number?: string
+  main_address?: string
+  is_active?: boolean
+}
+
+export interface ContactDetailCreateData {
+  person?: string
+  organization?: string
+  email?: string
+  phone?: string
+  is_primary?: boolean
+  verified?: boolean
+  is_active?: boolean
+}
+
+export interface PhysicalAddressCreateData {
+  person?: string
+  organization?: string
+  address_line_1: string
+  address_line_2?: string
+  city: string
+  state_province?: string
+  postal_code?: string
+  country: string
+  is_primary?: boolean
+  is_active?: boolean
+}
+
+// API Response Types
+export type PeopleResponse = PaginatedResponse<Person>
+export type OrganizationsResponse = PaginatedResponse<Organization>
+export type ContactsResponse = PaginatedResponse<ContactDetail>
+export type AddressesResponse = PaginatedResponse<PhysicalAddress>
+
 export const entitiesApi = {
-  getEntities: async (params?: ApiParams) => {
-    const response = await api.get('/api/entities/', { params })
+  // People CRUD
+  getPeople: async (params?: ApiParams): Promise<PeopleResponse> => {
+    const response = await api.get('/api/entities/people/', { params })
     return response.data
   },
 
-  getEntity: async (id: number) => {
-    const response = await api.get(`/api/entities/${id}/`)
+  getPerson: async (id: string): Promise<Person> => {
+    const response = await api.get(`/api/entities/people/${id}/`)
+    return response.data
+  },
+
+  createPerson: async (personData: PersonCreateData): Promise<Person> => {
+    const response = await api.post('/api/entities/people/', personData)
+    return response.data
+  },
+
+  updatePerson: async (id: string, personData: Partial<PersonCreateData>): Promise<Person> => {
+    const response = await api.patch(`/api/entities/people/${id}/`, personData)
+    return response.data
+  },
+
+  deletePerson: async (id: string): Promise<void> => {
+    const response = await api.delete(`/api/entities/people/${id}/`)
+    return response.data
+  },
+
+  // Organizations CRUD
+  getOrganizations: async (params?: ApiParams): Promise<OrganizationsResponse> => {
+    const response = await api.get('/api/entities/organizations/', { params })
+    return response.data
+  },
+
+  getOrganization: async (id: string): Promise<Organization> => {
+    const response = await api.get(`/api/entities/organizations/${id}/`)
+    return response.data
+  },
+
+  createOrganization: async (organizationData: OrganizationCreateData): Promise<Organization> => {
+    const response = await api.post('/api/entities/organizations/', organizationData)
+    return response.data
+  },
+
+  updateOrganization: async (id: string, organizationData: Partial<OrganizationCreateData>): Promise<Organization> => {
+    const response = await api.patch(`/api/entities/organizations/${id}/`, organizationData)
+    return response.data
+  },
+
+  deleteOrganization: async (id: string): Promise<void> => {
+    const response = await api.delete(`/api/entities/organizations/${id}/`)
+    return response.data
+  },
+
+  // Contacts CRUD
+  getContacts: async (params?: ApiParams): Promise<ContactsResponse> => {
+    const response = await api.get('/api/entities/contacts/', { params })
+    return response.data
+  },
+
+  getContact: async (id: string): Promise<ContactDetail> => {
+    const response = await api.get(`/api/entities/contacts/${id}/`)
+    return response.data
+  },
+
+  createContact: async (contactData: ContactDetailCreateData): Promise<ContactDetail> => {
+    const response = await api.post('/api/entities/contacts/', contactData)
+    return response.data
+  },
+
+  updateContact: async (id: string, contactData: Partial<ContactDetailCreateData>): Promise<ContactDetail> => {
+    const response = await api.patch(`/api/entities/contacts/${id}/`, contactData)
+    return response.data
+  },
+
+  deleteContact: async (id: string): Promise<void> => {
+    const response = await api.delete(`/api/entities/contacts/${id}/`)
+    return response.data
+  },
+
+  // Addresses CRUD
+  getAddresses: async (params?: ApiParams): Promise<AddressesResponse> => {
+    const response = await api.get('/api/entities/addresses/', { params })
+    return response.data
+  },
+
+  getAddress: async (id: string): Promise<PhysicalAddress> => {
+    const response = await api.get(`/api/entities/addresses/${id}/`)
+    return response.data
+  },
+
+  createAddress: async (addressData: PhysicalAddressCreateData): Promise<PhysicalAddress> => {
+    const response = await api.post('/api/entities/addresses/', addressData)
+    return response.data
+  },
+
+  updateAddress: async (id: string, addressData: Partial<PhysicalAddressCreateData>): Promise<PhysicalAddress> => {
+    const response = await api.patch(`/api/entities/addresses/${id}/`, addressData)
+    return response.data
+  },
+
+  deleteAddress: async (id: string): Promise<void> => {
+    const response = await api.delete(`/api/entities/addresses/${id}/`)
+    return response.data
+  },
+
+  // Choices and reference data
+  getChoices: async () => {
+    const response = await api.get('/api/entities/choices/')
+    return response.data
+  },
+
+  // Analytics
+  getPeopleAnalytics: async () => {
+    const response = await api.get('/api/entities/people/analytics/')
+    return response.data
+  },
+
+  getOrganizationsAnalytics: async () => {
+    const response = await api.get('/api/entities/organizations/analytics/')
     return response.data
   },
 }
