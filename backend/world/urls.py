@@ -19,6 +19,8 @@ router.register(r'market-segments', views.MarketSegmentViewSet, basename='market
 router.register(r'tags', views.TagViewSet, basename='tag')
 router.register(r'academic-degrees', views.AcademicDegreeViewSet, basename='academic-degree')
 router.register(r'positions', views.PositionViewSet, basename='position')
+router.register(r'genders', views.GenderViewSet, basename='gender')
+router.register(r'marital-statuses', views.MaritalStatusViewSet, basename='marital-status')
 router.register(r'choices', views.WorldChoicesViewSet, basename='world-choices')
 
 app_name = 'world'
