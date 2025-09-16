@@ -8,7 +8,7 @@ from .models import (
     Country, Industry, FunctionOrResponsibility, Skill,
     PersonalIDType, OrganizationType, OrganizationalIDType,
     DescriptorFamily, WorldDescriptor, MarketSegment, Tag,
-    AcademicDegree, Position
+    AcademicDegree, Position, Gender, MaritalStatus
 )
 from .serializers import (
     CountrySerializer, CountryListSerializer, CountryChoiceSerializer,
@@ -20,7 +20,9 @@ from .serializers import (
     MarketSegmentSerializer, MarketSegmentDetailSerializer,
     TagSerializer,
     AcademicDegreeSerializer, AcademicDegreeChoiceSerializer,
-    PositionSerializer, PositionChoiceSerializer
+    PositionSerializer, PositionChoiceSerializer,
+    GenderSerializer, GenderChoiceSerializer,
+    MaritalStatusSerializer, MaritalStatusChoiceSerializer
 )
 
 
@@ -110,6 +112,12 @@ class WorldChoicesViewSet(viewsets.ViewSet):
             ).data,
             'positions': PositionChoiceSerializer(
                 Position.objects.filter(is_active=True), many=True
+            ).data,
+            'genders': GenderChoiceSerializer(
+                Gender.objects.filter(is_active=True), many=True
+            ).data,
+            'marital_statuses': MaritalStatusChoiceSerializer(
+                MaritalStatus.objects.filter(is_active=True), many=True
             ).data,
         }
         return Response(data)
@@ -300,4 +308,38 @@ class PositionViewSet(viewsets.ReadOnlyModelViewSet):
         """Endpoint para obtener choices simples de posiciones"""
         queryset = self.get_queryset()
         serializer = PositionChoiceSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class GenderViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para géneros"""
+    queryset = Gender.objects.filter(is_active=True)
+    serializer_class = GenderSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'code', 'description']
+    ordering_fields = ['display_order', 'name', 'created_at']
+    ordering = ['display_order', 'name']
+
+    @action(detail=False, methods=['get'])
+    def choices(self, request):
+        """Endpoint para obtener choices simples de géneros"""
+        queryset = self.get_queryset()
+        serializer = GenderChoiceSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class MaritalStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para estados civiles"""
+    queryset = MaritalStatus.objects.filter(is_active=True)
+    serializer_class = MaritalStatusSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'code', 'description']
+    ordering_fields = ['display_order', 'name', 'created_at']
+    ordering = ['display_order', 'name']
+
+    @action(detail=False, methods=['get'])
+    def choices(self, request):
+        """Endpoint para obtener choices simples de estados civiles"""
+        queryset = self.get_queryset()
+        serializer = MaritalStatusChoiceSerializer(queryset, many=True)
         return Response(serializer.data)

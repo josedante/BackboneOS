@@ -4,7 +4,7 @@ from world.models import (
     Country, Industry, FunctionOrResponsibility, Skill,
     PersonalIDType, OrganizationType, OrganizationalIDType,
     DescriptorFamily, WorldDescriptor, MarketSegment, Tag,
-    AcademicDegree, Position
+    AcademicDegree, Position, Gender, MaritalStatus
 )
 
 @admin.register(Country)
@@ -246,6 +246,40 @@ class TagAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': ('name', 'slug')
+        }),
+        ('Estado', {
+            'fields': ('is_active',)
+        }),
+    )
+
+
+@admin.register(Gender)
+class GenderAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'display_order', 'is_active', 'created_at')
+    search_fields = ('name', 'code', 'description')
+    list_filter = ('is_active', 'created_at')
+    ordering = ('display_order', 'name')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'code', 'description', 'display_order')
+        }),
+        ('Estado', {
+            'fields': ('is_active',)
+        }),
+    )
+
+
+@admin.register(MaritalStatus)
+class MaritalStatusAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'display_order', 'is_active', 'created_at')
+    search_fields = ('name', 'code', 'description')
+    list_filter = ('is_active', 'created_at')
+    ordering = ('display_order', 'name')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'code', 'description', 'display_order')
         }),
         ('Estado', {
             'fields': ('is_active',)

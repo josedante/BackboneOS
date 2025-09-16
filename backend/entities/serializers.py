@@ -3,7 +3,7 @@ from .models import Person, ContactDetail, IndividualProfile, Organization, Phys
 from world.serializers import (
     CountrySerializer, PersonalIDTypeSerializer, OrganizationalIDTypeSerializer,
     OrganizationTypeSerializer, IndustrySerializer, FunctionSerializer,
-    SkillSerializer, AcademicDegreeSerializer
+    SkillSerializer, AcademicDegreeSerializer, GenderSerializer, MaritalStatusSerializer
 )
 
 
@@ -60,6 +60,8 @@ class PersonDetailSerializer(serializers.ModelSerializer):
     contacts = ContactDetailSerializer(many=True, read_only=True)
     country_of_nationality = CountrySerializer(read_only=True)
     id_type = PersonalIDTypeSerializer(read_only=True)
+    gender = GenderSerializer(read_only=True)
+    marital_status = MaritalStatusSerializer(read_only=True)
     profile = serializers.SerializerMethodField()
     addresses = serializers.SerializerMethodField()
     
@@ -286,10 +288,14 @@ class EntitiesChoicesSerializer(serializers.Serializer):
     contact_medium_choices = serializers.SerializerMethodField()
     
     def get_gender_choices(self, obj):
-        return [{'value': choice[0], 'label': choice[1]} for choice in Person._meta.get_field('gender').choices]
+        from world.models import Gender
+        return [{'id': gender.id, 'name': gender.name, 'code': gender.code} 
+                for gender in Gender.objects.filter(is_active=True).order_by('display_order', 'name')]
     
     def get_marital_status_choices(self, obj):
-        return [{'value': choice[0], 'label': choice[1]} for choice in Person._meta.get_field('marital_status').choices]
+        from world.models import MaritalStatus
+        return [{'id': status.id, 'name': status.name, 'code': status.code} 
+                for status in MaritalStatus.objects.filter(is_active=True).order_by('display_order', 'name')]
     
     def get_contact_medium_choices(self, obj):
         return [{'value': choice[0], 'label': choice[1]} for choice in IndividualProfile._meta.get_field('preferred_contact_medium').choices]

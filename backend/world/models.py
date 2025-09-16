@@ -570,3 +570,49 @@ class Position(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['code']),
             models.Index(fields=['is_active', 'name']),
         ]
+
+
+class Gender(BaseUUIDModelWithActiveStatus):
+    """Géneros/Identidades de género"""
+    name = models.CharField(max_length=50, unique=True, verbose_name="Nombre")
+    code = models.CharField(max_length=10, unique=True, verbose_name="Código")
+    description = models.TextField(blank=True, verbose_name="Descripción")
+    
+    display_order = models.PositiveIntegerField(default=0, verbose_name="Orden de visualización")
+    
+    class Meta:
+        verbose_name = "Género"
+        verbose_name_plural = "Géneros"
+        ordering = ['display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class MaritalStatus(BaseUUIDModelWithActiveStatus):
+    """Estados civiles"""
+    name = models.CharField(max_length=50, unique=True, verbose_name="Nombre")
+    code = models.CharField(max_length=10, unique=True, verbose_name="Código")
+    description = models.TextField(blank=True, verbose_name="Descripción")
+    
+    display_order = models.PositiveIntegerField(default=0, verbose_name="Orden de visualización")
+    
+    class Meta:
+        verbose_name = "Estado Civil"
+        verbose_name_plural = "Estados Civiles"
+        ordering = ['display_order', 'name']
+        indexes = [
+            models.Index(fields=['is_active']),
+            models.Index(fields=['display_order', 'name']),
+            models.Index(fields=['name']),  # Para búsquedas de texto
+            models.Index(fields=['code']),  # Para búsquedas por código
+        ]
+
+    def __str__(self):
+        return self.name

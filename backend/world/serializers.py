@@ -3,7 +3,7 @@ from .models import (
     Country, Industry, FunctionOrResponsibility, Skill,
     PersonalIDType, OrganizationType, OrganizationalIDType,
     DescriptorFamily, WorldDescriptor, MarketSegment, Tag,
-    AcademicDegree, Position
+    AcademicDegree, Position, Gender, MaritalStatus
 )
 
 
@@ -305,6 +305,36 @@ class SkillChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
         fields = ['id', 'name', 'skill_type']
+
+
+class GenderSerializer(serializers.ModelSerializer):
+    """Serializer para géneros"""
+    class Meta:
+        model = Gender
+        fields = ['id', 'name', 'code', 'description', 'display_order', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class GenderChoiceSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para choices de géneros"""
+    class Meta:
+        model = Gender
+        fields = ['id', 'name', 'code']
+
+
+class MaritalStatusSerializer(serializers.ModelSerializer):
+    """Serializer para estados civiles"""
+    class Meta:
+        model = MaritalStatus
+        fields = ['id', 'name', 'code', 'description', 'display_order', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class MaritalStatusChoiceSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para choices de estados civiles"""
+    class Meta:
+        model = MaritalStatus
+        fields = ['id', 'name', 'code']
 
 
 # TODO: Implementar modelo Topic

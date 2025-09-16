@@ -9,6 +9,8 @@ from world.models import (
     FunctionOrResponsibility,
     Skill,
     AcademicDegree,
+    Gender,
+    MaritalStatus,
 )
 from backend.models import BaseUUIDModelWithActiveStatus
 
@@ -19,25 +21,9 @@ class Person(BaseUUIDModelWithActiveStatus):
     last_name = models.CharField(max_length=63, blank=True)
     second_last_name = models.CharField(max_length=63, blank=True)
 
-    gender = models.CharField(
-        max_length=2,
-        choices=[('M', 'Masculino'), ('F', 'Femenino'), ('UD', 'No definido')],
-        default='UD'
-    )
+    gender = models.ForeignKey(Gender, null=True, blank=True, on_delete=models.SET_NULL)
     birthday = models.DateField(null=True, blank=True)
-    marital_status = models.CharField(
-        max_length=2,
-        choices=[
-            ('SG', 'Soltero'),
-            ('MR', 'Casado'),
-            ('DV', 'Divorciado'),
-            ('SP', 'Separado'),
-            ('WD', 'Viudo'),
-            ('CH', 'Conviviente'),
-            ('UD', 'No definido'),
-        ],
-        default='UD'
-    )
+    marital_status = models.ForeignKey(MaritalStatus, null=True, blank=True, on_delete=models.SET_NULL)
 
     country_of_nationality = models.ForeignKey(Country, null=True, blank=True, on_delete=models.SET_NULL)
     id_type = models.ForeignKey(PersonalIDType, null=True, blank=True, on_delete=models.SET_NULL)
