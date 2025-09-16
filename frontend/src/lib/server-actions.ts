@@ -47,7 +47,7 @@ export async function loginAction(formData: FormData) {
 
 export async function logoutAction() {
   try {
-    await api.post('/api/auth/logout/')
+    await api.post('/users/jwt/logout/')
     revalidatePath('/')
     redirect('/login')
   } catch (error) {

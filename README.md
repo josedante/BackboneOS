@@ -151,6 +151,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 - **[🏗️ Arquitectura del Sistema](docs/ARCHITECTURE.md)** - Stack tecnológico y diseño de comunicación API-First
 - **[🖥️ Backend Django](docs/BACKEND.md)** - API REST, aplicaciones Django y containerización
 - **[🌐 Frontend Nuxt.js](docs/FRONTEND.md)** - SPA TypeScript, autenticación y componentes UI
+- **[🧪 Testing](docs/TESTING.md)** - Infraestructura de testing moderna con Vitest
 
 ### 📱 Aplicaciones y Funcionalidades
 

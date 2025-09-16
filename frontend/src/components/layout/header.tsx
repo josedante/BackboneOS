@@ -1,10 +1,8 @@
 'use client'
 
 import { Menu, Bell, User as UserIcon, LogOut } from 'lucide-react'
-import { useState, useEffect } from 'react'
 
-import type { User } from '@/lib/api'
-import { logoutAction } from '@/lib/server-actions'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -12,19 +10,10 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, title }: HeaderProps) {
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem('user')
-      if (userData) {
-        setUser(JSON.parse(userData))
-      }
-    }
-  }, [])
+  const { user, logout } = useAuth()
 
   const handleLogout = async () => {
-    await logoutAction()
+    await logout()
   }
 
   return (

@@ -353,32 +353,128 @@ export const api = axios.create({
   ...(httpsAgent && { httpsAgent }),
 })
 
-// Request interceptor for future enhancements
-api.interceptors.request.use((config) => {
-  return config
-})
+// Token refresh state to prevent multiple simultaneous refresh attempts
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value: any) => void
+  reject: (error: any) => void
+}> = []
+
+// Process failed requests after token refresh
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error)
+    } else {
+      resolve(token)
+    }
+  })
+  
+  failedQueue = []
+}
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('auth_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    const authTokens = localStorage.getItem('auth_tokens')
+    if (authTokens) {
+      try {
+        const tokens = JSON.parse(authTokens)
+        if (tokens.access) {
+          config.headers.Authorization = `Bearer ${tokens.access}`
+        }
+      } catch (error) {
+        console.error('Error parsing auth tokens:', error)
+        localStorage.removeItem('auth_tokens')
+      }
     }
   }
   return config
 })
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token')
-        window.location.href = '/login'
+  async (error) => {
+    const originalRequest = error.config
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          return api(originalRequest)
+        }).catch(err => {
+          return Promise.reject(err)
+        })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const authTokens = localStorage.getItem('auth_tokens')
+        if (!authTokens) {
+          throw new Error('No refresh token available')
+        }
+
+        const tokens = JSON.parse(authTokens)
+        if (!tokens.refresh) {
+          throw new Error('No refresh token available')
+        }
+
+        // Attempt to refresh the token
+        const response = await fetch(`${process.env['NEXT_PUBLIC_API_BASE'] || 'https://backend.proyecto-opensource.orb.local'}/users/jwt/refresh/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh: tokens.refresh }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Token refresh failed')
+        }
+
+        const data = await response.json()
+        
+        // Update tokens in localStorage
+        const newTokens = {
+          access: data.access,
+          refresh: data.refresh || tokens.refresh // Use new refresh token if provided
+        }
+        localStorage.setItem('auth_tokens', JSON.stringify(newTokens))
+
+        // Update the original request with new token
+        originalRequest.headers.Authorization = `Bearer ${data.access}`
+        
+        // Process queued requests
+        processQueue(null, data.access)
+        
+        // Retry the original request
+        return api(originalRequest)
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError)
+        
+        // Clear auth data and redirect to login
+        localStorage.removeItem('auth_tokens')
+        localStorage.removeItem('user')
+        
+        // Process queued requests with error
+        processQueue(refreshError, null)
+        
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+        
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
       }
     }
+
     return Promise.reject(error)
   }
 )

@@ -1,35 +1,46 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
 
-import { loginAction } from '@/lib/server-actions'
-
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      router.push('/')
+    }
+  }, [isAuthenticated, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const result = await loginAction(formData)
+    const username = formData.get('username') as string
+    const password = formData.get('password') as string
 
-    if (result.success) {
-      // Store token in localStorage (in production, use httpOnly cookies)
-      localStorage.setItem('auth_token', result.token)
-      localStorage.setItem('user', JSON.stringify(result.user))
-      
-      toast.success('Login successful!')
+    const success = await login(username, password)
+    
+    if (success) {
       router.push('/')
-    } else {
-      toast.error(result.error || 'Login failed')
     }
 
     setIsLoading(false)
+  }
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   return (
