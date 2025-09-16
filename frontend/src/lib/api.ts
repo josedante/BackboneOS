@@ -45,38 +45,89 @@ export interface UserUpdateData {
 }
 
 export interface Product {
-  id: number
+  id: string
   name: string
+  code: string
   description: string
-  price: number
-  category: number
-  division: number
-  modality: number
-  customization: number
+  canonical_url?: string
+  category?: string
+  category_name?: string
+  category_full_path?: string
+  customization_name?: string
+  duration?: string
+  base_price?: number
+  currency_code: string
+  price_display: string
+  duration_display?: string
+  target_audience: string
+  modalities_display: string
+  has_canonical_url: boolean
+  skills_count: number
+  industries_count: number
+  segments_count: number
+  included_products_count: number
+  is_bundle: boolean
   is_active: boolean
   created_at: string
   updated_at: string
 }
 
+export interface ProductDetail extends Omit<Product, 'category'> {
+  category?: ProductCategory
+  modalities: Modality[]
+  customization?: Customization
+  target_segments: MarketSegment[]
+  related_industries: Industry[]
+  related_functions: FunctionOrResponsibility[]
+  related_skills: Skill[]
+  descriptors: WorldDescriptor[]
+  tags: Tag[]
+  included_products: Product[]
+  parent_products: Product[]
+  is_customizable: boolean
+  bundle_price_display: string
+  skills_summary: Record<string, string[]>
+}
+
 export interface ProductCreateData {
   name: string
-  description: string
-  price: number
-  category: number
-  division: number
-  modality?: number
-  customization?: number
+  code: string
+  description?: string
+  canonical_url?: string
+  category_id?: string
+  modalities_ids?: string[]
+  customization_id?: string
+  duration?: string
+  base_price?: number | undefined
+  currency_code?: string
+  target_segments_ids?: string[]
+  related_industries_ids?: string[]
+  related_functions_ids?: string[]
+  related_skills_ids?: string[]
+  descriptors_ids?: string[]
+  tags_ids?: string[]
+  included_products_ids?: string[]
   is_active?: boolean
 }
 
 export interface ProductUpdateData {
   name?: string
+  code?: string
   description?: string
-  price?: number
-  category?: number
-  division?: number
-  modality?: number
-  customization?: number
+  canonical_url?: string
+  category_id?: string
+  modalities_ids?: string[]
+  customization_id?: string
+  duration?: string
+  base_price?: number | undefined
+  currency_code?: string
+  target_segments_ids?: string[]
+  related_industries_ids?: string[]
+  related_functions_ids?: string[]
+  related_skills_ids?: string[]
+  descriptors_ids?: string[]
+  tags_ids?: string[]
+  included_products_ids?: string[]
   is_active?: boolean
 }
 
@@ -111,7 +162,64 @@ export interface Modality {
 }
 
 export interface Customization {
-  id: number
+  id: string
+  name: string
+  description: string
+  products_count: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// World entities
+export interface Industry {
+  id: string
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Skill {
+  id: string
+  name: string
+  description: string
+  skill_type: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MarketSegment {
+  id: string
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface FunctionOrResponsibility {
+  id: string
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface WorldDescriptor {
+  id: string
+  name: string
+  description: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Tag {
+  id: string
   name: string
   description: string
   is_active: boolean
