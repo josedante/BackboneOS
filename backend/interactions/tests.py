@@ -459,7 +459,7 @@ class AgentModelTest(TestCase):
         
         self.person = Person.objects.create(
             first_name='Test',
-            fathers_name='Person',
+            last_name='Person',
             country_of_nationality=self.country
         )
         
@@ -926,7 +926,7 @@ class InteractionModelTest(TestCase):
         
         self.person = Person.objects.create(
             first_name='Test',
-            fathers_name='Person',
+            last_name='Person',
             country_of_nationality=self.country
         )
         
@@ -1073,7 +1073,7 @@ class InteractionModelTest(TestCase):
         # Test con agente que representa persona
         agent_person = Person.objects.create(
             first_name='Agent',
-            fathers_name='Person',
+            last_name='Person',
             country_of_nationality=self.country
         )
         
@@ -1686,7 +1686,7 @@ class InteractionAPITests(InteractionsAPITestCase):
         from entities.models import Person
         self.person = Person.objects.create(
             first_name='John',
-            fathers_name='Doe',
+            last_name='Doe',
             country_of_nationality=self.country
         )
         
@@ -1878,7 +1878,7 @@ class InteractionsIntegrationTests(InteractionsAPITestCase):
         from entities.models import Person
         person = Person.objects.create(
             first_name='Jane',
-            fathers_name='Smith',
+            last_name='Smith',
             country_of_nationality=self.country
         )
         

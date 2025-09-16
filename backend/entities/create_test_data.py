@@ -82,7 +82,7 @@ def create_test_persons(base_data, num_persons=NUM_PERSONS):
         'Alba', 'Julia', 'Patricia', 'Claudia', 'Andrea', 'Raquel', 'Silvia'
     ]
     
-    fathers_names = [
+    last_names = [
         'García', 'González', 'Rodríguez', 'Fernández', 'López', 'Martínez',
         'Sánchez', 'Pérez', 'Gómez', 'Martín', 'Jiménez', 'Ruiz', 'Hernández',
         'Díaz', 'Moreno', 'Álvarez', 'Muñoz', 'Romero', 'Alonso', 'Gutiérrez',
@@ -99,8 +99,8 @@ def create_test_persons(base_data, num_persons=NUM_PERSONS):
             person = Person(
                 first_name=random.choice(first_names),
                 middle_name=random.choice(first_names) if random.random() < 0.3 else '',
-                fathers_name=random.choice(fathers_names),
-                mothers_name=random.choice(fathers_names) if random.random() < 0.8 else '',
+                last_name=random.choice(last_names),
+                second_last_name=random.choice(last_names) if random.random() < 0.8 else '',
                 gender=get_random_choice(Person._meta.get_field('gender').choices),
                 birthday=get_random_date() if random.random() < 0.9 else None,
                 marital_status=get_random_choice(Person._meta.get_field('marital_status').choices),
@@ -177,7 +177,7 @@ def create_test_contacts():
         for i in range(num_contacts):
             contact = ContactDetail(
                 person=person,
-                email=f"{person.first_name.lower()}.{person.fathers_name.lower()}{random.randint(1, 999)}@{random.choice(domains)}",
+                email=f"{person.first_name.lower()}.{person.last_name.lower()}{random.randint(1, 999)}@{random.choice(domains)}",
                 phone=f"+57{random.randint(3000000000, 3999999999)}" if random.random() < 0.8 else '',
                 is_primary=(i == 0),  # Primer contacto es principal
                 verified=random.random() < 0.7,

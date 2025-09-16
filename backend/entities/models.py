@@ -16,8 +16,8 @@ from backend.models import BaseUUIDModelWithActiveStatus
 class Person(BaseUUIDModelWithActiveStatus):
     first_name = models.CharField(max_length=63, blank=True)
     middle_name = models.CharField(max_length=63, blank=True)
-    fathers_name = models.CharField(max_length=63, blank=True)
-    mothers_name = models.CharField(max_length=63, blank=True)
+    last_name = models.CharField(max_length=63, blank=True)
+    second_last_name = models.CharField(max_length=63, blank=True)
 
     gender = models.CharField(
         max_length=2,
@@ -49,7 +49,7 @@ class Person(BaseUUIDModelWithActiveStatus):
         unique_together = ("id_type", "id_number")
         indexes = [
             # Índices básicos para búsquedas frecuentes
-            models.Index(fields=['first_name', 'fathers_name']),
+            models.Index(fields=['first_name', 'last_name']),
             models.Index(fields=['gender']),
             models.Index(fields=['marital_status']),
             models.Index(fields=['birthday']),
@@ -72,12 +72,12 @@ class Person(BaseUUIDModelWithActiveStatus):
         ]
 
     def __str__(self):
-        return f"{self.first_name} {self.fathers_name}".strip()
+        return f"{self.first_name} {self.last_name}".strip()
 
     @property
     def full_name(self):
         """Nombre completo de la persona"""
-        parts = [self.first_name, self.middle_name, self.fathers_name, self.mothers_name]
+        parts = [self.first_name, self.middle_name, self.last_name, self.second_last_name]
         return " ".join(part for part in parts if part).strip()
 
     @property
@@ -134,7 +134,7 @@ class Person(BaseUUIDModelWithActiveStatus):
         try:
             profile = self.individualprofile
             return (
-                bool(self.first_name and self.fathers_name) and
+                bool(self.first_name and self.last_name) and
                 bool(self.primary_contact) and
                 bool(profile.academic_degree) and
                 profile.industries.exists()

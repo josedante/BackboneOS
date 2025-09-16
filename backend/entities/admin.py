@@ -18,14 +18,14 @@ class PersonAdmin(admin.ModelAdmin):
         'id_type', 'created_at'
     ]
     search_fields = [
-        'first_name', 'middle_name', 'fathers_name', 'mothers_name', 
+        'first_name', 'middle_name', 'last_name', 'second_last_name', 
         'id_number', 'contacts__email', 'contacts__phone'
     ]
     readonly_fields = ['id', 'created_at', 'updated_at']
     
     fieldsets = (
         ('Información Personal', {
-            'fields': ('first_name', 'middle_name', 'fathers_name', 'mothers_name', 'portrait')
+            'fields': ('first_name', 'middle_name', 'last_name', 'second_last_name', 'portrait')
         }),
         ('Detalles Demográficos', {
             'fields': ('gender', 'birthday', 'marital_status', 'country_of_nationality')
@@ -40,7 +40,7 @@ class PersonAdmin(admin.ModelAdmin):
     )
     
     def get_full_name(self, obj):
-        return f"{obj.first_name} {obj.fathers_name}".strip() or "Sin nombre"
+        return f"{obj.first_name} {obj.last_name}".strip() or "Sin nombre"
     get_full_name.short_description = 'Nombre Completo'
     
     def get_primary_contact(self, obj):
@@ -58,7 +58,7 @@ class PersonAdmin(admin.ModelAdmin):
 class ContactDetailAdmin(admin.ModelAdmin):
     list_display = ['person', 'get_contact_info', 'is_primary', 'verified', 'is_active']
     list_filter = ['is_primary', 'verified', 'is_active', 'created_at']
-    search_fields = ['email', 'phone', 'person__first_name', 'person__fathers_name']
+    search_fields = ['email', 'phone', 'person__first_name', 'person__last_name']
     readonly_fields = ['id', 'created_at', 'updated_at']
     
     def get_contact_info(self, obj):
@@ -81,7 +81,7 @@ class IndividualProfileAdmin(admin.ModelAdmin):
         'allows_marketing', 'is_active'
     ]
     search_fields = [
-        'person__first_name', 'person__fathers_name',
+        'person__first_name', 'person__last_name',
         'industries__name', 'skills__name', 'functions__name'
     ]
     readonly_fields = ['id', 'created_at', 'updated_at']
@@ -161,7 +161,7 @@ class PhysicalAddressAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'address', 'address_extra', 'city', 'region_or_state',
-        'owner_person__first_name', 'owner_person__fathers_name',
+        'owner_person__first_name', 'owner_person__last_name',
         'owner_org__name'
     ]
     readonly_fields = ['id', 'created_at', 'updated_at']

@@ -41,7 +41,7 @@ class PersonListSerializer(serializers.ModelSerializer):
         ]
     
     def get_full_name(self, obj):
-        return f"{obj.first_name} {obj.fathers_name}".strip() or "Sin nombre"
+        return f"{obj.first_name} {obj.last_name}".strip() or "Sin nombre"
     
     def get_primary_contact(self, obj):
         primary = obj.contacts.filter(is_primary=True).first()
@@ -66,7 +66,7 @@ class PersonDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
         fields = [
-            'id', 'first_name', 'middle_name', 'fathers_name', 'mothers_name',
+            'id', 'first_name', 'middle_name', 'last_name', 'second_last_name',
             'full_name', 'gender', 'birthday', 'marital_status', 
             'country_of_nationality', 'id_type', 'id_number', 'portrait',
             'contacts', 'profile', 'addresses',
@@ -75,7 +75,7 @@ class PersonDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'full_name', 'created_at', 'updated_at']
     
     def get_full_name(self, obj):
-        return f"{obj.first_name} {obj.fathers_name}".strip() or "Sin nombre"
+        return f"{obj.first_name} {obj.last_name}".strip() or "Sin nombre"
     
     def get_profile(self, obj):
         try:
@@ -110,7 +110,7 @@ class PersonCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
         fields = [
-            'first_name', 'middle_name', 'fathers_name', 'mothers_name',
+            'first_name', 'middle_name', 'last_name', 'second_last_name',
             'gender', 'birthday', 'marital_status', 
             'country_of_nationality', 'id_type', 'id_number', 'portrait',
             'is_active'

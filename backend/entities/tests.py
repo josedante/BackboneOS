@@ -43,14 +43,14 @@ class PersonModelTest(TestCase):
         """Test de creación básica de persona"""
         person = Person.objects.create(
             first_name='Juan',
-            fathers_name='Pérez',
+            last_name='Pérez',
             country_of_nationality=self.country,
             id_type=self.id_type,
             id_number='12345678'
         )
         
         self.assertEqual(person.first_name, 'Juan')
-        self.assertEqual(person.fathers_name, 'Pérez')
+        self.assertEqual(person.last_name, 'Pérez')
         self.assertEqual(str(person), 'Juan Pérez')
     
     def test_full_name_property(self):
@@ -58,8 +58,8 @@ class PersonModelTest(TestCase):
         person = Person.objects.create(
             first_name='Juan',
             middle_name='Carlos',
-            fathers_name='Pérez',
-            mothers_name='García'
+            last_name='Pérez',
+            second_last_name='García'
         )
         
         self.assertEqual(person.full_name, 'Juan Carlos Pérez García')
@@ -68,7 +68,7 @@ class PersonModelTest(TestCase):
         """Test de contacto principal"""
         person = Person.objects.create(
             first_name='Juan',
-            fathers_name='Pérez'
+            last_name='Pérez'
         )
         
         contact = ContactDetail.objects.create(
@@ -141,7 +141,7 @@ class PersonAPITest(APITestCase):
         )
         self.person = Person.objects.create(
             first_name='Juan',
-            fathers_name='Pérez',
+            last_name='Pérez',
             country_of_nationality=self.country
         )
         self.list_url = reverse('entities:person-list')
@@ -161,7 +161,7 @@ class PersonAPITest(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['first_name'], 'Juan')
-        self.assertEqual(response.data['fathers_name'], 'Pérez')
+        self.assertEqual(response.data['last_name'], 'Pérez')
     
     def test_choices_endpoint(self):
         """Test del endpoint de choices"""
@@ -254,8 +254,8 @@ class PersonAPITestCase(APITestCase):
         # Persona de prueba
         self.person = Person.objects.create(
             first_name='Juan',
-            fathers_name='Pérez',
-            mothers_name='García',
+            last_name='Pérez',
+            second_last_name='García',
             gender='M',
             country_of_nationality=self.country,
             id_type=self.id_type,
@@ -297,7 +297,7 @@ class PersonViewSetTests(PersonAPITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['first_name'], 'Juan')
-        self.assertEqual(response.data['fathers_name'], 'Pérez')
+        self.assertEqual(response.data['last_name'], 'Pérez')
         self.assertEqual(response.data['id_number'], '12345678')
     
     def test_person_create(self):
@@ -307,8 +307,8 @@ class PersonViewSetTests(PersonAPITestCase):
         
         person_data = {
             'first_name': 'María',
-            'fathers_name': 'González',
-            'mothers_name': 'López',
+            'last_name': 'González',
+            'second_last_name': 'López',
             'gender': 'F',
             'country_of_nationality': self.country.pk,
             'id_type': self.id_type.pk,
@@ -322,7 +322,7 @@ class PersonViewSetTests(PersonAPITestCase):
         # Verificar que se creó correctamente
         person = Person.objects.get(id_number='87654321')
         self.assertEqual(person.first_name, 'María')
-        self.assertEqual(person.fathers_name, 'González')
+        self.assertEqual(person.last_name, 'González')
     
     def test_person_update(self):
         """Test actualización de persona"""
@@ -392,7 +392,7 @@ class PersonViewSetTests(PersonAPITestCase):
         # Crear otra persona para probar ordenamiento
         Person.objects.create(
             first_name='Ana',
-            fathers_name='Martínez',
+            last_name='Martínez',
             country_of_nationality=self.country,
             id_type=self.id_type,
             id_number='11111111'
@@ -600,7 +600,7 @@ class PersonSerializerTests(PersonAPITestCase):
         """Test PersonCreateUpdateSerializer"""
         person_data = {
             'first_name': 'Test',
-            'fathers_name': 'User',
+            'last_name': 'User',
             'gender': 'M',
             'country_of_nationality': self.country.pk,
             'id_type': self.id_type.pk,
@@ -612,7 +612,7 @@ class PersonSerializerTests(PersonAPITestCase):
         
         person = serializer.save()
         self.assertEqual(person.first_name, 'Test')
-        self.assertEqual(person.fathers_name, 'User')
+        self.assertEqual(person.last_name, 'User')
 
 
 class OrganizationSerializerTests(PersonAPITestCase):
@@ -670,7 +670,7 @@ class EntitiesValidationTests(PersonAPITestCase):
         with self.assertRaises(IntegrityError):
             Person.objects.create(
                 first_name='Otro',
-                fathers_name='Usuario',
+                last_name='Usuario',
                 country_of_nationality=self.country,
                 id_type=self.id_type,
                 id_number='12345678'  # Mismo número que persona existente
@@ -799,7 +799,7 @@ class EntitiesPerformanceTests(PersonAPITestCase):
         for i in range(10):
             person = Person.objects.create(
                 first_name=f'Person{i}',
-                fathers_name=f'Last{i}',
+                last_name=f'Last{i}',
                 country_of_nationality=self.country,
                 id_type=self.id_type,
                 id_number=f'1000000{i}'

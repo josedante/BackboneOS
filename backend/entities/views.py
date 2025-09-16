@@ -35,10 +35,10 @@ class PersonViewSet(viewsets.ModelViewSet):
         'id_type', 'is_active'
     ]
     search_fields = [
-        'first_name', 'middle_name', 'fathers_name', 'mothers_name',
+        'first_name', 'middle_name', 'last_name', 'second_last_name',
         'id_number', 'contacts__email', 'contacts__phone'
     ]
-    ordering_fields = ['first_name', 'fathers_name', 'created_at', 'birthday']
+    ordering_fields = ['first_name', 'last_name', 'created_at', 'birthday']
     ordering = ['-created_at']
     
     def get_serializer_class(self):
@@ -141,7 +141,7 @@ class ContactDetailViewSet(viewsets.ModelViewSet):
     
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_primary', 'verified', 'person']
-    search_fields = ['email', 'phone', 'person__first_name', 'person__fathers_name']
+    search_fields = ['email', 'phone', 'person__first_name', 'person__last_name']
     ordering = ['-is_primary', '-created_at']
     
     def get_serializer_class(self):
@@ -164,7 +164,7 @@ class IndividualProfileViewSet(viewsets.ModelViewSet):
         'accepts_privacy_policy', 'allows_marketing'
     ]
     search_fields = [
-        'person__first_name', 'person__fathers_name',
+        'person__first_name', 'person__last_name',
         'industries__name', 'skills__name', 'functions__name'
     ]
     ordering = ['-created_at']
@@ -277,7 +277,7 @@ class PhysicalAddressViewSet(viewsets.ModelViewSet):
     ]
     search_fields = [
         'address', 'address_extra', 'city', 'region_or_state',
-        'owner_person__first_name', 'owner_person__fathers_name',
+        'owner_person__first_name', 'owner_person__last_name',
         'owner_org__name'
     ]
     ordering = ['-is_primary', '-created_at']

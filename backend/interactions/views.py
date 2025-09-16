@@ -372,7 +372,7 @@ class InteractionViewSet(viewsets.ModelViewSet):
         'agent__agent_type', 'representative'
     ]
     search_fields = [
-        'person__first_name', 'person__fathers_name', 'organization__name', 'source',
+        'person__first_name', 'person__last_name', 'organization__name', 'source',
         'user_agent', 'ip_address', 'session_id'
     ]
     ordering_fields = ['occurred_at', 'duration_seconds', 'created_at']

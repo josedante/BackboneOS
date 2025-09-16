@@ -606,10 +606,10 @@ def create_entities_data():
         # Create person using first_name and fathers_name as unique identifier
         person, created = Person.objects.get_or_create(
             first_name=person_data['first_name'],
-            fathers_name=person_data['last_name'],
+            last_name=person_data['last_name'],
             defaults={
                 'first_name': person_data['first_name'],
-                'fathers_name': person_data['last_name']
+                'last_name': person_data['last_name']
             }
         )
         
@@ -636,7 +636,7 @@ def create_entities_data():
             profile.skills.set(skills)
             profile.industries.set(industries)
             
-            print(f"  ✅ Created person: {person.first_name} {person.fathers_name}")
+            print(f"  ✅ Created person: {person.first_name} {person.last_name}")
         created_people.append(person)
     
     return created_organizations, created_people
@@ -734,7 +734,7 @@ def create_interactions_data():
                 channel=channel,
                 agent=agent,
                 payload={
-                    'description': f"Sample interaction {i+1} with {person.first_name} {person.fathers_name}",
+                    'description': f"Sample interaction {i+1} with {person.first_name} {person.last_name}",
                     'outcome': 'positive' if random.choice([True, False]) else 'neutral'
                 },
                 occurred_at=timezone.now(),
