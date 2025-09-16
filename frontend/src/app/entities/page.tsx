@@ -53,11 +53,28 @@ export default function EntitiesPage() {
     enabled: activeTab === 'organizations',
   })
 
+  // Fetch counts for tabs (without pagination to get total counts)
+  const { data: peopleCountResponse } = useQuery<PeopleResponse>({
+    queryKey: ['people-count', { search: searchTerm }],
+    queryFn: () => entitiesApi.getPeople({ 
+      ...(searchTerm && { search: searchTerm }),
+      limit: 1, // Just get 1 item to get the count
+    }),
+  })
+
+  const { data: organizationsCountResponse } = useQuery<OrganizationsResponse>({
+    queryKey: ['organizations-count', { search: searchTerm }],
+    queryFn: () => entitiesApi.getOrganizations({ 
+      ...(searchTerm && { search: searchTerm }),
+      limit: 1, // Just get 1 item to get the count
+    }),
+  })
+
   const people = getResults(peopleResponse)
   const organizations = getResults(organizationsResponse)
-  const totalItems = activeTab === 'people' 
-    ? (peopleResponse?.count || 0)
-    : (organizationsResponse?.count || 0)
+  const totalPeople = peopleCountResponse?.count || 0
+  const totalOrganizations = organizationsCountResponse?.count || 0
+  const totalItems = activeTab === 'people' ? totalPeople : totalOrganizations
   const totalPages = Math.ceil(totalItems / pageSize)
   const isLoading = activeTab === 'people' ? peopleLoading : organizationsLoading
   const error = activeTab === 'people' ? peopleError : organizationsError
@@ -198,7 +215,7 @@ export default function EntitiesPage() {
             }`}
           >
             <User className="mr-2 h-4 w-4" />
-            Personas ({people.length})
+            Personas ({totalPeople})
           </button>
           <button
             onClick={() => setActiveTab('organizations')}
@@ -209,7 +226,7 @@ export default function EntitiesPage() {
             }`}
           >
             <Building2 className="mr-2 h-4 w-4" />
-            Organizaciones ({organizations.length})
+            Organizaciones ({totalOrganizations})
           </button>
         </div>
 
