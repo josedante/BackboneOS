@@ -98,19 +98,6 @@ export default function ProductsPage() {
   const totalItems = productsResponse?.count || 0
   const totalPages = Math.ceil(totalItems / pageSize)
 
-  // Debug pagination response (remove in production)
-  if (productsResponse) {
-    console.log('Pagination Response:', {
-      count: productsResponse.count,
-      next: productsResponse.next,
-      previous: productsResponse.previous,
-      resultsLength: productsResponse.results?.length,
-      currentPage,
-      pageSize,
-      offset
-    })
-  }
-
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1)
@@ -126,7 +113,7 @@ export default function ProductsPage() {
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
-    mutationFn: (id: string) => productsApi.deleteProduct(parseInt(id)),
+    mutationFn: (id: string) => productsApi.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       toast.success('Producto eliminado exitosamente')
@@ -420,7 +407,7 @@ function ProductForm({ product, onSuccess }: ProductFormProps) {
   const createProductMutation = useMutation({
     mutationFn: (data: ProductCreateData) => 
       product 
-        ? productsApi.updateProduct(parseInt(product.id), data)
+        ? productsApi.updateProduct(product.id, data)
         : productsApi.createProduct(data),
     onSuccess: () => {
       toast.success(product ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente')

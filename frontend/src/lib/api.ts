@@ -292,15 +292,8 @@ export const api = axios.create({
   ...(httpsAgent && { httpsAgent }),
 })
 
-// Add request logging
+// Request interceptor for future enhancements
 api.interceptors.request.use((config) => {
-  console.log('Making API request:', {
-    method: config.method,
-    url: config.url,
-    baseURL: config.baseURL,
-    fullURL: `${config.baseURL}${config.url}`,
-    data: config.data
-  })
   return config
 })
 
@@ -388,7 +381,7 @@ export const productsApi = {
     return response.data
   },
 
-  getProduct: async (id: number): Promise<ProductDetail> => {
+  getProduct: async (id: string): Promise<ProductDetail> => {
     const response = await api.get(`/api/products/products/${id}/`)
     return response.data
   },
@@ -398,12 +391,12 @@ export const productsApi = {
     return response.data
   },
 
-  updateProduct: async (id: number, productData: ProductUpdateData): Promise<ProductDetail> => {
+  updateProduct: async (id: string, productData: ProductUpdateData): Promise<ProductDetail> => {
     const response = await api.patch(`/api/products/products/${id}/`, productData)
     return response.data
   },
 
-  deleteProduct: async (id: number): Promise<void> => {
+  deleteProduct: async (id: string): Promise<void> => {
     const response = await api.delete(`/api/products/products/${id}/`)
     return response.data
   },
@@ -414,7 +407,7 @@ export const productsApi = {
     return response.data
   },
 
-  getDivision: async (id: number): Promise<Division> => {
+  getDivision: async (id: string): Promise<Division> => {
     const response = await api.get(`/api/products/divisions/${id}/`)
     return response.data
   },
@@ -425,7 +418,7 @@ export const productsApi = {
     return response.data
   },
 
-  getCategory: async (id: number) => {
+  getCategory: async (id: string) => {
     const response = await api.get(`/api/products/categories/${id}/`)
     return response.data
   },
