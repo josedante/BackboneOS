@@ -121,13 +121,12 @@ services:
       # Add shared environment variables
       - fromGroup: backboneos-shared
 
-# Frontend Service (Nuxt.js)
+# Frontend Service (Next.js 15)
   - type: web
     name: backboneos-frontend
-    runtime: node
+    runtime: docker
     rootDir: frontend
-    buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    dockerfilePath: Dockerfile
     plan: starter # Free tier for development
     region: oregon
     scaling:
@@ -138,24 +137,20 @@ services:
     autoDeploy: true
     envVars:
       # API configuration
-      - key: NUXT_PUBLIC_API_BASE
-        value: "https://backboneos-backend.onrender.com"
-      - key: NUXT_PRIVATE_API_BASE
+      - key: NEXT_PUBLIC_API_BASE
         value: "https://backboneos-backend.onrender.com"
       
-      # Nuxt configuration
-      - key: NUXT_HOST
-        value: "0.0.0.0"
-      - key: NUXT_PORT
+      # Next.js configuration
+      - key: NODE_ENV
+        value: "production"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: PORT
         value: "3000"
       
       # Build environment configuration
       - key: CI
         value: "true"
-      - key: NODE_ENV
-        value: "production"
-      - key: NUXT_TELEMETRY_DISABLED
-        value: "1"
       
       # Add shared environment variables
       - fromGroup: backboneos-shared
