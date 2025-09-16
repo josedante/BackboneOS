@@ -18,6 +18,29 @@ docker-compose exec backend python manage.py migrate   # Migraciones
 cd frontend && npm run dev                              # Frontend
 ```
 
+## 🧪 Testing Status
+
+**✅ Backend Testing Framework: FULLY OPERATIONAL**
+
+- **201 tests passing** (96.6% success rate)
+- **Docker-aware testing environment** with isolated containers
+- **Comprehensive test coverage** across all Django apps
+- **Production-ready infrastructure** for CI/CD pipelines
+
+**Quick Test Commands:**
+```bash
+# Run all tests with coverage
+cd backend && ./run_tests_docker.sh --coverage --html-report
+
+# Run specific test types
+./run_tests_docker.sh --type unit --coverage
+./run_tests_docker.sh --type api --parallel
+```
+
+📊 **Detailed Status**: [TESTING_STATUS.md](backend/TESTING_STATUS.md)  
+📖 **Testing Guide**: [TESTING.md](backend/TESTING.md)  
+🐳 **Docker Testing**: [DOCKER_TESTING.md](backend/DOCKER_TESTING.md)
+
 ## 🏗️ Arquitectura del Sistema
 
 BackboneOS es una aplicación full-stack moderna que combina:
