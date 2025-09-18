@@ -82,7 +82,7 @@ class TestDatabaseMappingProvider(TestCase):
         # Create a mapping rule with unique event code
         rule = TouchpointMappingRule.objects.create(
             connector_type="web",
-            source_identifier="https://example.com",
+            source_identifier="example.com",
             event_code="web.specific_source_test",
             touchpoint_code="web.example_page",
             touchpoint_label="Example Page",
@@ -90,7 +90,7 @@ class TestDatabaseMappingProvider(TestCase):
         )
         
         # Create connector with specific source
-        connector = MockConnector(source_identifier="https://example.com")
+        connector = MockConnector(source_identifier="example.com")
         hint = TouchpointHint(code="web.specific_source_test")
         
         result = self.provider.lookup_mapping(connector, hint)

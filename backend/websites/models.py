@@ -9,6 +9,7 @@ from django.utils import timezone
 from interactions.models import TouchpointClass, Touchpoint, Channel
 from products.models import Product  # optional
 from connectors.base import AbstractConnectorInteraction
+from connectors.protocols import TouchpointInferenceProtocol, TouchpointHint
 # from offers.models import ProductOffering  # optional
 
 # --------------------------
@@ -244,3 +245,42 @@ class WebInteraction(AbstractConnectorInteraction):
             models.Index(fields=["visitor_cookie"]),
             models.Index(fields=["utm_source", "utm_medium", "utm_campaign"]),
         ]
+    
+    def infer_touchpoint_hint(self) -> TouchpointHint:
+        """
+        Implement TouchpointInferenceProtocol.
+        
+        Delegates to specialized web adapter for touchpoint inference.
+        
+        Returns:
+            TouchpointHint: The inferred touchpoint information
+        """
+        from .adapters import infer_web_touchpoint_hint
+        return infer_web_touchpoint_hint(self)
+    
+    def _ensure_touchpoint(self):
+        """
+        Ensure this web interaction has a proper touchpoint.
+        
+        Uses the new touchpoint resolution system to automatically
+        create or update the touchpoint for this web interaction.
+        """
+        if not self.interaction.touchpoint_id:
+            from .resolvers import WebTouchpointResolver
+            from .mapping_providers import WebMappingProvider
+            
+            resolver = WebTouchpointResolver(WebMappingProvider())
+            touchpoint = resolver.resolve(self)
+            
+            self.interaction.touchpoint = touchpoint
+            self.interaction.save(update_fields=['touchpoint'])
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to ensure touchpoint resolution.
+        
+        Automatically resolves and assigns a touchpoint when the
+        web interaction is saved.
+        """
+        super().save(*args, **kwargs)
+        self._ensure_touchpoint()
