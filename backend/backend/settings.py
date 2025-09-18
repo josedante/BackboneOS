@@ -45,12 +45,14 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'world',
+    'websites',
     'products',
     'entities',
     'interactions',
     'our_institution',
     'offers',
     'campaigns',
+    'connectors',
 ]
 
 MIDDLEWARE = [
