@@ -71,11 +71,11 @@ class TestDatabaseMappingProvider(TestCase):
     
     def test_lookup_mapping_specific_source(self):
         """Test lookup with specific source identifier."""
-        # Create a mapping rule
+        # Create a mapping rule with unique event code
         rule = TouchpointMappingRule.objects.create(
             connector_type="web",
             source_identifier="https://example.com",
-            event_code="web.page_read",
+            event_code="web.specific_source_test",
             touchpoint_code="web.example_page",
             touchpoint_label="Example Page",
             priority=200
@@ -83,7 +83,7 @@ class TestDatabaseMappingProvider(TestCase):
         
         # Create connector with specific source
         connector = MockConnector(source_identifier="https://example.com")
-        hint = TouchpointHint(code="web.page_read")
+        hint = TouchpointHint(code="web.specific_source_test")
         
         result = self.provider.lookup_mapping(connector, hint)
         
@@ -93,17 +93,17 @@ class TestDatabaseMappingProvider(TestCase):
     
     def test_lookup_mapping_generic_connector_type(self):
         """Test lookup with generic connector type."""
-        # Create a mapping rule
+        # Create a mapping rule with unique event code
         rule = TouchpointMappingRule.objects.create(
             connector_type="web",
             source_identifier="",  # Generic
-            event_code="web.page_read",
+            event_code="web.generic_connector_test",
             touchpoint_code="web.generic_page",
             touchpoint_label="Generic Web Page",
             priority=100
         )
         
-        hint = TouchpointHint(code="web.page_read")
+        hint = TouchpointHint(code="web.generic_connector_test")
         result = self.provider.lookup_mapping(self.connector, hint)
         
         assert result is not None
@@ -112,17 +112,17 @@ class TestDatabaseMappingProvider(TestCase):
     
     def test_lookup_mapping_generic_event_code(self):
         """Test lookup with generic event code."""
-        # Create a mapping rule
+        # Create a mapping rule with unique event code
         rule = TouchpointMappingRule.objects.create(
             connector_type="",  # Generic
             source_identifier="",  # Generic
-            event_code="web.page_read",
+            event_code="web.generic_event_test",
             touchpoint_code="web.fallback_page",
             touchpoint_label="Fallback Page",
             priority=50
         )
         
-        hint = TouchpointHint(code="web.page_read")
+        hint = TouchpointHint(code="web.generic_event_test")
         result = self.provider.lookup_mapping(self.connector, hint)
         
         assert result is not None
@@ -131,11 +131,11 @@ class TestDatabaseMappingProvider(TestCase):
     
     def test_lookup_mapping_priority_order(self):
         """Test that higher priority rules are returned first."""
-        # Create multiple rules with different priorities
+        # Create multiple rules with different priorities and different event codes to avoid unique constraint
         rule1 = TouchpointMappingRule.objects.create(
             connector_type="web",
             source_identifier="",
-            event_code="web.page_read",
+            event_code="web.priority_test_low",
             touchpoint_code="web.low_priority",
             priority=50
         )
@@ -143,12 +143,13 @@ class TestDatabaseMappingProvider(TestCase):
         rule2 = TouchpointMappingRule.objects.create(
             connector_type="web",
             source_identifier="",
-            event_code="web.page_read",
+            event_code="web.priority_test_high",
             touchpoint_code="web.high_priority",
             priority=150
         )
         
-        hint = TouchpointHint(code="web.page_read")
+        # Test with the high priority event code
+        hint = TouchpointHint(code="web.priority_test_high")
         result = self.provider.lookup_mapping(self.connector, hint)
         
         # Should return the higher priority rule
@@ -157,16 +158,16 @@ class TestDatabaseMappingProvider(TestCase):
     
     def test_lookup_mapping_inactive_rules(self):
         """Test that inactive rules are not returned."""
-        # Create an inactive rule
+        # Create an inactive rule with unique event code
         rule = TouchpointMappingRule.objects.create(
             connector_type="web",
             source_identifier="",
-            event_code="web.page_read",
+            event_code="web.inactive_rule_test",
             touchpoint_code="web.inactive_rule",
             is_active=False
         )
         
-        hint = TouchpointHint(code="web.page_read")
+        hint = TouchpointHint(code="web.inactive_rule_test")
         result = self.provider.lookup_mapping(self.connector, hint)
         
         assert result is None

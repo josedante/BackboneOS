@@ -166,16 +166,18 @@ class CachedTouchpointResolver(DefaultTouchpointResolver):
     repeated database queries for the same touchpoint codes.
     """
     
-    def __init__(self, mapping_provider: 'MappingProviderProtocol', cache_timeout: int = 3600):
+    def __init__(self, mapping_provider: 'MappingProviderProtocol', cache_timeout: int = 3600, use_cache: bool = True):
         """
         Initialize the cached resolver.
         
         Args:
             mapping_provider: Provider for looking up mapping rules
             cache_timeout: Cache timeout in seconds (default: 1 hour)
+            use_cache: Whether to use caching (default: True)
         """
         super().__init__(mapping_provider)
         self.cache_timeout = cache_timeout
+        self.use_cache = use_cache
         self._touchpoint_cache = {}
         self._channel_cache = {}
         self._touchpoint_class_cache = {}

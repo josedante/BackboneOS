@@ -143,8 +143,8 @@ class TouchpointMappingRule(BaseUUIDModelWithActiveStatus):
         verbose_name_plural = "Touchpoint Mapping Rules"
     
     def __str__(self):
-        source_part = f":{self.source_identifier}" if self.source_identifier else ""
-        return f"{self.connector_type}{source_part}:{self.event_code} -> {self.touchpoint_code}"
+        source_part = f":{self.source_identifier}" if self.source_identifier else ":"
+        return f"{self.connector_type}{source_part}{self.event_code} -> {self.touchpoint_code}"
     
     def clean(self):
         """Validate the mapping rule."""

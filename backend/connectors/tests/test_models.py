@@ -83,24 +83,24 @@ class TestTouchpointMappingRule(TestCase):
     
     def test_model_ordering(self):
         """Test model ordering by priority, connector_type, and event_code."""
-        # Create rules with different priorities
+        # Create rules with different priorities and different event codes to avoid unique constraint
         rule1 = TouchpointMappingRule.objects.create(
             connector_type="web",
-            event_code="web.page_read",
+            event_code="web.ordering_test_low",
             touchpoint_code="web.low_priority",
             priority=50
         )
         
         rule2 = TouchpointMappingRule.objects.create(
             connector_type="web",
-            event_code="web.page_read",
+            event_code="web.ordering_test_high",
             touchpoint_code="web.high_priority",
             priority=150
         )
         
         rule3 = TouchpointMappingRule.objects.create(
             connector_type="email",
-            event_code="email.open",
+            event_code="email.ordering_test_medium",
             touchpoint_code="email.medium_priority",
             priority=100
         )
