@@ -1,7 +1,7 @@
 # apps/websites/routing.py
 from django.db import transaction
 from .models import Website, WebSurface, UrlRoutingRule
-from interactions.models import TouchPointClass, TouchPoint, Channel
+from interactions.models import TouchpointClass, Touchpoint, Channel
 
 class AutoProvisionPolicy:
     STRICT = "strict"
@@ -9,8 +9,8 @@ class AutoProvisionPolicy:
 
 def get_www_touchpoint_classes():
     www, _ = Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})
-    tp_page, _ = TouchPointClass.objects.get_or_create(code="WWW_PAGE", defaults={"name": "Website Page", "channel": www})
-    tp_form, _ = TouchPointClass.objects.get_or_create(code="WWW_FORM", defaults={"name": "Website Form", "channel": www})
+    tp_page, _ = TouchpointClass.objects.get_or_create(code="WWW_PAGE", defaults={"name": "Website Page", "channel": www})
+    tp_form, _ = TouchpointClass.objects.get_or_create(code="WWW_FORM", defaults={"name": "Website Form", "channel": www})
     return tp_page, tp_form
 
 class SurfaceResolver:
@@ -57,7 +57,7 @@ class SurfaceResolver:
         if surface.touchpoint_id:
             return surface
 
-        tpi = TouchPoint.objects.create(
+        tpi = Touchpoint.objects.create(
             touchpoint=tp,
             title=path,                # the curator can rename later
             url=f"{website.base_url.rstrip('/')}{path}",

@@ -6,7 +6,7 @@ from backend.models import BaseUUIDModelWithActiveStatus
 from django.utils import timezone
 
 # Core relations
-from interactions.models import TouchPointClass, TouchPoint, Channel
+from interactions.models import TouchpointClass, Touchpoint, Channel
 from products.models import Product  # optional
 from connectors.base import AbstractConnectorInteraction
 # from offers.models import ProductOffering  # optional
@@ -32,24 +32,24 @@ class Website(BaseUUIDModelWithActiveStatus):
 
 
 # --------------------------
-# TouchPointClass scaffolding
+# TouchpointClass scaffolding
 # --------------------------
 def get_or_create_www_channel() -> Channel:
     # Ensure a "WWW" (website) channel exists
     return Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
 
-def get_or_create_tpc(code: str, name: str, channel: Channel) -> TouchPointClass:
-    return TouchPointClass.objects.get_or_create(
+def get_or_create_tpc(code: str, name: str, channel: Channel) -> TouchpointClass:
+    return TouchpointClass.objects.get_or_create(
         code=code,
         defaults={"name": name, "channel": channel}
     )[0]
 
 # def seed_touchpoint_classes(apps, schema_editor):
 #     Channel = apps.get_model("interactions", "Channel")
-#     TouchPointClass = apps.get_model("interactions", "TouchPointClass")
+#     TouchpointClass = apps.get_model("interactions", "TouchpointClass")
 
 #     www = Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
-#     get_or_create = lambda code, name: TouchPointClass.objects.get_or_create(code=code, defaults={"name": name, "channel": www})[0]
+#     get_or_create = lambda code, name: TouchpointClass.objects.get_or_create(code=code, defaults={"name": name, "channel": www})[0]
 
 #     get_or_create("WWW_PAGE", "Website Page")
 #     get_or_create("WWW_FORM", "Website Form")
@@ -63,7 +63,7 @@ def get_or_create_tpc(code: str, name: str, channel: Channel) -> TouchPointClass
 class WebSurface(BaseUUIDModelWithActiveStatus):
     """
     One URL-addressable surface on the website (a page or a form).
-    Owns a TouchPoint to integrate with the core interactions model.
+    Owns a Touchpoint to integrate with the core interactions model.
     """
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="surfaces")
 
@@ -78,10 +78,10 @@ class WebSurface(BaseUUIDModelWithActiveStatus):
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
     # offering = models.ForeignKey(ProductOffering, null=True, blank=True, on_delete=models.SET_NULL)
 
-    # TouchPointClass linking
-    touchpoint_class = models.ForeignKey(TouchPointClass, on_delete=models.PROTECT, related_name="web_surfaces")
+    # TouchpointClass linking
+    touchpoint_class = models.ForeignKey(TouchpointClass, on_delete=models.PROTECT, related_name="web_surfaces")
     touchpoint = models.OneToOneField(
-        TouchPoint,
+        Touchpoint,
         on_delete=models.CASCADE,
         related_name="web_surface",
         null=True, blank=True,
@@ -124,14 +124,14 @@ class WebSurface(BaseUUIDModelWithActiveStatus):
 
     def ensure_tpi(self):
         """
-        Create or update the TouchPoint this surface owns.
+        Create or update the Touchpoint this surface owns.
         """
         if self.touchpoint_id:
             return self.touchpoint
 
         # Create a minimal TPI capturing the canonical URL
         # (Assumes TPI has fields like url/title/metadata; if not, store in metadata.)
-        tpi = TouchPoint.objects.create(
+        tpi = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             title=self.title or self.path,
             # If your TPI model has no URL field, put it into metadata JSON:
@@ -214,12 +214,6 @@ class SurfaceResolver:
 #     role = models.CharField(max_length=20, default="PRIMARY")  # or choices
 
 class WebInteraction(AbstractConnectorInteraction):
-    interaction = models.OneToOneField(
-        "interactions.Interaction",
-        on_delete=models.CASCADE,
-        related_name="web",  # access via interaction.web
-        primary_key=True,
-    )
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="events")
 
     # Browser identity

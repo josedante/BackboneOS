@@ -8,7 +8,7 @@ import uuid
 
 from backend.models import BaseUUIDModelWithActiveStatus
 
-from interactions.models import Interaction, Touchpoint, Channel, Agent, TouchPointInstance
+from interactions.models import Interaction, Touchpoint, Channel, Agent, TouchpointInstance
 
 User = get_user_model()
 
@@ -314,12 +314,12 @@ class SalesSession(Interaction):
                 }
             )
             if self.product and self.representative:
-                tp_instance, _ = TouchPointInstance.objects.get_or_create(
+                tp_instance, _ = TouchpointInstance.objects.get_or_create(
                     touchpoint_class=detailed_tp,
                     product=self.product,
                     representative=self.representative
                 )
-                self.touchpoint_instance = tp_instance
+                self.touchpoint = tp_instance
 
             self.touchpoint = detailed_tp
         super().save(*args, **kwargs)

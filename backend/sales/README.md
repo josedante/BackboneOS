@@ -43,7 +43,7 @@ Subclase de `Interaction` que registra sesiones de contacto comerciales.
 
 **Comportamiento automático:**
 
-- Se crea o reutiliza una instancia de `TouchPointInstance` adecuada al medio y producto.
+- Se crea o reutiliza una instancia de `TouchpointInstance` adecuada al medio y producto.
 - Si no hay canal definido, se sugiere uno según la división del producto.
 
 ---
