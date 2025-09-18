@@ -43,7 +43,15 @@ class TestDatabaseMappingProvider(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.provider = DatabaseMappingProvider()
+        # Create a test-specific provider that can handle MockConnector
+        class TestDatabaseMappingProvider(DatabaseMappingProvider):
+            def _get_source_identifier(self, subject: TouchpointInferenceProtocol) -> str:
+                """Override to work with MockConnector."""
+                if hasattr(subject, 'source_identifier'):
+                    return subject.source_identifier
+                return super()._get_source_identifier(subject)
+        
+        self.provider = TestDatabaseMappingProvider()
         self.connector = MockConnector()
     
     def test_provider_initialization(self):
