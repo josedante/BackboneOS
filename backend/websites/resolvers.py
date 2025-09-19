@@ -731,7 +731,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         elif medium == 'direct':
             # Check if this is truly direct traffic or internal website interaction
             if self._is_internal_website_interaction(hint):
-                return 'web.internal_traffic'
+                return 'web.internal_interaction'
             else:
                 return 'web.direct_traffic'
         elif medium == 'mobile':
@@ -804,7 +804,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             'web.email_traffic': 'Email/Newsletter Traffic',
             'web.referral_traffic': 'Referral Traffic',
             'web.direct_traffic': 'Direct Traffic',
-            'web.internal_traffic': 'Internal Website Interaction',
+            'web.internal_interaction': 'Internal Website Interaction',
             'web.mobile_traffic': 'Mobile Traffic',
             'web.app_traffic': 'Mobile App Traffic',
             'web.display_traffic': 'Display Advertising Traffic',
