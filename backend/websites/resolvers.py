@@ -62,38 +62,40 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 metadata=hint.metadata
             )
         
-        # Analyze user agent for native app detection (second priority)
-        elif hasattr(subject, 'user_agent') and subject.user_agent and (not hint.medium_code or hint.medium_code == 'unknown'):
-            app_medium = self._analyze_user_agent(subject.user_agent)
-            if app_medium:
+        # If no UTM medium, try other methods
+        if not hint.medium_code or hint.medium_code == 'unknown':
+            # Analyze user agent for native app detection (second priority)
+            if hasattr(subject, 'user_agent') and subject.user_agent:
+                app_medium = self._analyze_user_agent(subject.user_agent)
+                if app_medium:
+                    hint = TouchpointHint(
+                        code=hint.code,
+                        channel_code=hint.channel_code,
+                        medium_code=app_medium,
+                        label=hint.label,
+                        metadata=hint.metadata
+                    )
+            
+            # Analyze referrer if available (third priority)
+            if (not hint.medium_code or hint.medium_code == 'unknown') and hasattr(subject, 'referrer_url') and subject.referrer_url:
+                medium = self._analyze_referrer(subject.referrer_url)
                 hint = TouchpointHint(
                     code=hint.code,
                     channel_code=hint.channel_code,
-                    medium_code=app_medium,
+                    medium_code=medium,
                     label=hint.label,
                     metadata=hint.metadata
                 )
-        
-        # Analyze referrer if available and no UTM medium or app detection (third priority)
-        elif hasattr(subject, 'referrer_url') and subject.referrer_url and (not hint.medium_code or hint.medium_code == 'unknown'):
-            medium = self._analyze_referrer(subject.referrer_url)
-            hint = TouchpointHint(
-                code=hint.code,
-                channel_code=hint.channel_code,
-                medium_code=medium,
-                label=hint.label,
-                metadata=hint.metadata
-            )
-        
-        # Set default medium if still not specified
-        if not hint.medium_code or hint.medium_code == 'unknown':
-            hint = TouchpointHint(
-                code=hint.code,
-                channel_code=hint.channel_code,
-                medium_code='direct',
-                label=hint.label,
-                metadata=hint.metadata
-            )
+            
+            # Set default medium if still not specified
+            if not hint.medium_code or hint.medium_code == 'unknown':
+                hint = TouchpointHint(
+                    code=hint.code,
+                    channel_code=hint.channel_code,
+                    medium_code='direct',
+                    label=hint.label,
+                    metadata=hint.metadata
+                )
         
         return hint
     
@@ -508,7 +510,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         
         # Check for custom app user agents
         app_patterns = [
-            r'esanapp',           # ESAN custom app
+            r'app',               # some custom app
             r'myapp',             # Generic app pattern
             r'mobileapp',         # Generic mobile app
             r'app/\d+\.\d+',      # App version pattern (e.g., "App/1.0")
@@ -650,10 +652,10 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
     
     def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
         """
-        Create or get touchpoint with web-specific logic.
+        Create or get touchpoint with enhanced web-specific logic.
         
-        This method extends the base implementation with web-specific
-        touchpoint class creation and channel handling.
+        This method creates rich, feature-rich TouchpointClass categories
+        for better ML analysis and predictive modeling.
         
         Args:
             hint: The touchpoint hint containing all necessary information
@@ -661,7 +663,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         Returns:
             Touchpoint: The created or existing touchpoint
         """
-        # Get or create website-specific channel
+        # Get or create source channel
         channel = None
         if hint.channel_code:
             channel_name = self._get_channel_display_name(hint.channel_code)
@@ -670,32 +672,17 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 defaults={'name': channel_name}
             )
         
-        # Get or create touchpoint class with web-specific logic
-        touchpoint_class = None
-        if hint.code:
-            # Extract class code from touchpoint code (e.g., "web" from "web.page_read")
-            class_code = hint.code.split('.')[0] if '.' in hint.code else hint.code
-            
-            # Web-specific touchpoint class names
-            class_names = {
-                'web': 'Web Touchpoint',
-                'page': 'Page View',
-                'form': 'Form Submission',
-                'click': 'Click Event',
-                'download': 'Download',
-                'video': 'Video Play',
-                'generic': 'Generic Web Interaction'
+        # Get or create enhanced touchpoint class
+        touchpoint_class_code = self._get_enhanced_touchpoint_class_code(hint)
+        touchpoint_class_name = self._get_enhanced_touchpoint_class_name(touchpoint_class_code)
+        
+        touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            code=touchpoint_class_code,
+            defaults={
+                'name': touchpoint_class_name,
+                'description': f"Enhanced web touchpoint class: {touchpoint_class_name}"
             }
-            
-            class_name = class_names.get(class_code, f"{class_code.title()} Touchpoint")
-            
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
-                code=class_code,
-                defaults={
-                    'name': class_name,
-                    'description': f"Web touchpoint class for {class_code} interactions"
-                }
-            )
+        )
         
         # Create or get touchpoint
         touchpoint_code = hint.code or f"web.generic"
@@ -712,6 +699,82 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         )
         
         return touchpoint
+    
+    def _get_enhanced_touchpoint_class_code(self, hint: TouchpointHint) -> str:
+        """
+        Get enhanced touchpoint class code based on medium for ML feature extraction.
+        
+        This method creates meaningful TouchpointClass categories based on the
+        traffic medium (derived from UTM or other information), avoiding duplication
+        with Interaction.action field.
+        
+        Args:
+            hint: The touchpoint hint
+            
+        Returns:
+            str: The enhanced touchpoint class code
+        """
+        # Extract medium for classification
+        medium = hint.medium_code or 'unknown'
+        
+        # Create medium-based touchpoint class code
+        if medium == 'social':
+            return 'web.social_traffic'
+        elif medium == 'organic':
+            return 'web.organic_traffic'
+        elif medium == 'paid':
+            return 'web.paid_traffic'
+        elif medium == 'email':
+            return 'web.email_traffic'
+        elif medium == 'referral':
+            return 'web.referral_traffic'
+        elif medium == 'direct':
+            return 'web.direct_traffic'
+        elif medium == 'mobile':
+            return 'web.mobile_traffic'
+        elif medium == 'app':
+            return 'web.app_traffic'
+        elif medium == 'display':
+            return 'web.display_traffic'
+        elif medium == 'video':
+            return 'web.video_traffic'
+        elif medium == 'affiliate':
+            return 'web.affiliate_traffic'
+        elif medium == 'content':
+            return 'web.content_traffic'
+        else:
+            # Fallback to generic web traffic
+            return 'web.unknown_traffic'
+    
+    
+    def _get_enhanced_touchpoint_class_name(self, touchpoint_class_code: str) -> str:
+        """
+        Get human-friendly name for medium-based touchpoint class.
+        
+        Args:
+            touchpoint_class_code: The touchpoint class code
+            
+        Returns:
+            str: Human-friendly touchpoint class name
+        """
+        # Medium-based touchpoint class names
+        medium_names = {
+            'web.social_traffic': 'Social Media Traffic',
+            'web.organic_traffic': 'Organic Search Traffic',
+            'web.paid_traffic': 'Paid Advertising Traffic',
+            'web.email_traffic': 'Email/Newsletter Traffic',
+            'web.referral_traffic': 'Referral Traffic',
+            'web.direct_traffic': 'Direct Traffic',
+            'web.mobile_traffic': 'Mobile Traffic',
+            'web.app_traffic': 'Mobile App Traffic',
+            'web.display_traffic': 'Display Advertising Traffic',
+            'web.video_traffic': 'Video Advertising Traffic',
+            'web.affiliate_traffic': 'Affiliate Traffic',
+            'web.content_traffic': 'Content Marketing Traffic',
+            'web.unknown_traffic': 'Unknown Traffic Source'
+        }
+        
+        return medium_names.get(touchpoint_class_code, f"Web Traffic - {touchpoint_class_code.split('.')[-1].title()}")
 
 
 class CachedWebTouchpointResolver(WebTouchpointResolver):
