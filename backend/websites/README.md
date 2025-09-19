@@ -2,14 +2,59 @@
 
 ## 📋 Descripción General
 
-La aplicación \`\` extiende el núcleo de interacciones de BackboneOS para capturar y organizar las interacciones provenientes de sitios web. Su objetivo principal es:
+La aplicación `websites` extiende el núcleo de interacciones de BackboneOS para capturar y organizar las interacciones provenientes de sitios web. Su objetivo principal es:
 
 - Permitir registrar **interacciones web anónimas o autenticadas**.
 - Asociar esas interacciones con **Touchpoint Classes** y **Touchpoints** del sistema.
 - Resolver de forma flexible la URL donde ocurre una interacción.
 - Dar trazabilidad entre **sitios web corporativos** y la **estructura organizacional** de la instancia CRM.
+- **Resolución automática de touchpoints** con análisis avanzado de tráfico (UTM, referrer, user agent).
 
-Esta app actúa como **conector especializado** para el canal digital `WWW`, integrando el tráfico web con el modelo unificado de `interactions`.
+Esta app actúa como **conector especializado** para el canal digital `WWW`, integrando el tráfico web con el modelo unificado de `interactions` y el **sistema de resolución de touchpoints**.
+
+## 🎉 Estado: IMPLEMENTACIÓN COMPLETADA
+
+### ✅ Sistema de Resolución de Touchpoints
+- **Resolución automática**: Touchpoints creados automáticamente al guardar `WebInteraction`
+- **Canales específicos por sitio**: Códigos de canal basados en dominio (ej: `alpha.com`, `esan.edu.pe`)
+- **Análisis de tráfico mejorado**: UTM, referrer, y análisis de user agent
+- **Diferenciación de canales**: Distinción entre canal de captura vs. canal de origen
+- **Clasificación semántica**: TouchpointClass basado en medio de tráfico
+- **Detección de apps nativas**: Análisis de user agent para tráfico de apps móviles
+- **Cobertura de pruebas**: 28 tests pasando con cobertura completa
+
+---
+
+## 🔧 Sistema de Resolución de Touchpoints
+
+### **WebTouchpointResolver**
+Resolvedor especializado que extiende el framework genérico con lógica específica para web:
+
+- **Análisis UTM**: Prioriza parámetros UTM para determinar medio de tráfico
+- **Análisis de referrer**: Detecta tráfico orgánico, social, y de referencia
+- **Análisis de user agent**: Identifica tráfico de apps nativas y WebViews
+- **Canales específicos por sitio**: Usa el dominio del sitio web como código de canal
+- **Clasificación semántica**: TouchpointClass basado en medio (ej: `web.social_traffic`)
+
+### **WebMappingProvider**
+Proveedor de reglas de mapeo específico para web:
+
+- **Identificación de fuente**: Extrae URL del sitio web como identificador
+- **Reglas configurables**: Permite override de comportamiento por sitio web
+- **Cache optimizado**: Mejora rendimiento con cache de reglas de mapeo
+
+### **WebTouchpointAdapter**
+Adaptador que implementa la inferencia de touchpoints:
+
+- **Mapeo de eventos**: Convierte tipos de evento web a códigos de touchpoint
+- **Análisis de contexto**: Extrae información de UTM, referrer, y user agent
+- **Metadatos enriquecidos**: Incluye información contextual en el hint
+
+### **Flujo de Resolución**
+1. `WebInteraction.save()` → `_ensure_touchpoint()`
+2. `infer_touchpoint_hint()` → Crea hint con análisis especializado
+3. `WebTouchpointResolver.resolve()` → Aplica reglas y crea touchpoint
+4. Touchpoint asignado automáticamente a la interacción
 
 ---
 
@@ -39,6 +84,16 @@ Clases proxy que heredan de `WebSurface`.
 - Propósito: ergonomía en consultas (`WebPage.objects.all()` vs `WebForm.objects.all()`).
 - No generan nuevas tablas.
 
+### `WebInteraction`
+
+Modelo que extiende `AbstractConnectorInteraction` e implementa `TouchpointInferenceProtocol`:
+
+- **Campos de navegador**: `session_id`, `visitor_cookie`, `user_agent`, `client_hints`, `ip`
+- **Atribución UTM**: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
+- **Eventos**: `element`, `payload`, `is_bot`
+- **Resolución automática**: Implementa `infer_touchpoint_hint()` y `_ensure_touchpoint()`
+- **Integración**: Se conecta automáticamente con el sistema de touchpoints
+
 ### `UrlRoutingRule`
 
 Define **reglas de enrutamiento flexibles** para mapear URLs a un `WebSurface`.
@@ -59,21 +114,31 @@ Servicio helper que resuelve dinámicamente un `path` a un `WebSurface`.
 
 ## 🔗 Integración con Interactions App
 
-La app `websites` **no duplica** datos ya presentes en `interactions.Interaction`.
+La app `websites` **no duplica** datos ya presentes en `interactions.Interaction` y ahora incluye **resolución automática de touchpoints**.
 
+### **Integración Tradicional**
 - Cada `WebSurface` **posee** un `Touchpoint`, por lo que cualquier `Interaction` que ocurra allí se enlaza directamente.
-- El \*\*canal \*\*\`\` se crea automáticamente si no existe.
+- El canal `web` se crea automáticamente si no existe.
 - Los eventos específicos (p.ej. `page_read`, `form_submit`) se representan como `Action` en el core.
+
+### **Nueva Integración con Touchpoint Resolution**
+- **Resolución automática**: `WebInteraction` crea touchpoints automáticamente al guardarse
+- **Canales específicos por sitio**: Cada sitio web tiene su propio canal (ej: `alpha.com`, `esan.edu.pe`)
+- **Análisis de tráfico**: UTM, referrer, y user agent se analizan para determinar el medio
+- **Clasificación semántica**: TouchpointClass basado en medio de tráfico (ej: `web.social_traffic`)
+- **Diferenciación de canales**: Distinción entre canal de captura vs. canal de origen
 
 Esto asegura que:
 
 - Las interacciones web sean **compatibles** con cualquier otra fuente de interacciones.
 - La analítica y reporting se unifiquen.
+- **Mejor atribución**: Análisis avanzado de tráfico para mejor comprensión del customer journey.
 
 ---
 
 ## ⚡ Flujo de Resolución y Registro de Interacciones
 
+### **Flujo Tradicional**
 1. Llega una petición desde el tracker web (ejemplo: visita a `/products/crm`).
 2. `SurfaceResolver.resolve(website, path)` intenta localizar un `WebSurface`.
    - Si existe, devuelve su instancia.
@@ -84,6 +149,18 @@ Esto asegura que:
    - `channel=WWW`
    - `action` según evento (`page_read`, `form_submit`)
    - `agent` (ej. navegador identificado)
+
+### **Nuevo Flujo con Touchpoint Resolution**
+1. Se crea un `WebInteraction` con datos de navegador, UTM, referrer, etc.
+2. `WebInteraction.save()` → `_ensure_touchpoint()` se ejecuta automáticamente
+3. `infer_touchpoint_hint()` analiza el contexto y crea un hint especializado
+4. `WebTouchpointResolver.resolve()` aplica reglas y crea el touchpoint:
+   - **Análisis UTM**: Determina medio de tráfico (organic, paid, social, etc.)
+   - **Análisis de referrer**: Detecta origen del tráfico
+   - **Análisis de user agent**: Identifica apps nativas vs. navegadores
+   - **Canal específico**: Usa dominio del sitio web como código de canal
+   - **TouchpointClass semántico**: Basado en medio de tráfico
+5. Touchpoint se asigna automáticamente a la interacción
 
 ---
 
@@ -121,16 +198,37 @@ Esto asegura que:
 
 ---
 
+## 🧪 Testing y Calidad
+
+### **Cobertura de Pruebas**
+- **28 tests pasando**: Cobertura completa de toda la funcionalidad
+- **Tests de modelos**: Website, WebSurface, WebInteraction
+- **Tests de resolvers**: WebTouchpointResolver con todos los escenarios
+- **Tests de adapters**: WebTouchpointAdapter con diferentes tipos de eventos
+- **Tests de integración**: Flujo completo de resolución de touchpoints
+- **Tests de mapping providers**: WebMappingProvider y cache
+
+### **Escenarios de Prueba**
+- **Análisis UTM**: Diferentes combinaciones de parámetros UTM
+- **Análisis de referrer**: Tráfico orgánico, social, de referencia
+- **Análisis de user agent**: Apps nativas, WebViews, navegadores
+- **Canales específicos**: Diferentes dominios de sitios web
+- **Clasificación semántica**: Diferentes medios de tráfico
+- **Resolución automática**: Creación automática de touchpoints
+
 ## 📁 Estructura de Archivos
 
 ```
 websites/
-├── models.py              # Modelos Website, WebSurface, UrlRoutingRule
+├── models.py              # Modelos Website, WebSurface, WebInteraction, UrlRoutingRule
+├── resolvers.py           # WebTouchpointResolver y CachedWebTouchpointResolver
+├── mapping_providers.py   # WebMappingProvider y CachedWebMappingProvider
+├── adapters.py            # WebTouchpointAdapter (infer_web_touchpoint_hint)
 ├── admin.py               # Configuración admin
 ├── serializers.py         # Serializers para API REST
 ├── views.py               # ViewSets y lógica de API
 ├── urls.py                # Rutas API REST
-├── tests.py               # Tests unitarios y de integración
+├── tests.py               # 28 tests unitarios y de integración
 ├── README.md              # Esta documentación
 └── migrations/            # Migraciones iniciales
 ```
@@ -141,10 +239,20 @@ websites/
 
 La app `websites` convierte la **actividad anónima de la web** en interacciones trazables dentro del CRM, cerrando la brecha entre **marketing digital** y **gestión de clientes**:
 
+### **Valor Tradicional**
 - **Unificación de canales** bajo el modelo de interacciones.
 - **Rastreo semántico** conectado a productos y ofertas.
 - **Flexibilidad** para múltiples estructuras organizacionales.
 - **Escalabilidad** para soportar reglas de enrutamiento y superficies dinámicas.
 
-👉 En conclusión, `websites` es el puente entre el **tráfico web** y el **ecosistema CRM** de BackboneOS.
+### **Nuevo Valor con Touchpoint Resolution**
+- **Resolución automática**: Touchpoints creados automáticamente sin intervención manual
+- **Atribución avanzada**: Análisis de UTM, referrer, y user agent para mejor comprensión del tráfico
+- **Canales específicos**: Cada sitio web tiene su propio canal para análisis granular
+- **Clasificación semántica**: TouchpointClass basado en medio de tráfico para mejor categorización
+- **Detección de apps nativas**: Identificación de tráfico de apps móviles vs. navegadores web
+- **Diferenciación de canales**: Distinción entre canal de captura vs. canal de origen
+- **Mejor customer journey**: Comprensión más profunda del recorrido del cliente
+
+👉 En conclusión, `websites` es el puente entre el **tráfico web** y el **ecosistema CRM** de BackboneOS, ahora con capacidades avanzadas de análisis y resolución automática de touchpoints.
 
