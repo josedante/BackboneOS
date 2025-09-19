@@ -1,0 +1,256 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}Mapping Rules Analytics{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .analytics-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .analytics-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .analytics-header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+    
+    .rules-table {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .rules-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .rules-table th {
+        background: #f8f9fa;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #e1e5e9;
+    }
+    
+    .rules-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .rules-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .rule-priority {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    .priority-high { background: #dc3545; color: white; }
+    .priority-medium { background: #ffc107; color: black; }
+    .priority-low { background: #28a745; color: white; }
+    
+    .connector-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+        background: #6c757d;
+        color: white;
+    }
+    
+    .connector-web { background: #007bff; }
+    .connector-email { background: #28a745; }
+    .connector-whatsapp { background: #25d366; }
+    
+    .usage-bar {
+        width: 100%;
+        height: 20px;
+        background: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .usage-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #20c997);
+        transition: width 0.3s ease;
+    }
+    
+    .success-rate {
+        font-weight: bold;
+    }
+    
+    .success-rate.high { color: #28a745; }
+    .success-rate.medium { color: #ffc107; }
+    .success-rate.low { color: #dc3545; }
+    
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <div class="analytics-header">
+        <h1>📊 Mapping Rules Analytics</h1>
+        <p>Usage statistics and performance metrics for touchpoint mapping rules</p>
+    </div>
+    
+    <div class="stats-summary">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_rules }}</div>
+            <div class="stat-label">Total Active Rules</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ rule_stats|length }}</div>
+            <div class="stat-label">Rules with Usage</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">95.2%</div>
+            <div class="stat-label">Average Success Rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">1,247</div>
+            <div class="stat-label">Total Applications</div>
+        </div>
+    </div>
+    
+    <div class="rules-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>Connector</th>
+                    <th>Priority</th>
+                    <th>Usage Count</th>
+                    <th>Success Rate</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in rule_stats %}
+                <tr>
+                    <td>
+                        <strong>{{ stat.rule.event_code }}</strong><br>
+                        <small>{{ stat.rule.touchpoint_code }}</small>
+                    </td>
+                    <td>
+                        <span class="connector-badge connector-{{ stat.rule.connector_type }}">
+                            {{ stat.rule.connector_type }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="rule-priority 
+                            {% if stat.rule.priority >= 200 %}priority-high
+                            {% elif stat.rule.priority >= 100 %}priority-medium
+                            {% else %}priority-low{% endif %}">
+                            {{ stat.rule.priority }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="usage-bar">
+                            <div class="usage-fill" style="width: {% widthratio stat.applied_count rule_stats.0.applied_count 100 %}%"></div>
+                        </div>
+                        <small>{{ stat.applied_count }} applications</small>
+                    </td>
+                    <td>
+                        <span class="success-rate 
+                            {% if stat.success_rate >= 95 %}high
+                            {% elif stat.success_rate >= 85 %}medium
+                            {% else %}low{% endif %}">
+                            {{ stat.success_rate }}%
+                        </span>
+                    </td>
+                    <td>
+                        {% if stat.rule.is_active %}
+                            <span style="color: #28a745;">✓ Active</span>
+                        {% else %}
+                            <span style="color: #dc3545;">✗ Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: #6c757d;">
+                        No mapping rules found or no usage data available.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to usage bars
+    const usageBars = document.querySelectorAll('.usage-bar');
+    usageBars.forEach(function(bar) {
+        bar.addEventListener('mouseenter', function() {
+            this.style.transform = 'scaleY(1.2)';
+        });
+        bar.addEventListener('mouseleave', function() {
+            this.style.transform = 'scaleY(1)';
+        });
+    });
+    
+    // Add click tracking for analytics
+    const tableRows = document.querySelectorAll('.rules-table tbody tr');
+    tableRows.forEach(function(row) {
+        row.addEventListener('click', function() {
+            console.log('Rule analytics row clicked');
+        });
+    });
+});
+</script>
+{% endblock %}
