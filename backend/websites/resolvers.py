@@ -729,7 +729,11 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         elif medium == 'referral':
             return 'web.referral_traffic'
         elif medium == 'direct':
-            return 'web.direct_traffic'
+            # Check if this is truly direct traffic or internal website interaction
+            if self._is_internal_website_interaction(hint):
+                return 'web.internal_traffic'
+            else:
+                return 'web.direct_traffic'
         elif medium == 'mobile':
             return 'web.mobile_traffic'
         elif medium == 'app':
@@ -745,6 +749,41 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         else:
             # Fallback to generic web traffic
             return 'web.unknown_traffic'
+    
+    def _is_internal_website_interaction(self, hint: TouchpointHint) -> bool:
+        """
+        Determine if this is an internal website interaction vs true direct traffic.
+        
+        Args:
+            hint: The touchpoint hint
+            
+        Returns:
+            bool: True if internal website interaction, False if true direct traffic
+        """
+        # Check if this is an internal click or navigation event
+        if hint.code:
+            if 'internal_click' in hint.code or 'navigation' in hint.code:
+                return True
+        
+        # Check metadata for internal event indicators
+        if hint.metadata:
+            event_type = hint.metadata.get('event_type', '')
+            if event_type in ['internal_click', 'navigation', 'menu_click', 'button_click']:
+                return True
+            
+            # Check for internal interaction indicators
+            if hint.metadata.get('is_internal_interaction', False):
+                return True
+        
+        # Check if channel code matches a website domain (internal interaction)
+        if hint.channel_code:
+            # If channel is a website domain, it's likely an internal interaction
+            if '.' in hint.channel_code and not hint.channel_code in ['direct', 'unknown']:
+                # This is a website domain, likely internal interaction
+                return True
+        
+        # Default to false (true direct traffic)
+        return False
     
     
     def _get_enhanced_touchpoint_class_name(self, touchpoint_class_code: str) -> str:
@@ -765,6 +804,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             'web.email_traffic': 'Email/Newsletter Traffic',
             'web.referral_traffic': 'Referral Traffic',
             'web.direct_traffic': 'Direct Traffic',
+            'web.internal_traffic': 'Internal Website Interaction',
             'web.mobile_traffic': 'Mobile Traffic',
             'web.app_traffic': 'Mobile App Traffic',
             'web.display_traffic': 'Display Advertising Traffic',
