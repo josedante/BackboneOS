@@ -61,7 +61,7 @@ This document outlines a phased implementation plan for the Touchpoint Resolutio
 *Data migration and cleanup - Migrations applied, comprehensive test coverage*
 
 ### **Phase 5: Future Connectors (Week 9+) ✅ READY**
-*Email, WhatsApp, etc. - Extensibility patterns established and documented*
+*Independent Django packages - Extensibility patterns established and documented*
 
 ---
 
@@ -784,11 +784,41 @@ class Migration(migrations.Migration):
 
 ---
 
-## 🚀 Phase 5: Future Connectors
+## 🚀 Phase 5: Future Connectors (Independent Packages)
 
-### **5.1 Email Connector Example**
+### **📦 Independent Package Architecture**
 
-**File: `emails/adapters.py`**
+Email and WhatsApp connectors will be developed as **independent Django packages** that can be installed separately from the core BackboneOS system. This approach provides:
+
+- **Modularity**: Each connector can be developed, versioned, and deployed independently
+- **Flexibility**: Organizations can choose which connectors to install based on their needs
+- **Maintainability**: Connector-specific logic is isolated from the core system
+- **Extensibility**: Third-party developers can create their own connector packages
+
+### **🔗 Integration Pattern**
+
+Independent connector packages will integrate with BackboneOS by:
+
+1. **Installing the package**: `pip install backboneos-email-connector`
+2. **Adding to INSTALLED_APPS**: Include the connector app in Django settings
+3. **Implementing protocols**: Follow the established `TouchpointInferenceProtocol`
+4. **Using the framework**: Leverage the core touchpoint resolution system
+
+### **📋 Package Requirements**
+
+Each independent connector package must:
+
+- Implement `TouchpointInferenceProtocol` in their interaction models
+- Provide specialized resolvers that extend `DefaultTouchpointResolver`
+- Include mapping providers for connector-specific rule lookup
+- Follow the established patterns for touchpoint hint inference
+- Include comprehensive test coverage
+- Provide Django admin integration
+- Include management commands for backfill operations
+
+### **5.1 Email Connector Pattern (Independent Package)**
+
+**File: `emails/adapters.py` (in independent Django package)**
 ```python
 from connectors.protocols import TouchpointHint
 from .models import EmailInteraction
@@ -827,9 +857,9 @@ def infer_email_touchpoint_hint(email_interaction: EmailInteraction) -> Touchpoi
     )
 ```
 
-### **5.2 WhatsApp Connector Example**
+### **5.2 WhatsApp Connector Pattern (Independent Package)**
 
-**File: `whatsapp/adapters.py`**
+**File: `whatsapp/adapters.py` (in independent Django package)**
 ```python
 from connectors.protocols import TouchpointHint
 from .models import WhatsAppInteraction

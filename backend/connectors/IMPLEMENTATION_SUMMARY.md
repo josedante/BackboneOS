@@ -5,7 +5,7 @@
 ### **1. Clean Separation of Concerns**
 - **Connectors App**: Generic framework, protocols, and base resolvers
 - **Websites App**: Web-specific UTM analysis, referrer parsing, and web touchpoint logic
-- **Future Apps**: Email, WhatsApp, etc. will have their own specialized adapters
+- **Future Connectors**: Email, WhatsApp, etc. will be independent Django packages with specialized adapters
 
 ### **2. Protocol-Based Architecture**
 ```python
@@ -41,8 +41,8 @@ class WebInteraction(AbstractConnectorInteraction, TouchpointInferenceProtocol):
 
 ### **Layer 2: Specialized Implementations (Connector Apps)**
 - **Websites**: UTM analysis, referrer parsing, web-specific defaults
-- **Email**: Campaign analysis, bounce handling, email-specific logic
-- **WhatsApp**: Message type analysis, phone number handling
+- **Email** (Independent Package): Campaign analysis, bounce handling, email-specific logic
+- **WhatsApp** (Independent Package): Message type analysis, phone number handling
 
 ### **Layer 3: Core Integration (Interactions App)**
 - `Touchpoint`, `TouchpointClass`, `Channel` models
@@ -84,9 +84,45 @@ class WebInteraction(AbstractConnectorInteraction, TouchpointInferenceProtocol):
 - ✅ Comprehensive test coverage (28 tests passing)
 
 ### **Phase 5: Future Connectors (Week 9+) ✅ READY**
-- ✅ Email connector example (extensibility patterns established)
-- ✅ WhatsApp connector example (extensibility patterns established)
+- ✅ Email connector patterns (extensibility patterns established)
+- ✅ WhatsApp connector patterns (extensibility patterns established)
 - ✅ Extensibility patterns documented and tested
+- ✅ Independent Django package architecture defined
+- ✅ Integration patterns for third-party connector packages established
+
+---
+
+## 📦 Independent Package Architecture
+
+### **🎯 Design Philosophy**
+
+Email and WhatsApp connectors will be developed as **independent Django packages** rather than core BackboneOS apps. This architectural decision provides:
+
+- **Modularity**: Each connector can be developed, versioned, and deployed independently
+- **Flexibility**: Organizations can choose which connectors to install based on their needs
+- **Maintainability**: Connector-specific logic is isolated from the core system
+- **Extensibility**: Third-party developers can create their own connector packages
+
+### **🔗 Integration Pattern**
+
+Independent connector packages integrate with BackboneOS by:
+
+1. **Package Installation**: `pip install backboneos-email-connector`
+2. **Django Configuration**: Add to `INSTALLED_APPS` in settings
+3. **Protocol Implementation**: Follow `TouchpointInferenceProtocol`
+4. **Framework Usage**: Leverage core touchpoint resolution system
+
+### **📋 Package Requirements**
+
+Each independent connector package must:
+
+- Implement `TouchpointInferenceProtocol` in interaction models
+- Provide specialized resolvers extending `DefaultTouchpointResolver`
+- Include mapping providers for connector-specific rule lookup
+- Follow established patterns for touchpoint hint inference
+- Include comprehensive test coverage
+- Provide Django admin integration
+- Include management commands for backfill operations
 
 ---
 
