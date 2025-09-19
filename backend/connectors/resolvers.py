@@ -12,6 +12,7 @@ from typing import Optional, TYPE_CHECKING
 
 from interactions.models import Touchpoint, TouchpointClass, Channel
 from .protocols import TouchpointInferenceProtocol, TouchpointResolverProtocol, TouchpointHint
+from .metrics import track_resolution
 
 if TYPE_CHECKING:
     from .models import TouchpointMappingRule
@@ -57,19 +58,40 @@ class DefaultTouchpointResolver:
         Returns:
             Touchpoint: The resolved touchpoint object
         """
-        # Step 1: Get hint from connector-specific inference
-        hint = subject.infer_touchpoint_hint()
+        # Get connector type for metrics
+        connector_type = self._get_connector_type(subject)
         
-        # Step 2: Apply mapping overrides
-        mapping_rule = self.mapping_provider.lookup_mapping(subject, hint)
-        if mapping_rule:
-            hint = self._apply_mapping_rule(hint, mapping_rule)
-        
-        # Step 3: Ensure we have required fields
-        final_hint = self._ensure_required_fields(subject, hint)
-        
-        # Step 4: Create or get touchpoint
-        return self._get_or_create_touchpoint(final_hint)
+        # Track resolution with metrics
+        with track_resolution(connector_type, {'subject_class': subject.__class__.__name__}) as tracker:
+            try:
+                # Step 1: Get hint from connector-specific inference
+                hint = subject.infer_touchpoint_hint()
+                
+                # Step 2: Apply mapping overrides
+                mapping_rule = self.mapping_provider.lookup_mapping(subject, hint)
+                mapping_applied = mapping_rule is not None
+                if mapping_rule:
+                    hint = self._apply_mapping_rule(hint, mapping_rule)
+                
+                # Step 3: Ensure we have required fields
+                final_hint = self._ensure_required_fields(subject, hint)
+                
+                # Step 4: Create or get touchpoint
+                touchpoint = self._get_or_create_touchpoint(final_hint)
+                
+                # Record successful resolution
+                tracker.record_success(
+                    cache_hit=False,  # TODO: Implement cache hit detection
+                    mapping_applied=mapping_applied,
+                    touchpoint_created=True
+                )
+                
+                return touchpoint
+                
+            except Exception as e:
+                # Record error
+                tracker.record_error(str(e))
+                raise
     
     def _apply_mapping_rule(self, hint: TouchpointHint, rule: 'TouchpointMappingRule') -> TouchpointHint:
         """
@@ -204,3 +226,14 @@ class CachedTouchpointResolver(DefaultTouchpointResolver):
         self._touchpoint_cache[touchpoint_code] = touchpoint
         
         return touchpoint
+    
+    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
+        """Extract connector type from subject class name."""
+        class_name = subject.__class__.__name__.lower()
+        if class_name.startswith('web'):
+            return 'web'
+        elif class_name.startswith('email'):
+            return 'email'
+        elif class_name.startswith('whatsapp'):
+            return 'whatsapp'
+        return 'generic'

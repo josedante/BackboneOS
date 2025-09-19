@@ -162,3 +162,16 @@ class TouchpointMappingRule(BaseUUIDModelWithActiveStatus):
                 "At least one override field (touchpoint_code, touchpoint_label, "
                 "channel_code, medium_code, or metadata) must be provided."
             )
+
+
+# Monitoring models are defined in monitoring_models.py
+# They are imported separately to avoid circular imports
+
+# Import monitoring models for Django to detect them
+from .monitoring_models import (
+    TouchpointResolutionMetrics,
+    TouchpointResolutionEvent,
+    TouchpointCacheMetrics,
+    TouchpointSystemHealth,
+    TouchpointAlert
+)
