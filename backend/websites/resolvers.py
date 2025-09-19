@@ -126,32 +126,56 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         """
         Determine if this is an external click event or internal website event.
         
+        This method intelligently distinguishes between external landing events
+        and internal website interactions based on context clues.
+        
         Args:
             subject: The web interaction requesting touchpoint resolution
             
         Returns:
             bool: True if external click event, False if internal website event
         """
-        # Check if this is a page view/landing event (external click)
+        # Get event type from various sources
+        event_type = None
         if hasattr(subject, 'payload') and subject.payload:
             event_type = subject.payload.get('event_type', '')
-            if event_type in ['page_view', 'landing', 'external_click']:
-                return True
-        
-        # Check if this is a page view/landing event (metadata)
-        if hasattr(subject, 'metadata') and subject.metadata:
+        elif hasattr(subject, 'metadata') and subject.metadata:
             event_type = subject.metadata.get('event_type', '')
-            if event_type in ['page_view', 'landing', 'external_click']:
-                return True
-        
-        # Check if this is a page view/landing event (hint code)
-        if hasattr(subject, 'infer_touchpoint_hint'):
+        elif hasattr(subject, 'infer_touchpoint_hint'):
             try:
                 hint = subject.infer_touchpoint_hint()
-                if hint.code in ['web.page_view', 'web.landing', 'web.external_click']:
-                    return True
+                if 'page_view' in hint.code:
+                    event_type = 'page_view'
+                elif 'landing' in hint.code:
+                    event_type = 'landing'
+                elif 'external_click' in hint.code:
+                    event_type = 'external_click'
             except:
                 pass
+        
+        # Handle explicit external events
+        if event_type in ['landing', 'external_click']:
+            return True
+        
+        # Handle page_view events intelligently
+        if event_type == 'page_view':
+            # Check for external indicators
+            has_external_referrer = (hasattr(subject, 'referrer_url') and 
+                                   subject.referrer_url and 
+                                   self._is_external_referrer(subject.referrer_url, subject))
+            
+            has_utm_parameters = (hasattr(subject, 'utm_source') and subject.utm_source)
+            
+            has_app_user_agent = (hasattr(subject, 'user_agent') and 
+                                subject.user_agent and 
+                                self._extract_app_channel_from_user_agent(subject.user_agent))
+            
+            # Only treat as external if there are external indicators
+            if has_external_referrer or has_utm_parameters or has_app_user_agent:
+                return True
+            else:
+                # No external indicators = internal page view
+                return False
         
         # Check for external referrer (indicates external click)
         if hasattr(subject, 'referrer_url') and subject.referrer_url:
@@ -708,16 +732,59 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         traffic medium (derived from UTM or other information), avoiding duplication
         with Interaction.action field.
         
+        Key distinction:
+        - All clicks (internal/external) → "traffic"
+        - All non-click events → "interaction"
+        
         Args:
             hint: The touchpoint hint
             
         Returns:
             str: The enhanced touchpoint class code
         """
+        # First check if this is a click event (should be traffic)
+        is_click_event = False
+        if hint.code:
+            if 'click' in hint.code.lower():
+                is_click_event = True
+        if hint.metadata:
+            event_type = hint.metadata.get('event_type', '')
+            if 'click' in event_type.lower():
+                is_click_event = True
+        
         # Extract medium for classification
         medium = hint.medium_code or 'unknown'
         
-        # Create medium-based touchpoint class code
+        # If it's a click event, it should be traffic regardless of medium
+        if is_click_event:
+            if medium == 'social':
+                return 'web.social_traffic'
+            elif medium == 'organic':
+                return 'web.organic_traffic'
+            elif medium == 'paid':
+                return 'web.paid_traffic'
+            elif medium == 'email':
+                return 'web.email_traffic'
+            elif medium == 'referral':
+                return 'web.referral_traffic'
+            elif medium == 'direct':
+                return 'web.internal_traffic'  # Internal clicks are traffic
+            elif medium == 'mobile':
+                return 'web.mobile_traffic'
+            elif medium == 'app':
+                return 'web.app_traffic'
+            elif medium == 'display':
+                return 'web.display_traffic'
+            elif medium == 'video':
+                return 'web.video_traffic'
+            elif medium == 'affiliate':
+                return 'web.affiliate_traffic'
+            elif medium == 'content':
+                return 'web.content_traffic'
+            else:
+                return 'web.unknown_traffic'
+        
+        # For non-click events, use medium-based classification
         if medium == 'social':
             return 'web.social_traffic'
         elif medium == 'organic':
@@ -752,26 +819,30 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
     
     def _is_internal_website_interaction(self, hint: TouchpointHint) -> bool:
         """
-        Determine if this is an internal website interaction vs true direct traffic.
+        Determine if this is an internal website interaction (non-click) vs internal click.
+        
+        This method distinguishes between:
+        - Internal clicks → should be "traffic" (return False)
+        - Internal non-click events → should be "interaction" (return True)
         
         Args:
             hint: The touchpoint hint
             
         Returns:
-            bool: True if internal website interaction, False if true direct traffic
+            bool: True if internal website interaction (non-click), False if internal click
         """
-        # Check if this is an internal click or navigation event
+        # Check if this is an internal click event (should be traffic, not interaction)
         if hint.code:
-            if 'internal_click' in hint.code or 'navigation' in hint.code:
-                return True
+            if 'internal_click' in hint.code or 'click' in hint.code:
+                return False  # Internal clicks are traffic, not interaction
         
-        # Check metadata for internal event indicators
+        # Check metadata for click event indicators
         if hint.metadata:
             event_type = hint.metadata.get('event_type', '')
-            if event_type in ['internal_click', 'navigation', 'menu_click', 'button_click']:
-                return True
+            if event_type in ['internal_click', 'click', 'navigation', 'menu_click', 'button_click']:
+                return False  # All clicks are traffic, not interaction
             
-            # Check for internal interaction indicators
+            # Check for internal interaction indicators (non-click events)
             if hint.metadata.get('is_internal_interaction', False):
                 return True
         
@@ -804,6 +875,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             'web.email_traffic': 'Email/Newsletter Traffic',
             'web.referral_traffic': 'Referral Traffic',
             'web.direct_traffic': 'Direct Traffic',
+            'web.internal_traffic': 'Internal Website Traffic',
             'web.internal_interaction': 'Internal Website Interaction',
             'web.mobile_traffic': 'Mobile Traffic',
             'web.app_traffic': 'Mobile App Traffic',
