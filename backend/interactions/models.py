@@ -237,8 +237,22 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
 
 
 class Interaction(BaseUUIDModelWithActiveStatus):
+    """
+    Represents an interaction between a person and a touchpoint.
+    
+    The organization field is optional and serves to distinguish between:
+    - Corporate customers: interactions with organization set (B2B)
+    - Individual customers: interactions without organization (B2C)
+    """
     person = models.ForeignKey('entities.Person', null=True, blank=True, on_delete=models.SET_NULL, related_name='interactions')
-    organization = models.ForeignKey('entities.Organization', null=True, blank=True, on_delete=models.SET_NULL, related_name='interactions')
+    organization = models.ForeignKey(
+        'entities.Organization', 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name='interactions',
+        help_text="Optional organization for corporate customers (B2B). Leave empty for individual customers (B2C)."
+    )
     touchpoint = models.ForeignKey(Touchpoint, on_delete=models.SET_NULL, null=True, blank=True)
     action = models.ForeignKey(Action, on_delete=models.SET_NULL, null=True, blank=True)
     channel = models.ForeignKey(Channel, on_delete=models.SET_NULL, null=True, blank=True)
