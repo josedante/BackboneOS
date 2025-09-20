@@ -61,15 +61,16 @@ class ManagementCommandsIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create test interaction
         self.interaction = Interaction.objects.create(
             touchpoint=self.touchpoint,
             occurred_at=timezone.now(),
-            metadata={'test': 'data'}
+            payload={'test': 'data'}
         )
         
         # Create test mapping rule
@@ -100,7 +101,7 @@ class ManagementCommandsIntegrationTest(TestCase):
         
         # Check output
         output = out.getvalue()
-        self.assertIn('Backfilling touchpoints', output)
+        self.assertIn('Starting touchpoint backfill process', output)
         self.assertIn('Processed', output)
     
     def test_test_touchpoint_resolution_command(self):
@@ -240,9 +241,9 @@ class ManagementCommandsErrorHandlingTest(TestCase):
         
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
-            channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
     
     def test_invalid_command_arguments(self):
@@ -309,9 +310,9 @@ class ManagementCommandsPerformanceTest(TestCase):
         
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
-            channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create many interactions for performance testing
@@ -392,9 +393,9 @@ class ManagementCommandsIntegrationWithAdminTest(TestCase):
         
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
-            channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
     
     def test_command_created_rules_visible_in_admin(self):

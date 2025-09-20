@@ -218,6 +218,9 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='touchpoints', help_text="Producto principal asociado a este punto de contacto"
     )
+    channel = models.ForeignKey(Channel, on_delete=models.SET_NULL, null=True, blank=True, related_name='touchpoints',
+        help_text="Canal a través del cual se organiza este punto de contacto"
+    )
     related_industries = models.ManyToManyField(Industry, blank=True)
     related_functions = models.ManyToManyField(Area, blank=True)
     related_skills = models.ManyToManyField(Skill, blank=True)
@@ -230,6 +233,7 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['touchpoint_class']),
             models.Index(fields=['code']),
             models.Index(fields=['name']),
+            models.Index(fields=['channel']),
         ]
 
     def __str__(self):
@@ -255,7 +259,6 @@ class Interaction(BaseUUIDModelWithActiveStatus):
     )
     touchpoint = models.ForeignKey(Touchpoint, on_delete=models.SET_NULL, null=True, blank=True)
     action = models.ForeignKey(Action, on_delete=models.SET_NULL, null=True, blank=True)
-    channel = models.ForeignKey(Channel, on_delete=models.SET_NULL, null=True, blank=True)
     agent = models.ForeignKey(Agent, null=True, blank=True, on_delete=models.SET_NULL, related_name='interactions')
     representative = models.ForeignKey(
         'auth.User', null=True, blank=True, on_delete=models.SET_NULL,
@@ -314,11 +317,12 @@ class Interaction(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['organization']),
             models.Index(fields=['touchpoint']),
             models.Index(fields=['action']),
-            models.Index(fields=['channel']),
             models.Index(fields=['agent']),
             models.Index(fields=['representative']),
             models.Index(fields=['occurred_at']),
             models.Index(fields=['is_active', 'occurred_at']),
+            # Composite index for touchpoint-channel filtering (common pattern)
+            models.Index(fields=['touchpoint', 'is_active']),
             # Nuevos índices para campos añadidos
             models.Index(fields=['session_id']),
             models.Index(fields=['ip_address']),
@@ -327,7 +331,6 @@ class Interaction(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['source']),
             # Índices compuestos para analytics
             models.Index(fields=['touchpoint', 'occurred_at']),
-            models.Index(fields=['channel', 'occurred_at']),
             models.Index(fields=['agent', 'occurred_at']),
             models.Index(fields=['jtbd_stage', 'occurred_at']),
         ]
@@ -356,6 +359,11 @@ class Interaction(BaseUUIDModelWithActiveStatus):
     @property
     def resolved_organization(self):
         return self.organization or (self.agent.represents_organization if self.agent else None)
+
+    @property
+    def channel(self):
+        """Get the channel through the touchpoint relationship"""
+        return self.touchpoint.channel if self.touchpoint else None
 
     @property
     def geographic_location(self):

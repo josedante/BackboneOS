@@ -136,6 +136,8 @@ class Touchpoint(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=100, unique=True)
     touchpoint_class = models.ForeignKey(TouchpointClass, null=True, blank=True)
+    channel = models.ForeignKey(Channel, null=True, blank=True, related_name='touchpoints',
+        help_text="Canal a través del cual se organiza este punto de contacto")
     funnel_stage = models.CharField(max_length=20, choices=FUNNEL_STAGES)
 
     # URLs y ubicación
@@ -177,10 +179,15 @@ class Interaction(models.Model):
     organization = models.ForeignKey('entities.Organization', null=True, blank=True)
     touchpoint = models.ForeignKey(Touchpoint, null=True, blank=True)
     action = models.ForeignKey(Action)
-    channel = models.ForeignKey(Channel, null=True, blank=True)
     agent = models.ForeignKey(Agent)
     representative = models.ForeignKey(User, null=True, blank=True)
     product = models.ForeignKey('products.Product', null=True, blank=True)
+    
+    # Propiedad para acceder al canal a través del touchpoint
+    @property
+    def channel(self):
+        """Get the channel through the touchpoint relationship"""
+        return self.touchpoint.channel if self.touchpoint else None
 
     # Contexto temporal y espacial
     occurred_at = models.DateTimeField()
@@ -198,6 +205,52 @@ class Interaction(models.Model):
     metadata = models.JSONField(default=dict)
 
     is_active = models.BooleanField(default=True)
+```
+
+---
+
+## 🔗 Arquitectura de Canales y Touchpoints
+
+### **Nueva Relación: Channel → Touchpoint**
+
+En la arquitectura actualizada de BackboneOS, los **canales organizan los touchpoints** en lugar de estar directamente relacionados con las interacciones. Esta decisión de diseño permite:
+
+#### **Ventajas del Nuevo Modelo:**
+
+1. **Organización Lógica**: Los touchpoints se agrupan por canal (Web, Email, WhatsApp, etc.)
+2. **Consistencia**: Un touchpoint siempre pertenece a un canal específico
+3. **Simplicidad**: Las interacciones acceden al canal a través del touchpoint
+4. **Flexibilidad**: Fácil agregar nuevos canales sin afectar interacciones existentes
+
+#### **Acceso al Canal desde Interacciones:**
+
+```python
+# Acceso directo al canal a través del touchpoint
+interaction = Interaction.objects.get(id=1)
+channel = interaction.channel  # Propiedad que accede a touchpoint.channel
+
+# O acceso directo
+if interaction.touchpoint:
+    channel = interaction.touchpoint.channel
+```
+
+#### **Ejemplos de Uso:**
+
+```python
+# Touchpoints organizados por canal
+web_touchpoints = Touchpoint.objects.filter(channel__code='WEB')
+email_touchpoints = Touchpoint.objects.filter(channel__code='EMAIL')
+
+# Interacciones por canal (a través de touchpoint)
+web_interactions = Interaction.objects.filter(touchpoint__channel__code='WEB')
+email_interactions = Interaction.objects.filter(touchpoint__channel__code='EMAIL')
+
+# Analytics por canal
+from django.db.models import Count
+channel_stats = Touchpoint.objects.values('channel__name').annotate(
+    touchpoints_count=Count('id'),
+    interactions_count=Count('interaction_set')
+)
 ```
 
 ---
@@ -314,8 +367,8 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
   "unique_sessions": 8,
   "avg_duration_seconds": 165.1,
   "by_channel": [
-    { "channel__name": "WhatsApp", "count": 3 },
-    { "channel__name": "Web", "count": 3 }
+    { "touchpoint__channel__name": "WhatsApp", "count": 3 },
+    { "touchpoint__channel__name": "Web", "count": 3 }
   ],
   "by_action": [
     { "action__name": "Clic", "count": 4 },
@@ -420,7 +473,7 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
 - `touchpoint`: Filtrar por touchpoint
 - `action`: Filtrar por acción
 - `agent`: Filtrar por agente
-- `channel`: Filtrar por canal
+- `touchpoint__channel`: Filtrar por canal (a través del touchpoint)
 - `start_date` / `end_date`: Filtrar por rango de fechas
 - `has_location`: Filtrar por geolocalización
 - `has_duration`: Filtrar por duración

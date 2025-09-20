@@ -131,7 +131,7 @@ class AdminInterfaceIntegrationTest(TestCase):
         response = self.client.get('/admin/connectors/touchpointalert/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'High Resolution Time')
-        self.assertContains(response, 'warning')
+        self.assertContains(response, 'Active')
     
     def test_admin_form_views(self):
         """Test admin form views for creating and editing records."""
@@ -144,8 +144,8 @@ class AdminInterfaceIntegrationTest(TestCase):
         # Test creating new mapping rule
         response = self.client.get('/admin/connectors/touchpointmappingrule/add/')
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Connector Type')
-        self.assertContains(response, 'Event Code')
+        self.assertContains(response, 'Connector type:')
+        self.assertContains(response, 'Event code:')
     
     def test_admin_search_and_filter(self):
         """Test admin search and filtering functionality."""

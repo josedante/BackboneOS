@@ -64,8 +64,9 @@ class CompleteResolutionWorkflowTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create mapping rule
@@ -279,8 +280,9 @@ class SystemIntegrationTest(TransactionTestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create mapping rule
@@ -384,8 +386,9 @@ class PerformanceIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create mapping rule
@@ -545,8 +548,9 @@ class ErrorRecoveryIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create mapping rule

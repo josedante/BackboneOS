@@ -23,14 +23,22 @@ class MediumAdmin(admin.ModelAdmin):
 
 @admin.register(Channel)
 class ChannelAdmin(admin.ModelAdmin):
-    list_display = ['name', 'code', 'medium', 'is_active', 'interactions_count']
+    list_display = ['name', 'code', 'medium', 'is_active', 'interactions_count', 'touchpoints_count']
     list_filter = ['is_active', 'medium']
     search_fields = ['name', 'code', 'description']
     ordering = ['name']
     
     def interactions_count(self, obj):
-        return obj.interaction_set.count()
+        # Count interactions through touchpoints
+        from django.db.models import Count, Q
+        return obj.touchpoints.filter(is_active=True).aggregate(
+            total=Count('interaction_set', filter=Q(interaction_set__is_active=True))
+        )['total'] or 0
     interactions_count.short_description = 'Interacciones'
+    
+    def touchpoints_count(self, obj):
+        return obj.touchpoints.filter(is_active=True).count()
+    touchpoints_count.short_description = 'Touchpoints'
 
 
 @admin.register(ActionType)
@@ -102,16 +110,16 @@ class TouchpointClassAdmin(admin.ModelAdmin):
 @admin.register(Touchpoint)
 class TouchpointAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'touchpoint_class', 'funnel_stage', 'content_type', 'product', 
+        'name', 'touchpoint_class', 'channel', 'funnel_stage', 'content_type', 'product', 
         'assigned_staff', 'is_active', 'interactions_count'
     ]
     list_filter = [
-        'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 
+        'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 'channel',
         'related_industries', 'related_functions'
     ]
     search_fields = ['name', 'code', 'description', 'url']
     autocomplete_fields = [
-        'touchpoint_class', 'assigned_staff', 'product',
+        'touchpoint_class', 'channel', 'assigned_staff', 'product',
         'related_industries', 'related_functions', 'related_skills', 'related_descriptors'
     ]
     filter_horizontal = ['related_industries', 'related_functions', 'related_skills', 'related_descriptors']
@@ -119,7 +127,7 @@ class TouchpointAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('name', 'code', 'touchpoint_class', 'description', 'is_active')
+            'fields': ('name', 'code', 'touchpoint_class', 'channel', 'description', 'is_active')
         }),
         ('Configuración de Negocio', {
             'fields': ('funnel_stage', 'content_type', 'product', 'assigned_staff')
@@ -147,10 +155,10 @@ class TouchpointAdmin(admin.ModelAdmin):
 class InteractionAdmin(admin.ModelAdmin):
     list_display = [
         'occurred_at', 'entity_display', 'touchpoint', 'action', 
-        'channel', 'agent_display', 'duration_display', 'jtbd_stage', 'is_active'
+        'channel_display', 'agent_display', 'duration_display', 'jtbd_stage', 'is_active'
     ]
     list_filter = [
-        'is_active', 'jtbd_stage', 'occurred_at', 'channel', 'action',
+        'is_active', 'jtbd_stage', 'occurred_at', 'touchpoint__channel', 'action',
         'touchpoint__funnel_stage', 'agent__agent_type'
     ]
     search_fields = [
@@ -158,7 +166,7 @@ class InteractionAdmin(admin.ModelAdmin):
         'action__name', 'source', 'user_agent', 'ip_address', 'session_id'
     ]
     autocomplete_fields = [
-        'person', 'organization', 'touchpoint', 'action', 'channel', 
+        'person', 'organization', 'touchpoint', 'action', 
         'agent', 'representative', 'product'
     ]
     ordering = ['-occurred_at']
@@ -169,7 +177,7 @@ class InteractionAdmin(admin.ModelAdmin):
             'fields': ('person', 'organization', 'agent', 'representative')
         }),
         ('Detalles de la Interacción', {
-            'fields': ('touchpoint', 'action', 'channel', 'product', 'jtbd_stage')
+            'fields': ('touchpoint', 'action', 'product', 'jtbd_stage')
         }),
         ('Contexto Temporal', {
             'fields': ('occurred_at', 'duration_seconds', 'session_id')
@@ -230,10 +238,16 @@ class InteractionAdmin(admin.ModelAdmin):
         )
     agent_display.short_description = 'Agente'
     
+    def channel_display(self, obj):
+        if obj.touchpoint and obj.touchpoint.channel:
+            return obj.touchpoint.channel.name
+        return '-'
+    channel_display.short_description = 'Canal'
+    
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'person', 'organization', 'touchpoint', 'action', 'channel', 
-            'agent', 'representative', 'product'
+            'person', 'organization', 'touchpoint', 'action', 
+            'agent', 'representative', 'product', 'touchpoint__channel'
         ).prefetch_related(
             'agent__represents_person', 'agent__represents_organization'
         )

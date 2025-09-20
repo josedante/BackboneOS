@@ -56,8 +56,9 @@ class MetricsCollectionIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create test mapping rule
@@ -205,8 +206,9 @@ class AlertingSystemIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
     
     def test_alert_creation(self):
@@ -340,8 +342,9 @@ class SystemHealthIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
     
     def test_system_health_record_creation(self):
@@ -431,8 +434,9 @@ class CacheMetricsIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
     
     def test_cache_metrics_record_creation(self):
@@ -516,8 +520,9 @@ class DataRetentionIntegrationTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
     
     def test_retention_policies_configuration(self):
@@ -618,8 +623,9 @@ class MonitoringSystemEndToEndTest(TestCase):
         self.touchpoint = Touchpoint.objects.create(
             touchpoint_class=self.touchpoint_class,
             channel=self.channel,
-            medium=self.medium,
-            label='Test Touchpoint'
+            name='Test Touchpoint',
+            code='test_touchpoint',
+            description='Test touchpoint for integration tests'
         )
         
         # Create test mapping rule

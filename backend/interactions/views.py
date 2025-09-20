@@ -236,7 +236,7 @@ class TouchpointClassViewSet(viewsets.ModelViewSet):
 class TouchpointViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar touchpoints"""
     queryset = Touchpoint.objects.select_related(
-        'touchpoint_class', 'assigned_staff', 'product'
+        'touchpoint_class', 'assigned_staff', 'product', 'channel'
     ).prefetch_related(
         'related_industries', 'related_functions', 'related_skills', 'related_descriptors'
     ).all()
@@ -244,7 +244,7 @@ class TouchpointViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
         'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 'assigned_staff',
-        'related_industries', 'related_functions'
+        'related_industries', 'related_functions', 'channel'
     ]
     search_fields = ['name', 'code', 'description', 'url']
     ordering_fields = ['name', 'created_at']
@@ -362,13 +362,13 @@ class TouchpointViewSet(viewsets.ModelViewSet):
 class InteractionViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar interactions"""
     queryset = Interaction.objects.select_related(
-        'person', 'organization', 'touchpoint', 'action', 'channel',
+        'person', 'organization', 'touchpoint', 'action',
         'agent', 'representative', 'product'
-    ).all()
+    ).select_related('touchpoint__channel').all()
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
-        'is_active', 'jtbd_stage', 'channel', 'action', 'touchpoint',
+        'is_active', 'jtbd_stage', 'touchpoint__channel', 'action', 'touchpoint',
         'agent__agent_type', 'representative'
     ]
     search_fields = [
@@ -423,8 +423,8 @@ class InteractionViewSet(viewsets.ModelViewSet):
         total_interactions = queryset.count()
         unique_sessions = queryset.exclude(session_id='').values('session_id').distinct().count()
         
-        # Interacciones por canal
-        by_channel = queryset.values('channel__name').annotate(
+        # Interacciones por canal (through touchpoint)
+        by_channel = queryset.filter(touchpoint__channel__isnull=False).values('touchpoint__channel__name').annotate(
             count=Count('id')
         ).order_by('-count')[:10]
         

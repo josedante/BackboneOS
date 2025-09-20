@@ -53,8 +53,8 @@ class AbstractConnectorInteraction(models.Model):
 
     @property
     def channel(self):
-        """Get the channel from the related interaction"""
-        return getattr(self.interaction, "channel", None)
+        """Get the channel from the related interaction's touchpoint"""
+        return getattr(self.interaction.touchpoint, "channel", None) if self.interaction.touchpoint else None
 
     @property
     def occurred_at(self):

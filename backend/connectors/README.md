@@ -48,6 +48,11 @@ class AbstractConnectorInteraction(models.Model):
     @property
     def organization(self):
         return getattr(self.interaction, "organization", None)
+
+    @property
+    def channel(self):
+        """Get the channel from the related interaction's touchpoint"""
+        return getattr(self.interaction.touchpoint, "channel", None) if self.interaction.touchpoint else None
 ```
 
 * Define una relación **1 a 1 con `Interaction`** usando el campo `interaction` como clave primaria.
@@ -144,6 +149,7 @@ web_interaction = WebInteraction.objects.select_related('interaction').first()
 print(web_interaction.action_code)  # "page_view"
 print(web_interaction.person)       # Person object or None
 print(web_interaction.touchpoint)   # Touchpoint object
+print(web_interaction.channel)      # Channel object (via touchpoint)
 print(web_interaction.occurred_at)  # datetime
 ```
 
@@ -159,9 +165,9 @@ WebInteraction.objects.filter(
     interaction__person__isnull=False
 ).select_related('interaction__person')
 
-# Interacciones por canal
+# Interacciones por canal (a través del touchpoint)
 WebInteraction.objects.filter(
-    interaction__channel__code='WWW'
+    interaction__touchpoint__channel__code='WWW'
 )
 ```
 
