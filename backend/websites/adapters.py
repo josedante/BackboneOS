@@ -43,7 +43,7 @@ def infer_web_touchpoint_hint(web_interaction: WebInteraction) -> TouchpointHint
     
     return TouchpointHint(
         code=code,
-        channel_code='web',
+        channel_code=None,  # Let the resolver determine the website-specific channel
         medium_code=medium,
         label=label,
         metadata=metadata

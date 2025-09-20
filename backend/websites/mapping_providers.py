@@ -281,3 +281,11 @@ class CachedWebMappingProvider(WebMappingProvider):
             # Clear all web-specific caches
             self._source_normalization_cache.clear()
             self._domain_extraction_cache.clear()
+    
+    def clear_cache(self):
+        """
+        Clear all caches.
+        """
+        # Clear web-specific caches
+        self._source_normalization_cache.clear()
+        self._domain_extraction_cache.clear()

@@ -23,6 +23,10 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
     defaults for web interactions.
     """
     
+    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
+        """Get connector type for web interactions."""
+        return 'web'
+    
     def _ensure_required_fields(self, subject: TouchpointInferenceProtocol, hint: TouchpointHint) -> TouchpointHint:
         """
         Ensure web-specific required fields with website-specific channels.
