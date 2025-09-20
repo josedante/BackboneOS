@@ -8,7 +8,9 @@ import uuid
 
 from backend.models import BaseUUIDModelWithActiveStatus
 
-from interactions.models import Interaction, Touchpoint, Channel, Agent, TouchpointInstance
+from interactions.models import Interaction, Touchpoint, Channel, Agent
+from connectors.protocols import TouchpointInferenceProtocol, TouchpointHint
+from .resolvers import SalesTouchpointResolver, SalesMappingProvider
 
 User = get_user_model()
 
@@ -40,18 +42,15 @@ class ProductAcquisition(Interaction):
     )
 
     notes = models.TextField(blank=True)
-    metadata = models.JSONField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Adquisición de Producto"
         verbose_name_plural = "Adquisiciones de Productos"
         ordering = ['-occurred_at']
         indexes = [
-            models.Index(fields=['is_active']),
             models.Index(fields=['offering']),
             models.Index(fields=['price_paid']),
             models.Index(fields=['payment_modality']),
-            models.Index(fields=['occurred_at']),
         ]
 
     def clean(self):
@@ -226,17 +225,143 @@ class SalesOpportunity(BaseUUIDModelWithActiveStatus):
                 if previous_interaction and previous_interaction.channel:
                     self.channel = previous_interaction.channel
 
-            if not self.channel and hasattr(self.product, 'division') and self.product.division:
-                suggested_channel = get_sales_channel_for_division(self.product.division.name)
+            # Priority 1: Representative's division
+            if not self.channel and self.representative:
+                representative_division = self._get_representative_division_for_opportunity()
+                if representative_division:
+                    suggested_channel = get_sales_channel_for_division(representative_division.name)
+                    if suggested_channel:
+                        self.channel = suggested_channel
+            
+            # Priority 2: Product's division (fallback)
+            if not self.channel and self.product and self.product.category and self.product.category.division:
+                suggested_channel = get_sales_channel_for_division(self.product.category.division.name)
                 if suggested_channel:
                     self.channel = suggested_channel
+    
+    def _get_representative_division_for_opportunity(self):
+        """
+        Get the division that the sales representative works for.
+        
+        The representative can be either a human User or an AI Agent.
+        For AI agents, we look at their metadata or the organization they represent.
+        
+        Returns:
+            Division or None: The representative's division
+        """
+        if not self.representative:
+            return None
+        
+        representative = self.representative
+        
+        # Handle AI Agent representatives
+        if hasattr(representative, 'agent_type') and representative.agent_type == 'ai':
+            return self._get_ai_agent_division_for_opportunity(representative)
+        
+        # Handle human User representatives
+        return self._get_human_representative_division_for_opportunity(representative)
+    
+    def _get_ai_agent_division_for_opportunity(self, ai_agent):
+        """
+        Get the division for an AI agent representative.
+        
+        AI agents can be associated with divisions through:
+        1. Metadata configuration
+        2. The organization they represent
+        3. The person they represent (if that person has a division)
+        
+        Args:
+            ai_agent: The AI Agent instance
+            
+        Returns:
+            Division or None: The AI agent's division
+        """
+        # Check metadata for division assignment
+        if ai_agent.metadata and 'division_code' in ai_agent.metadata:
+            division_code = ai_agent.metadata['division_code']
+            try:
+                from our_institution.models import Division
+                return Division.objects.get(code=division_code, is_active=True)
+            except Division.DoesNotExist:
+                pass
+        
+        # Check if AI agent represents an organization with a division
+        if ai_agent.represents_organization:
+            try:
+                # Look for division through organization structure
+                org = ai_agent.represents_organization
+                if hasattr(org, 'divisions') and org.divisions.exists():
+                    # Return the first active division
+                    return org.divisions.filter(is_active=True).first()
+            except AttributeError:
+                pass
+        
+        # Check if AI agent represents a person with a division
+        if ai_agent.represents_person:
+            person = ai_agent.represents_person
+            # Try to get division from person's position/unit
+            try:
+                if hasattr(person, 'position') and person.position:
+                    position = person.position
+                    if hasattr(position, 'unit') and position.unit:
+                        return position.unit.division
+            except AttributeError:
+                pass
+        
+        # Check if AI agent is operated by a person with a division
+        if ai_agent.operated_by:
+            person = ai_agent.operated_by
+            try:
+                if hasattr(person, 'position') and person.position:
+                    position = person.position
+                    if hasattr(position, 'unit') and position.unit:
+                        return position.unit.division
+            except AttributeError:
+                pass
+        
+        return None
+    
+    def _get_human_representative_division_for_opportunity(self, human_representative):
+        """
+        Get the division for a human representative.
+        
+        Args:
+            human_representative: The User instance
+            
+        Returns:
+            Division or None: The human representative's division
+        """
+        # Try to get division from representative's position/unit
+        try:
+            if hasattr(human_representative, 'position') and human_representative.position:
+                position = human_representative.position
+                if hasattr(position, 'unit') and position.unit:
+                    return position.unit.division
+        except AttributeError:
+            pass
+        
+        # Alternative: Check if representative has a direct division assignment
+        try:
+            if hasattr(human_representative, 'division') and human_representative.division:
+                return human_representative.division
+        except AttributeError:
+            pass
+        
+        # Alternative: Check if representative has a team with a division
+        try:
+            if hasattr(human_representative, 'team') and human_representative.team:
+                if hasattr(human_representative.team, 'division') and human_representative.team.division:
+                    return human_representative.team.division
+        except AttributeError:
+            pass
+        
+        return None
 
 
 class SalesSession(Interaction):
     opportunity = models.ForeignKey(
         SalesOpportunity, on_delete=models.CASCADE, related_name='sales_sessions'
     )
-    representative = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     class ContactMedium(models.IntegerChoices):
         UNKNOWN = 0, "Desconocido"
@@ -282,50 +407,292 @@ class SalesSession(Interaction):
         default='follow_up'
     )
     notes = models.TextField(blank=True)
-    metadata = models.JSONField(blank=True, null=True)
+
+    def infer_touchpoint_hint(self) -> TouchpointHint:
+        """
+        Infer touchpoint hint for sales session based on contact medium and context.
+        
+        Returns:
+            TouchpointHint: Structured hint for touchpoint resolution
+        """
+        # Map contact mediums to standardized codes
+        medium_mapping = {
+            self.ContactMedium.EMAIL: "email",
+            self.ContactMedium.TELEPHONE: "phone",
+            self.ContactMedium.VIDEOCALL: "video",
+            self.ContactMedium.WHATSAPP: "whatsapp",
+            self.ContactMedium.TEXTING: "sms",
+            self.ContactMedium.ON_CAMPUS: "in_person",
+            self.ContactMedium.OUT_OF_CAMPUS: "in_person",
+            self.ContactMedium.OTHER: "other",
+            self.ContactMedium.UNKNOWN: "unknown",
+        }
+        
+        medium_code = medium_mapping.get(self.contacted_via, "unknown")
+        medium_label = self.get_contacted_via_display()
+        
+        # Determine channel code based on division (prioritize representative's division)
+        channel_code = "sales"
+        
+        # Priority 1: Representative's division (highest priority)
+        if self.representative:
+            representative_division = self._get_representative_division()
+            if representative_division:
+                channel_code = f"sales_{representative_division.code.lower()}"
+        
+        # Priority 2: Product's division (fallback)
+        if channel_code == "sales" and self.opportunity and self.opportunity.product and self.opportunity.product.category:
+            if self.opportunity.product.category.division:
+                channel_code = f"sales_{self.opportunity.product.category.division.code.lower()}"
+        
+        # Build metadata with sales context
+        metadata = {
+            "opportunity_id": str(self.opportunity.id) if self.opportunity else None,
+            "representative_id": str(self.representative.id) if self.representative else None,
+            "outcome": self.outcome,
+            "progress": self.progress,
+            "initiated_by": self.get_initiated_by_display(),
+            "contact_medium": medium_label,
+        }
+        
+        # Add representative type information
+        if self.representative:
+            if hasattr(self.representative, 'agent_type'):
+                # AI Agent representative
+                metadata["representative_type"] = "ai_agent"
+                metadata["agent_type"] = self.representative.agent_type
+                metadata["agent_name"] = self.representative.name
+                if self.representative.metadata:
+                    metadata["agent_metadata"] = self.representative.metadata
+            else:
+                # Human User representative
+                metadata["representative_type"] = "human_user"
+                metadata["representative_username"] = self.representative.username
+        
+        # Add product and division context if available
+        if self.opportunity and self.opportunity.product:
+            metadata["product_id"] = str(self.opportunity.product.id)
+            if self.opportunity.product.category and self.opportunity.product.category.division:
+                metadata["division"] = self.opportunity.product.category.division.name
+                metadata["division_code"] = self.opportunity.product.category.division.code
+        
+        return TouchpointHint(
+            code=f"sales.session.{medium_code}",
+            channel_code=channel_code,
+            medium_code=medium_code,
+            label=f"Sesión de ventas vía {medium_label}",
+            metadata=metadata
+        )
+    
+    def _get_representative_division(self):
+        """
+        Get the division that the sales representative works for.
+        
+        The representative can be either a human User or an AI Agent.
+        For AI agents, we look at their metadata or the organization they represent.
+        
+        Returns:
+            Division or None: The representative's division
+        """
+        if not self.representative:
+            return None
+        
+        representative = self.representative
+        
+        # Handle AI Agent representatives
+        if hasattr(representative, 'agent_type') and representative.agent_type == 'ai':
+            return self._get_ai_agent_division(representative)
+        
+        # Handle human User representatives
+        return self._get_human_representative_division(representative)
+    
+    def _get_ai_agent_division(self, ai_agent):
+        """
+        Get the division for an AI agent representative.
+        
+        AI agents can be associated with divisions through:
+        1. Metadata configuration
+        2. The organization they represent
+        3. The person they represent (if that person has a division)
+        
+        Args:
+            ai_agent: The AI Agent instance
+            
+        Returns:
+            Division or None: The AI agent's division
+        """
+        # Check metadata for division assignment
+        if ai_agent.metadata and 'division_code' in ai_agent.metadata:
+            division_code = ai_agent.metadata['division_code']
+            try:
+                from our_institution.models import Division
+                return Division.objects.get(code=division_code, is_active=True)
+            except Division.DoesNotExist:
+                pass
+        
+        # Check if AI agent represents an organization with a division
+        if ai_agent.represents_organization:
+            try:
+                # Look for division through organization structure
+                org = ai_agent.represents_organization
+                if hasattr(org, 'divisions') and org.divisions.exists():
+                    # Return the first active division
+                    return org.divisions.filter(is_active=True).first()
+            except AttributeError:
+                pass
+        
+        # Check if AI agent represents a person with a division
+        if ai_agent.represents_person:
+            person = ai_agent.represents_person
+            # Try to get division from person's position/unit
+            try:
+                if hasattr(person, 'position') and person.position:
+                    position = person.position
+                    if hasattr(position, 'unit') and position.unit:
+                        return position.unit.division
+            except AttributeError:
+                pass
+        
+        # Check if AI agent is operated by a person with a division
+        if ai_agent.operated_by:
+            person = ai_agent.operated_by
+            try:
+                if hasattr(person, 'position') and person.position:
+                    position = person.position
+                    if hasattr(position, 'unit') and position.unit:
+                        return position.unit.division
+            except AttributeError:
+                pass
+        
+        return None
+    
+    def _get_human_representative_division(self, human_representative):
+        """
+        Get the division for a human representative.
+        
+        Args:
+            human_representative: The User instance
+            
+        Returns:
+            Division or None: The human representative's division
+        """
+        # Try to get division from representative's position/unit
+        try:
+            if hasattr(human_representative, 'position') and human_representative.position:
+                position = human_representative.position
+                if hasattr(position, 'unit') and position.unit:
+                    return position.unit.division
+        except AttributeError:
+            pass
+        
+        # Alternative: Check if representative has a direct division assignment
+        try:
+            if hasattr(human_representative, 'division') and human_representative.division:
+                return human_representative.division
+        except AttributeError:
+            pass
+        
+        # Alternative: Check if representative has a team with a division
+        try:
+            if hasattr(human_representative, 'team') and human_representative.team:
+                if hasattr(human_representative.team, 'division') and human_representative.team.division:
+                    return human_representative.team.division
+        except AttributeError:
+            pass
+        
+        return None
 
     def clean(self):
         super().clean()
 
-        if not self.channel and self.product and hasattr(self.product, 'division') and self.product.division:
-            suggested_channel = get_sales_channel_for_division(self.product.division.name)
+        if not self.channel and self.product and self.product.category and self.product.category.division:
+            suggested_channel = get_sales_channel_for_division(self.product.category.division.name)
             if suggested_channel:
                 self.channel = suggested_channel
 
     def save(self, *args, **kwargs):
+        # Use sales-specific touchpoint resolution framework if no touchpoint is set
         if not self.touchpoint:
-            ventas_channel, _ = Channel.objects.get_or_create(name="Ventas")
-            base_tp, _ = Touchpoint.objects.get_or_create(
-                name="Sesión de ventas",
-                channel=ventas_channel,
-                defaults={"code": "sales_session", "funnel_stage": "engage"}
-            )
-            medium_label = self.get_contacted_via_display()
-            tp_code = f"sales_session_{slugify(medium_label)}"
-
-            medium_instance = base_tp.medium if hasattr(base_tp, 'medium') else None
-            detailed_tp, _ = Touchpoint.objects.get_or_create(
-                code=tp_code,
-                channel=ventas_channel,
-                defaults={
-                    "name": f"Contacto vía {medium_label}",
-                    "parent": base_tp,
-                    "medium": medium_instance,
-                }
-            )
-            if self.product and self.representative:
-                tp_instance, _ = TouchpointInstance.objects.get_or_create(
-                    touchpoint_class=detailed_tp,
-                    product=self.product,
-                    representative=self.representative
-                )
-                self.touchpoint = tp_instance
-
-            self.touchpoint = detailed_tp
+            try:
+                resolver = SalesTouchpointResolver(SalesMappingProvider())
+                resolved_touchpoint = resolver.resolve(self)
+                self.touchpoint = resolved_touchpoint
+            except Exception as e:
+                # Fallback to manual touchpoint creation if resolution fails
+                self._create_manual_touchpoint()
+        
         super().save(*args, **kwargs)
+    
+    def _create_manual_touchpoint(self):
+        """
+        Fallback method for manual touchpoint creation.
+        This maintains backward compatibility if touchpoint resolution fails.
+        """
+        # Get or create division-specific sales channel (prioritize representative's division)
+        sales_channel = None
+        
+        # Priority 1: Representative's division
+        if self.representative:
+            representative_division = self._get_representative_division()
+            if representative_division:
+                channel_name = f"Ventas - {representative_division.name}"
+                sales_channel, _ = Channel.objects.get_or_create(
+                    name=channel_name,
+                    defaults={
+                        "code": f"sales_{representative_division.code.lower()}",
+                        "description": f"Canal de ventas para {representative_division.name}"
+                    }
+                )
+        
+        # Priority 2: Product's division (fallback)
+        if not sales_channel and self.opportunity and self.opportunity.product and self.opportunity.product.category:
+            if self.opportunity.product.category.division:
+                channel_name = f"Ventas - {self.opportunity.product.category.division.name}"
+                sales_channel, _ = Channel.objects.get_or_create(
+                    name=channel_name,
+                    defaults={
+                        "code": f"sales_{self.opportunity.product.category.division.code.lower()}",
+                        "description": f"Canal de ventas para {self.opportunity.product.category.division.name}"
+                    }
+                )
+            else:
+                sales_channel, _ = Channel.objects.get_or_create(
+                    name="Ventas",
+                    defaults={"code": "sales", "description": "Canal de ventas general"}
+                )
+        else:
+            sales_channel, _ = Channel.objects.get_or_create(
+                name="Ventas",
+                defaults={"code": "sales", "description": "Canal de ventas general"}
+            )
+        
+        # Create base touchpoint
+        base_tp, _ = Touchpoint.objects.get_or_create(
+            name="Sesión de ventas",
+            channel=sales_channel,
+            defaults={"code": "sales_session", "funnel_stage": "engage"}
+        )
+        
+        # Create detailed touchpoint based on contact medium
+        medium_label = self.get_contacted_via_display()
+        tp_code = f"sales_session_{slugify(medium_label)}"
+        
+        medium_instance = base_tp.medium if hasattr(base_tp, 'medium') else None
+        detailed_tp, _ = Touchpoint.objects.get_or_create(
+            code=tp_code,
+            channel=sales_channel,
+            defaults={
+                "name": f"Contacto vía {medium_label}",
+                "parent": base_tp,
+                "medium": medium_instance,
+            }
+        )
+        
+        # Assign the detailed touchpoint directly
+        self.touchpoint = detailed_tp
 
     class Meta:
-        ordering = ['-date']
+        ordering = ['-occurred_at']
 
 class TaggedOpportunity(models.Model):
     opportunity = models.OneToOneField(

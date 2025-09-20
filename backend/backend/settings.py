@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'offers',
     'campaigns',
     'connectors',
+    'sales',
 ]
 
 MIDDLEWARE = [
