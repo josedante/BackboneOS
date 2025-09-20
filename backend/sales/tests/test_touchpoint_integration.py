@@ -81,6 +81,7 @@ class SalesSessionTouchpointIntegrationTest(TestCase):
         self.offering = ProductOffering.objects.create(
             product=self.product,
             name="Test Offering",
+            code="TEST_OFFERING",
             price=Decimal('100.00')
         )
         

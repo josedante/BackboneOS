@@ -218,9 +218,9 @@ class SalesOpportunity(BaseUUIDModelWithActiveStatus):
             if self.person and self.product:
                 previous_interaction = (
                     Interaction.objects.filter(
-                        individual_customer=self.person,
+                        person=self.person,
                         product=self.product,
-                    ).order_by('-date').first()
+                    ).order_by('-occurred_at').first()
                 )
                 if previous_interaction and previous_interaction.channel:
                     self.channel = previous_interaction.channel
