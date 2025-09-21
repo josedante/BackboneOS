@@ -178,6 +178,17 @@ class DefaultTouchpointResolver:
         )
         
         return touchpoint
+    
+    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
+        """Extract connector type from subject class name."""
+        class_name = subject.__class__.__name__.lower()
+        if class_name.startswith('web'):
+            return 'web'
+        elif class_name.startswith('email'):
+            return 'email'
+        elif class_name.startswith('whatsapp'):
+            return 'whatsapp'
+        return 'generic'
 
 
 class CachedTouchpointResolver(DefaultTouchpointResolver):
@@ -226,14 +237,3 @@ class CachedTouchpointResolver(DefaultTouchpointResolver):
         self._touchpoint_cache[touchpoint_code] = touchpoint
         
         return touchpoint
-    
-    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
-        """Extract connector type from subject class name."""
-        class_name = subject.__class__.__name__.lower()
-        if class_name.startswith('web'):
-            return 'web'
-        elif class_name.startswith('email'):
-            return 'email'
-        elif class_name.startswith('whatsapp'):
-            return 'whatsapp'
-        return 'generic'

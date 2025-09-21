@@ -31,8 +31,9 @@ from connectors.metrics import track_resolution
 from connectors.alerting import alert_manager
 from interactions.models import Interaction, Touchpoint, TouchpointClass, Channel, Medium
 from websites.models import WebInteraction
-from websites.resolvers import WebTouchpointResolver, WebMappingProvider
-from websites.inference import infer_web_touchpoint_hint
+from websites.resolvers import WebTouchpointResolver
+from websites.mapping_providers import WebMappingProvider
+from websites.adapters import infer_web_touchpoint_hint
 
 
 class CompleteResolutionWorkflowTest(TestCase):
@@ -69,6 +70,25 @@ class CompleteResolutionWorkflowTest(TestCase):
             description='Test touchpoint for integration tests'
         )
         
+        # Create organization and division for website
+        from our_institution.models import OurOrganization, Division
+        self.organization = OurOrganization.objects.create(
+            name='Test Organization'
+        )
+        self.division = Division.objects.create(
+            organization=self.organization,
+            name='Test Division',
+            code='TEST_DIV'
+        )
+        
+        # Create website
+        from websites.models import Website
+        self.website = Website.objects.create(
+            name='Test Website',
+            base_url='https://test.com',
+            division=self.division
+        )
+        
         # Create mapping rule
         self.mapping_rule = TouchpointMappingRule.objects.create(
             connector_type='web',
@@ -82,35 +102,64 @@ class CompleteResolutionWorkflowTest(TestCase):
             is_active=True
         )
         
+        # Create interaction first
+        self.interaction = Interaction.objects.create(
+            occurred_at=timezone.now()
+        )
+        
         # Create web interaction
         self.web_interaction = WebInteraction.objects.create(
-            url='https://test.com/page',
-            referrer='https://google.com',
+            interaction=self.interaction,
+            website=self.website,
+            session_id='test_session_123',
             user_agent='Mozilla/5.0 (Test Browser)',
             utm_source='google',
             utm_medium='cpc',
             utm_campaign='test_campaign',
             utm_content='test_content',
             utm_term='test_term',
-            occurred_at=timezone.now(),
-            metadata={'test': 'data'}
+            payload={'url': 'https://test.com/page', 'referrer': 'https://google.com', 'test': 'data'}
         )
+    
+    def _create_web_interaction(self, **kwargs):
+        """Helper method to create WebInteraction with proper interaction relationship."""
+        # Create interaction first
+        interaction = Interaction.objects.create(
+            occurred_at=kwargs.pop('occurred_at', timezone.now())
+        )
+        
+        # Set defaults
+        defaults = {
+            'interaction': interaction,
+            'website': self.website,
+            'session_id': 'test_session',
+            'user_agent': 'Mozilla/5.0 (Test Browser)',
+            'payload': {}
+        }
+        defaults.update(kwargs)
+        
+        return WebInteraction.objects.create(**defaults)
     
     def test_complete_web_resolution_workflow(self):
         """Test complete web touchpoint resolution workflow."""
         # Step 1: Create web touchpoint resolver
-        resolver = WebTouchpointResolver()
+        mapping_provider = WebMappingProvider()
+        resolver = WebTouchpointResolver(mapping_provider)
         
         # Step 2: Resolve touchpoint
-        with track_resolution('web', {'interaction_id': self.web_interaction.id}) as tracker:
+        with track_resolution('web', {'interaction_id': self.web_interaction.interaction.id}) as tracker:
             try:
                 touchpoint = resolver.resolve(self.web_interaction)
                 
                 # Step 3: Verify touchpoint was created
                 self.assertIsNotNone(touchpoint)
-                self.assertEqual(touchpoint.touchpoint_class.code, 'web.page_view')
-                self.assertEqual(touchpoint.channel.code, 'organic')
-                self.assertEqual(touchpoint.medium.code, 'referral')
+                
+                # The touchpoint class should be based on the UTM medium (cpc -> paid_traffic)
+                self.assertEqual(touchpoint.touchpoint_class.code, 'web.paid_traffic')
+                # Channel should be the UTM source (google) since this is an external click event
+                self.assertEqual(touchpoint.channel.code, 'google')
+                # Medium should be 'paid' based on utm_medium='cpc'
+                self.assertEqual(touchpoint.channel.medium.code, 'paid')
                 
                 # Step 4: Record success
                 tracker.record_success(
@@ -124,7 +173,7 @@ class CompleteResolutionWorkflowTest(TestCase):
                 raise
         
         # Step 5: Verify resolution event was created
-        event = TouchpointResolutionEvent.objects.get(connector_type='web')
+        event = TouchpointResolutionEvent.objects.filter(connector_type='web').latest('created_at')
         self.assertEqual(event.event_type, 'resolution')
         self.assertFalse(event.error_occurred)
         self.assertTrue(event.mapping_rule_applied)

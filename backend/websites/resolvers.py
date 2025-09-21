@@ -11,7 +11,7 @@ import re
 
 from connectors.resolvers import DefaultTouchpointResolver
 from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol
-from interactions.models import Touchpoint, TouchpointClass, Channel
+from interactions.models import Touchpoint, TouchpointClass, Channel, Medium
 
 
 class WebTouchpointResolver(DefaultTouchpointResolver):
@@ -695,9 +695,21 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         channel = None
         if hint.channel_code:
             channel_name = self._get_channel_display_name(hint.channel_code)
-            channel, _ = Channel.objects.get_or_create(
+            
+            # Get or create medium if specified
+            medium = None
+            if hint.medium_code:
+                medium, _ = Medium.objects.get_or_create(
+                    code=hint.medium_code,
+                    defaults={'name': hint.medium_code.title()}
+                )
+            
+            channel, created = Channel.objects.get_or_create(
                 code=hint.channel_code,
-                defaults={'name': channel_name}
+                defaults={
+                    'name': channel_name,
+                    'medium': medium
+                }
             )
         
         # Get or create enhanced touchpoint class
@@ -721,6 +733,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             defaults={
                 'name': touchpoint_name,
                 'touchpoint_class': touchpoint_class,
+                'channel': channel,
                 'description': f"Web touchpoint for {touchpoint_code}",
                 'is_active': True
             }

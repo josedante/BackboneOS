@@ -336,12 +336,50 @@ def track_resolution(connector_type: str, metadata: Optional[Dict[str, Any]] = N
             metrics.touchpoint_created = touchpoint_created
             metrics.resolution_time_ms = (time.time() - start_time) * 1000
             metrics_collector.record_resolution(metrics)
+            
+            # Create monitoring event
+            self._create_resolution_event(metrics)
         
         def record_error(self, error_message: str):
             metrics.error_occurred = True
             metrics.error_message = error_message
             metrics.resolution_time_ms = (time.time() - start_time) * 1000
             metrics_collector.record_resolution(metrics)
+            
+            # Create monitoring event
+            self._create_resolution_event(metrics)
+        
+        def _create_resolution_event(self, metrics: ResolutionMetrics):
+            """Create TouchpointResolutionEvent for monitoring."""
+            try:
+                from .monitoring_models import TouchpointResolutionEvent
+                import json
+                from uuid import UUID
+                
+                # Convert UUIDs to strings in metadata for JSON serialization
+                serializable_metadata = {}
+                for key, value in metrics.metadata.items():
+                    if isinstance(value, UUID):
+                        serializable_metadata[key] = str(value)
+                    else:
+                        serializable_metadata[key] = value
+                
+                TouchpointResolutionEvent.objects.create(
+                    connector_type=metrics.connector_type,
+                    event_type='resolution',
+                    resolution_time_ms=metrics.resolution_time_ms,
+                    touchpoint_code=metrics.metadata.get('touchpoint_code', ''),
+                    channel_code=metrics.metadata.get('channel_code', ''),
+                    medium_code=metrics.metadata.get('medium_code', ''),
+                    cache_hit=metrics.cache_hit,
+                    mapping_rule_applied=metrics.mapping_rule_applied,
+                    touchpoint_created=metrics.touchpoint_created,
+                    error_occurred=metrics.error_occurred,
+                    error_message=metrics.error_message or '',
+                    metadata=serializable_metadata
+                )
+            except Exception as e:
+                logger.error(f"Failed to create resolution event: {e}")
     
     tracker = Tracker()
     
@@ -405,3 +443,61 @@ def flush_metrics():
     """Manually flush metrics buffers."""
     metrics_collector.flush_metrics()
     metrics_collector.flush_cache_metrics()
+
+
+class ResolutionTracker:
+    """
+    Tracker for touchpoint resolution operations.
+    
+    This class provides a simple interface for tracking resolution
+    operations and recording success/failure metrics.
+    """
+    
+    def __init__(self, connector_type: str, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the resolution tracker.
+        
+        Args:
+            connector_type: The type of connector being resolved
+            metadata: Additional metadata for the resolution
+        """
+        self.connector_type = connector_type
+        self.metadata = metadata or {}
+        self.start_time = time.time()
+        self.metrics = ResolutionMetrics(
+            connector_type=connector_type,
+            resolution_time_ms=0,
+            cache_hit=False,
+            mapping_rule_applied=False,
+            touchpoint_created=False,
+            error_occurred=False,
+            metadata=self.metadata
+        )
+    
+    def record_success(self, cache_hit: bool = False, mapping_applied: bool = False, 
+                      touchpoint_created: bool = True):
+        """
+        Record a successful resolution.
+        
+        Args:
+            cache_hit: Whether the resolution used cached data
+            mapping_applied: Whether a mapping rule was applied
+            touchpoint_created: Whether a new touchpoint was created
+        """
+        self.metrics.cache_hit = cache_hit
+        self.metrics.mapping_rule_applied = mapping_applied
+        self.metrics.touchpoint_created = touchpoint_created
+        self.metrics.resolution_time_ms = (time.time() - self.start_time) * 1000
+        metrics_collector.record_resolution(self.metrics)
+    
+    def record_error(self, error_message: str):
+        """
+        Record a failed resolution.
+        
+        Args:
+            error_message: The error message describing the failure
+        """
+        self.metrics.error_occurred = True
+        self.metrics.error_message = error_message
+        self.metrics.resolution_time_ms = (time.time() - self.start_time) * 1000
+        metrics_collector.record_resolution(self.metrics)
