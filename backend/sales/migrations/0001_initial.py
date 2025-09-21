@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('entities', '0007_rename_entities_pe_gender_89874f_idx_entities_pe_gender__522465_idx_and_more'),
+        ('entities', '0006_convert_gender_marital_status_to_foreign_keys'),
         ('interactions', '0005_add_touchpoint_is_active_index'),
         ('offers', '0001_initial'),
         ('products', '0004_add_included_products'),

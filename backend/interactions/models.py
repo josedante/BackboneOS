@@ -193,6 +193,11 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         max_length=50, blank=True, choices=FUNNEL_STAGES, default=ANY,
         help_text="Etapa del embudo de ventas para el cual fue diseñado este punto de contacto"
     )
+    channel = models.ForeignKey(
+        Channel, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='touchpoints',
+        help_text="Canal al que pertenece este punto de contacto"
+    )
 
     # Content type choices for strategic communication classification
     AFFINITY = 'affinity'

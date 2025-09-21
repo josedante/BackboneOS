@@ -105,8 +105,7 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
         """
         Get the division that the sales representative works for.
         
-        The representative can be either a human User or an AI Agent.
-        For AI agents, we look at their metadata or the organization they represent.
+        The representative is a human User. AI agents are handled as whole touchpoints.
         
         Args:
             subject: The sales interaction
@@ -120,75 +119,12 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
         
         representative = subject.representative
         
-        # Handle AI Agent representatives
-        if hasattr(representative, 'agent_type') and representative.agent_type == 'ai':
-            return self._get_ai_agent_division(representative)
-        
         # Handle human User representatives
         if hasattr(representative, 'position') or hasattr(representative, 'division'):
             return self._get_human_representative_division(representative)
         
         return None
     
-    def _get_ai_agent_division(self, ai_agent):
-        """
-        Get the division for an AI agent representative.
-        
-        AI agents can be associated with divisions through:
-        1. Metadata configuration
-        2. The organization they represent
-        3. The person they represent (if that person has a division)
-        
-        Args:
-            ai_agent: The AI Agent instance
-            
-        Returns:
-            Division or None: The AI agent's division
-        """
-        # Check metadata for division assignment
-        if ai_agent.metadata and 'division_code' in ai_agent.metadata:
-            division_code = ai_agent.metadata['division_code']
-            try:
-                from our_institution.models import Division
-                return Division.objects.get(code=division_code, is_active=True)
-            except Division.DoesNotExist:
-                pass
-        
-        # Check if AI agent represents an organization with a division
-        if ai_agent.represents_organization:
-            try:
-                # Look for division through organization structure
-                org = ai_agent.represents_organization
-                if hasattr(org, 'divisions') and org.divisions.exists():
-                    # Return the first active division
-                    return org.divisions.filter(is_active=True).first()
-            except AttributeError:
-                pass
-        
-        # Check if AI agent represents a person with a division
-        if ai_agent.represents_person:
-            person = ai_agent.represents_person
-            # Try to get division from person's position/unit
-            try:
-                if hasattr(person, 'position') and person.position:
-                    position = person.position
-                    if hasattr(position, 'unit') and position.unit:
-                        return position.unit.division
-            except AttributeError:
-                pass
-        
-        # Check if AI agent is operated by a person with a division
-        if ai_agent.operated_by:
-            person = ai_agent.operated_by
-            try:
-                if hasattr(person, 'position') and person.position:
-                    position = person.position
-                    if hasattr(position, 'unit') and position.unit:
-                        return position.unit.division
-            except AttributeError:
-                pass
-        
-        return None
     
     def _get_human_representative_division(self, human_representative):
         """
@@ -288,12 +224,11 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
         }
         return medium_names.get(medium_code, medium_code.title())
     
-    def _resolve_touchpoint(self, subject: TouchpointInferenceProtocol, hint: TouchpointHint):
+    def _get_or_create_touchpoint(self, hint: TouchpointHint):
         """
         Create touchpoint with sales-specific defaults.
         
         Args:
-            subject: The sales interaction
             hint: The touchpoint hint
             
         Returns:
@@ -302,7 +237,7 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
         from interactions.models import Touchpoint, Channel
         
         # Ensure channel exists
-        channel = self._ensure_channel_exists(hint.channel_code)
+        channel = self._ensure_channel_exists(hint.channel_code, hint.metadata)
         
         # Create touchpoint with sales-specific defaults
         touchpoint, created = Touchpoint.objects.get_or_create(
@@ -311,27 +246,37 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
                 'name': hint.label,
                 'channel': channel,
                 'funnel_stage': self._get_funnel_stage_for_code(hint.code),
-                'description': self._generate_sales_description(subject, hint),
-                'metadata': hint.metadata or {}
+                'description': self._generate_sales_description(hint)
             }
         )
         
+        # If touchpoint already exists but doesn't have a channel, update it
+        if not created and not touchpoint.channel:
+            touchpoint.channel = channel
+            touchpoint.save()
+        
         return touchpoint
     
-    def _ensure_channel_exists(self, channel_code: str):
+    def _ensure_channel_exists(self, channel_code: str, metadata: dict = None):
         """
         Ensure sales channel exists with proper naming.
         
         Args:
             channel_code: The channel code to ensure exists
+            metadata: Additional metadata that may contain division information
             
         Returns:
             Channel: The channel instance
         """
         from interactions.models import Channel
         
-        # Generate channel name based on code
-        if channel_code.startswith('sales_'):
+        # Generate channel name based on metadata or code
+        if channel_code.startswith('sales_') and metadata and 'division' in metadata:
+            # Use actual division name from metadata
+            division_name = metadata['division']
+            channel_name = f"Ventas - {division_name}"
+        elif channel_code.startswith('sales_'):
+            # Fallback: derive name from code
             division_name = channel_code.replace('sales_', '').replace('_', ' ').title()
             channel_name = f"Ventas - {division_name}"
         else:
@@ -366,12 +311,11 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
         else:
             return 'engage'  # Default to engagement
     
-    def _generate_sales_description(self, subject: TouchpointInferenceProtocol, hint: TouchpointHint) -> str:
+    def _generate_sales_description(self, hint: TouchpointHint) -> str:
         """
         Generate sales-specific description.
         
         Args:
-            subject: The sales interaction
             hint: The touchpoint hint
             
         Returns:

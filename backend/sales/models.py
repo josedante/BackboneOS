@@ -101,12 +101,34 @@ class ProductAcquisition(Interaction):
 def get_sales_channel_for_division(division_name):
     """
     Devuelve el canal de ventas correspondiente al nombre de la división.
+    Crea el canal si no existe, usando el código de la división ProductDivision.
     Ejemplos de entrada: "Pregrado", "Posgrado", "Educación Ejecutiva"
     """
+    from interactions.models import Channel
+    from products.models import Division as ProductDivision
+    
+    division_name = division_name.strip()
+    channel_name = f"Ventas - {division_name}"
+    
     try:
-        return Channel.objects.get(name__iexact=f"Ventas - {division_name.strip()}")
+        return Channel.objects.get(name__iexact=channel_name)
     except Channel.DoesNotExist:
-        return None
+        # Try to find the ProductDivision to get the correct code
+        try:
+            product_division = ProductDivision.objects.get(name=division_name)
+            channel_code = f"sales_{product_division.code.lower()}"
+        except ProductDivision.DoesNotExist:
+            # Fallback: generate code from name
+            channel_code = f"sales_{division_name.lower().replace(' ', '_')}"
+        
+        channel, created = Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': channel_name,
+                'description': f"Canal de ventas para {division_name}"
+            }
+        )
+        return channel
 
 
 class SalesSource(models.Model):
@@ -636,11 +658,14 @@ class SalesSession(Interaction):
             representative_division = self._get_representative_division()
             if representative_division:
                 channel_name = f"Ventas - {representative_division.name}"
+                # Get or create medium for the contact method
+                medium = self._get_or_create_medium_for_contact()
                 sales_channel, _ = Channel.objects.get_or_create(
                     name=channel_name,
                     defaults={
                         "code": f"sales_{representative_division.code.lower()}",
-                        "description": f"Canal de ventas para {representative_division.name}"
+                        "description": f"Canal de ventas para {representative_division.name}",
+                        "medium": medium
                     }
                 )
         
@@ -648,22 +673,26 @@ class SalesSession(Interaction):
         if not sales_channel and self.opportunity and self.opportunity.product and self.opportunity.product.category:
             if self.opportunity.product.category.division:
                 channel_name = f"Ventas - {self.opportunity.product.category.division.name}"
+                medium = self._get_or_create_medium_for_contact()
                 sales_channel, _ = Channel.objects.get_or_create(
                     name=channel_name,
                     defaults={
                         "code": f"sales_{self.opportunity.product.category.division.code.lower()}",
-                        "description": f"Canal de ventas para {self.opportunity.product.category.division.name}"
+                        "description": f"Canal de ventas para {self.opportunity.product.category.division.name}",
+                        "medium": medium
                     }
                 )
             else:
+                medium = self._get_or_create_medium_for_contact()
                 sales_channel, _ = Channel.objects.get_or_create(
                     name="Ventas",
-                    defaults={"code": "sales", "description": "Canal de ventas general"}
+                    defaults={"code": "sales", "description": "Canal de ventas general", "medium": medium}
                 )
         else:
+            medium = self._get_or_create_medium_for_contact()
             sales_channel, _ = Channel.objects.get_or_create(
                 name="Ventas",
-                defaults={"code": "sales", "description": "Canal de ventas general"}
+                defaults={"code": "sales", "description": "Canal de ventas general", "medium": medium}
             )
         
         # Create base touchpoint
@@ -677,19 +706,53 @@ class SalesSession(Interaction):
         medium_label = self.get_contacted_via_display()
         tp_code = f"sales_session_{slugify(medium_label)}"
         
-        medium_instance = base_tp.medium if hasattr(base_tp, 'medium') else None
         detailed_tp, _ = Touchpoint.objects.get_or_create(
             code=tp_code,
             channel=sales_channel,
             defaults={
                 "name": f"Contacto vía {medium_label}",
-                "parent": base_tp,
-                "medium": medium_instance,
+                "description": f"Touchpoint de ventas creado manualmente para {medium_label}",
+                "funnel_stage": "engage"
             }
         )
         
         # Assign the detailed touchpoint directly
         self.touchpoint = detailed_tp
+
+    def _get_or_create_medium_for_contact(self):
+        """
+        Get or create Medium object based on the contact method used.
+        
+        Returns:
+            Medium: The medium object for the contact method
+        """
+        from interactions.models import Medium
+        
+        # Map contact mediums to medium codes
+        medium_mapping = {
+            self.ContactMedium.EMAIL: "email",
+            self.ContactMedium.TELEPHONE: "phone", 
+            self.ContactMedium.VIDEOCALL: "video",
+            self.ContactMedium.WHATSAPP: "whatsapp",
+            self.ContactMedium.TEXTING: "sms",
+            self.ContactMedium.ON_CAMPUS: "in_person",
+            self.ContactMedium.OUT_OF_CAMPUS: "in_person",
+            self.ContactMedium.OTHER: "other",
+            self.ContactMedium.UNKNOWN: "unknown",
+        }
+        
+        medium_code = medium_mapping.get(self.contacted_via, "unknown")
+        medium_name = self.get_contacted_via_display()
+        
+        medium, _ = Medium.objects.get_or_create(
+            code=medium_code,
+            defaults={
+                "name": medium_name,
+                "description": f"Medio de contacto: {medium_name}"
+            }
+        )
+        
+        return medium
 
     class Meta:
         ordering = ['-occurred_at']
