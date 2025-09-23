@@ -9,14 +9,16 @@ from django.db import transaction
 from django.utils import timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
+import logging
 
 from interactions.models import Action, Agent, Interaction
 from .models import WebInteraction, Website, WebAgent, WebSession
-from .resolvers import WebTouchpointResolver
-from .mapping_providers import WebMappingProvider
+from .base_processors import BaseWebEventProcessor
+
+logger = logging.getLogger(__name__)
 
 
-class PageViewEventProcessor:
+class PageViewEventProcessor(BaseWebEventProcessor):
     """
     Processor for page view events that creates multiple interactions.
     
@@ -34,11 +36,10 @@ class PageViewEventProcessor:
         Args:
             event_data: Dictionary containing the page view event data
         """
-        self.event_data = event_data
-        self.website = self._get_website()
+        super().__init__(event_data)
         self.created_interactions = []
-        self.web_session = None
         
+    @transaction.atomic
     def process(self) -> List[WebInteraction]:
         """
         Process the page view event and create all applicable interactions.
@@ -46,31 +47,37 @@ class PageViewEventProcessor:
         Returns:
             List[WebInteraction]: List of created WebInteraction instances
         """
-        # Check session start criteria BEFORE creating any interactions
-        should_start_session = self._should_start_new_session()
-        has_external_referrer = self._has_external_referrer()
-        
-        # Get or create WebSession
-        self.web_session = self._get_or_create_session(should_start_session)
-        
-        # 1. Always create Page View Interaction
-        page_view_interaction = self._create_page_view_interaction()
-        self.created_interactions.append(page_view_interaction)
-        
-        # 2. Create Referrer Click Interaction (if external referrer exists)
-        if has_external_referrer:
-            referrer_click_interaction = self._create_referrer_click_interaction()
-            self.created_interactions.append(referrer_click_interaction)
-        
-        # 3. Create Session Start Interaction (if new session criteria met)
-        if should_start_session:
-            session_start_interaction = self._create_session_start_interaction()
-            self.created_interactions.append(session_start_interaction)
-        
-        # Update session activity
-        self.web_session.update_activity()
-        
-        return self.created_interactions
+        try:
+            # Check session start criteria BEFORE creating any interactions
+            should_start_session = self._should_start_new_session()
+            has_external_referrer = self._has_external_referrer()
+            
+            # Get or create WebSession
+            self.web_session = self._get_or_create_session(should_start_session)
+            
+            # 1. Always create Page View Interaction
+            page_view_interaction = self._create_page_view_interaction()
+            self.created_interactions.append(page_view_interaction)
+            
+            # 2. Create Referrer Click Interaction (if external referrer exists)
+            if has_external_referrer:
+                referrer_click_interaction = self._create_referrer_click_interaction()
+                self.created_interactions.append(referrer_click_interaction)
+            
+            # 3. Create Session Start Interaction (if new session criteria met)
+            if should_start_session:
+                session_start_interaction = self._create_session_start_interaction()
+                self.created_interactions.append(session_start_interaction)
+            
+            # Update session activity
+            self.web_session.update_activity()
+            
+            logger.info(f"Successfully created {len(self.created_interactions)} interactions for page view event")
+            return self.created_interactions
+            
+        except Exception as e:
+            logger.error(f"Error processing page view event: {e}")
+            raise
     
     def _get_website(self) -> Website:
         """Get or create the website from event data."""
