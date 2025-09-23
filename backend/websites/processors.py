@@ -562,7 +562,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
         """Create referrer click specific touchpoint."""
         try:
             # Get channel and medium
-            channel, medium = self._get_or_create_referrerchannel_and_medium()
+            channel, medium = self._get_or_create_traffic_channel_and_medium()
             
             # Get or create touchpoint class
             touchpoint_class, _ = TouchpointClass.objects.get_or_create(
