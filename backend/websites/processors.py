@@ -891,8 +891,8 @@ class PageReadEventProcessor:
         # Get or create medium
         from interactions.models import Medium
         medium, _ = Medium.objects.get_or_create(
-            code='web_page',
-            defaults={'name': 'Web Page'}
+            code='owned_website',
+            defaults={'name': 'Owned Website'}
         )
         
         # Get or create channel
@@ -1283,8 +1283,8 @@ class ClickEventProcessor:
         # Get or create medium
         from interactions.models import Medium
         medium, created_medium = Medium.objects.get_or_create(
-            code='web_page',
-            defaults={'name': 'Web Page'}
+            code='owned_website',
+            defaults={'name': 'Owned Website'}
         )
         # Get or create channel
         domain_name = self._extract_domain_name(self.website.base_url)
