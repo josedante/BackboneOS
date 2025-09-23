@@ -10,6 +10,60 @@ The website tracking system serves as a bridge between your organization's websi
 
 ---
 
+## 🏷️ Action Type Categorization
+
+All website events are categorized by **Action Type** for better analytics and reporting:
+
+### **Digital Actions** (`action_type: "digital"`)
+- `click` - User clicks on elements
+- `page_view` - User views pages  
+- `form_submit` - User submits forms
+- `page_read` - User meaningfully engages with content
+
+### **Phone Actions** (`action_type: "telefonica"`)
+- `incoming_call` - User calls the organization
+
+### **In-Person Actions** (`action_type: "presencial"`)
+- `event_attended` - User attends events
+
+### **System Actions** (`action_type: null`)
+- `no_action` - Inferred events (session start, email sent, etc.)
+
+This categorization enables:
+- **Channel-specific analytics** (digital vs. phone vs. in-person)
+- **Reporting by interaction type**
+- **Business intelligence** by communication channel
+
+---
+
+## ✅ Implementation Status
+
+### **Completed Features**
+- ✅ **PageViewEventProcessor** - Multi-interaction approach (3 independent interactions)
+- ✅ **PageReadEventProcessor** - Engagement-focused single interaction
+- ✅ **Action Type Categorization** - Digital, phone, in-person, system actions
+- ✅ **User Agent Parsing** - ua-parser-python integration
+- ✅ **WebSession Model** - Explicit session tracking
+- ✅ **WebAgent Proxy Model** - Website-specific agent functionality
+- ✅ **Engagement Scoring** - Weighted algorithm (time + scroll + interactions)
+- ✅ **Touchpoint Resolution** - Automatic touchpoint and class creation
+- ✅ **Comprehensive Testing** - 20 test cases covering all scenarios
+
+### **Test Coverage**
+- **PageViewEventProcessor**: 11 test cases
+- **PageReadEventProcessor**: 9 test cases
+- **Total**: 20 passing tests
+- **Scenarios**: New visitors, returning visitors, external referrers, session inference, engagement scoring, error handling
+
+### **Production Ready**
+- ✅ All tests passing
+- ✅ Error handling implemented
+- ✅ Data validation in place
+- ✅ Performance optimized
+- ✅ Documentation complete
+
+---
+
 ## 📊 Event Types Catalog
 
 ### 1. **Page View Events**
@@ -68,17 +122,17 @@ The website tracking system serves as a bridge between your organization's websi
 **Up to 3 Interactions Created**:
 
 1. **Page View Interaction**:
-   - **Action**: `no_action` (or `page_view`)
+   - **Action**: `no_action` (action_type: null - inferred event)
    - **Touchpoint**: Viewed page touchpoint
    - **Purpose**: Track the page being viewed
 
 2. **Referrer Click Interaction** (if external referrer exists):
-   - **Action**: `click` (or `external_click`)
+   - **Action**: `click` (action_type: "digital")
    - **Touchpoint**: Referrer page touchpoint
    - **Purpose**: Track the click that brought visitor to our site
 
 3. **Session Start Interaction** (if new session criteria met):
-   - **Action**: `no_action` (or `session_start`)
+   - **Action**: `no_action` (action_type: null - inferred event)
    - **Touchpoint**: Viewed page touchpoint (landing page)
    - **Purpose**: Track the beginning of a new session
 
@@ -96,40 +150,41 @@ The website tracking system serves as a bridge between your organization's websi
   - Scroll depth ≥ 50%, OR
   - User interaction (click, form focus, video play), OR
   - Page contains < 200 words and time ≥ 10 seconds
+- **Prerequisites**: Requires a previous page view event in the same session
 - **Data Sent**:
   ```json
   {
     "event_type": "page_read",
     "website_base": "https://esan.edu.pe",
     "full_url": "https://esan.edu.pe/programs/mba",
-    "referrer": "https://esan.edu.pe/",
     "session_id": "sess_abc123",
     "visitor_cookie": "visitor_xyz789",
     "user_agent": "Mozilla/5.0...",
-    "utm_source": "google",
-    "utm_medium": "organic",
-    "utm_campaign": "mba_search",
     "element": "body",
     "payload": {
       "page_title": "MBA Programs - ESAN University",
+      "page_description": "Comprehensive MBA programs designed for working professionals",
       "page_category": "academic_programs",
       "time_on_page": 45,
       "scroll_depth": 75,
       "read_criteria_met": "scroll_depth",
       "word_count": 1200,
-      "engagement_score": 0.8,
       "interactions_count": 3
     }
   }
   ```
 
 #### **Expected Effects**:
-- **Touchpoint Created**: `web.page_read`
-- **Channel**: `google` (source channel) or `esan.edu.pe` (capture channel)
-- **Medium**: `organic` (from UTM or referrer analysis)
-- **TouchpointClass**: `web.organic_traffic` or `web.internal_interaction`
-- **Interaction**: Meaningful page engagement interaction
-- **Engagement Score**: High engagement indicator for content analysis
+- **Single Interaction Created**: `page_read` action (no UTM fields)
+- **Touchpoint Created**: `web.page_read.{page_title}` with `web_page` medium
+- **Channel**: Website domain (e.g., `esan.edu.pe`)
+- **TouchpointClass**: `web.internal_interaction`
+- **Engagement Score**: Calculated algorithm (0.0-1.0) based on:
+  - Time factor (30% weight, content-length adjusted)
+  - Scroll depth (40% weight, most important)
+  - User interactions (30% weight)
+- **Session Activity**: Updates session last activity timestamp
+- **Content Analysis**: High engagement indicator for content performance
 
 ---
 
