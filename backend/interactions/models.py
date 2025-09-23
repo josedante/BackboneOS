@@ -11,6 +11,8 @@ from world.models import (
 
 
 class Agent(BaseUUIDModelWithActiveStatus):
+    ''' This defines an Agent for the user or potential customer '''
+    
     AGENT_TYPES = [
         ('browser', 'Navegador Web'),
         ('human', 'Humano'),

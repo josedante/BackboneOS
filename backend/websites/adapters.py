@@ -77,8 +77,10 @@ def _determine_event_type(web_interaction: WebInteraction) -> str:
     if action_code:
         # Map common action codes to event types
         action_to_event_map = {
-            'page_view': 'page_read',
-            'page_visit': 'page_read',
+            'session_start': 'session_start',
+            'page_view': 'page_view',
+            'page_visit': 'page_view',
+            'page_read': 'page_read',
             'form_submit': 'form_submit',
             'form_submission': 'form_submit',
             'button_click': 'click',
@@ -86,6 +88,9 @@ def _determine_event_type(web_interaction: WebInteraction) -> str:
             'download': 'download',
             'video_play': 'video_play',
             'video_start': 'video_play',
+            'search': 'search',
+            'newsletter_signup': 'newsletter_signup',
+            'purchase': 'purchase',
             'scroll': 'scroll',
             'hover': 'hover',
             'focus': 'focus',
@@ -104,8 +109,8 @@ def _determine_event_type(web_interaction: WebInteraction) -> str:
         elif 'video' in element:
             return 'video_play'
     
-    # Default to page read for generic web interactions
-    return 'page_read'
+    # Default to page view for generic web interactions
+    return 'page_view'
 
 
 def _map_event_type_to_code(event_type: str) -> str:
@@ -119,9 +124,12 @@ def _map_event_type_to_code(event_type: str) -> str:
         str: The touchpoint code
     """
     event_code_map = {
+        'session_start': 'web.session_start',
+        'page_view': 'web.page_view',
+        'page_visit': 'web.page_view',
         'page_read': 'web.page_read',
-        'page_view': 'web.page_read',
-        'page_visit': 'web.page_read',
+        'referrer_click': 'web.referrer_page',
+        'external_click': 'web.referrer_page',
         'form_submit': 'web.form_submit',
         'form_submission': 'web.form_submit',
         'click': 'web.click',
@@ -130,20 +138,20 @@ def _map_event_type_to_code(event_type: str) -> str:
         'download': 'web.download',
         'video_play': 'web.video_play',
         'video_start': 'web.video_play',
-        'scroll': 'web.scroll',
-        'hover': 'web.hover',
-        'focus': 'web.focus',
         'search': 'web.search',
-        'signup': 'web.signup',
-        'login': 'web.login',
-        'logout': 'web.logout',
+        'newsletter_signup': 'web.newsletter_signup',
         'purchase': 'web.purchase',
         'add_to_cart': 'web.add_to_cart',
         'remove_from_cart': 'web.remove_from_cart',
         'checkout': 'web.checkout',
-        'newsletter_signup': 'web.newsletter_signup',
         'contact_form': 'web.contact_form',
         'lead_form': 'web.lead_form',
+        'scroll': 'web.scroll',
+        'hover': 'web.hover',
+        'focus': 'web.focus',
+        'signup': 'web.signup',
+        'login': 'web.login',
+        'logout': 'web.logout',
     }
     
     return event_code_map.get(event_type, f'web.{event_type}')
@@ -161,9 +169,12 @@ def _create_touchpoint_label(event_type: str, web_interaction: WebInteraction) -
         str: The touchpoint label
     """
     label_map = {
-        'page_read': 'Web Page View',
+        'session_start': 'Web Session Start',
         'page_view': 'Web Page View',
         'page_visit': 'Web Page Visit',
+        'page_read': 'Web Page Read',
+        'referrer_click': 'Web Referrer Page',
+        'external_click': 'Web External Click',
         'form_submit': 'Web Form Submit',
         'form_submission': 'Web Form Submission',
         'click': 'Web Click',
@@ -172,23 +183,37 @@ def _create_touchpoint_label(event_type: str, web_interaction: WebInteraction) -
         'download': 'Web Download',
         'video_play': 'Web Video Play',
         'video_start': 'Web Video Start',
-        'scroll': 'Web Scroll',
-        'hover': 'Web Hover',
-        'focus': 'Web Focus',
         'search': 'Web Search',
-        'signup': 'Web Signup',
-        'login': 'Web Login',
-        'logout': 'Web Logout',
+        'newsletter_signup': 'Web Newsletter Signup',
         'purchase': 'Web Purchase',
         'add_to_cart': 'Web Add to Cart',
         'remove_from_cart': 'Web Remove from Cart',
         'checkout': 'Web Checkout',
-        'newsletter_signup': 'Web Newsletter Signup',
         'contact_form': 'Web Contact Form',
         'lead_form': 'Web Lead Form',
+        'scroll': 'Web Scroll',
+        'hover': 'Web Hover',
+        'focus': 'Web Focus',
+        'signup': 'Web Signup',
+        'login': 'Web Login',
+        'logout': 'Web Logout',
     }
     
     base_label = label_map.get(event_type, f'Web {event_type.title()}')
+    
+    # Add specific context for referrer pages
+    if event_type in ['referrer_click', 'external_click']:
+        referrer_url = web_interaction.payload.get('referrer_url') if web_interaction.payload else None
+        if referrer_url:
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(referrer_url)
+                domain = parsed.netloc.lower()
+                if domain.startswith('www.'):
+                    domain = domain[4:]
+                return f"{base_label} - {domain.title()}"
+            except:
+                pass
     
     # Add website context if available
     if web_interaction.website:
@@ -209,7 +234,7 @@ def _analyze_utm_medium(web_interaction: WebInteraction) -> str:
         str: The analyzed medium code
     """
     if not web_interaction.utm_medium:
-        return 'direct'
+        return 'web_direct'
     
     utm_medium = web_interaction.utm_medium.lower().strip()
     
@@ -277,7 +302,7 @@ def _analyze_referrer(web_interaction: WebInteraction) -> str:
         referrer_url = web_interaction.metadata.get('referrer_url') or web_interaction.metadata.get('referrer')
     
     if not referrer_url:
-        return 'direct'
+        return 'web_direct'
     
     try:
         parsed = urlparse(referrer_url)
@@ -318,7 +343,7 @@ def _analyze_referrer(web_interaction: WebInteraction) -> str:
         if hostname and not hostname.startswith('localhost') and not hostname.startswith('127.0.0.1'):
             return 'referral'
         
-        return 'direct'
+        return 'web_direct'
         
     except Exception:
         return 'unknown'
@@ -389,7 +414,7 @@ def analyze_utm_medium(utm_medium: str) -> str:
         str: The analyzed medium code
     """
     if not utm_medium:
-        return 'direct'
+        return 'web_direct'
     
     utm_medium = utm_medium.lower().strip()
     
@@ -418,7 +443,7 @@ def analyze_referrer(referrer_url: str) -> str:
         str: The determined medium code
     """
     if not referrer_url:
-        return 'direct'
+        return 'web_direct'
     
     try:
         parsed = urlparse(referrer_url)
@@ -438,6 +463,6 @@ def analyze_referrer(referrer_url: str) -> str:
         if hostname:
             return 'referral'
         
-        return 'direct'
+        return 'web_direct'
     except Exception:
         return 'unknown'

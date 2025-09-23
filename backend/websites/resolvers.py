@@ -96,7 +96,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 hint = TouchpointHint(
                     code=hint.code,
                     channel_code=hint.channel_code,
-                    medium_code='direct',
+                    medium_code='web_direct',
                     label=hint.label,
                     metadata=hint.metadata
                 )
@@ -260,7 +260,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 return app_channel
         
         # Fallback: Direct traffic
-        return 'direct'
+        return 'web_direct'
     
     def _get_website_channel_code(self, subject: TouchpointInferenceProtocol) -> str:
         """
@@ -322,7 +322,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             'substack': 'substack',
             'email': 'email',
             'newsletter': 'email',
-            'direct': 'direct'
+            'web_direct': 'web_direct'
         }
         
         return source_mappings.get(utm_source, utm_source)
@@ -338,7 +338,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             str: The source channel code
         """
         if not referrer_url:
-            return 'direct'
+            return 'web_direct'
         
         try:
             parsed = urlparse(referrer_url)
@@ -371,7 +371,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             return referrer_mappings.get(hostname, hostname)
             
         except Exception:
-            return 'direct'
+            return 'web_direct'
     
     def _extract_app_channel_from_user_agent(self, user_agent: str) -> str:
         """
@@ -477,7 +477,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             'generic_app': 'Mobile App',
             
             # Direct
-            'direct': 'Direct',
+            'web_direct': 'Web Direct',
             
             # Legacy website channels (for backward compatibility)
             'esan.edu.pe': 'ESAN University',
@@ -573,7 +573,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             str: The standardized medium code
         """
         if not utm_medium:
-            return 'direct'
+            return 'web_direct'
         
         utm_medium = utm_medium.lower().strip()
         
@@ -632,7 +632,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             str: The determined medium code
         """
         if not referrer_url:
-            return 'direct'
+            return 'web_direct'
         
         try:
             parsed = urlparse(referrer_url)
@@ -673,7 +673,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             if hostname and not hostname.startswith('localhost') and not hostname.startswith('127.0.0.1'):
                 return 'referral'
             
-            return 'direct'
+            return 'web_direct'
             
         except Exception:
             return 'unknown'
@@ -784,7 +784,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 return 'web.email_traffic'
             elif medium == 'referral':
                 return 'web.referral_traffic'
-            elif medium == 'direct':
+            elif medium == 'web_direct':
                 return 'web.internal_traffic'  # Internal clicks are traffic
             elif medium == 'mobile':
                 return 'web.mobile_traffic'
@@ -812,7 +812,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             return 'web.email_traffic'
         elif medium == 'referral':
             return 'web.referral_traffic'
-        elif medium == 'direct':
+        elif medium == 'web_direct':
             # Check if this is truly direct traffic or internal website interaction
             if self._is_internal_website_interaction(hint):
                 return 'web.internal_interaction'
@@ -866,7 +866,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         # Check if channel code matches a website domain (internal interaction)
         if hint.channel_code:
             # If channel is a website domain, it's likely an internal interaction
-            if '.' in hint.channel_code and not hint.channel_code in ['direct', 'unknown']:
+            if '.' in hint.channel_code and not hint.channel_code in ['web_direct', 'unknown']:
                 # This is a website domain, likely internal interaction
                 return True
         

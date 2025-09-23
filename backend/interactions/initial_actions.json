@@ -43,5 +43,14 @@
       "description": "El usuario asistió a un evento",
       "action_type": null
     }
+  },
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Sin Acción",
+      "code": "no_action",
+      "description": "Evento inferido o acción realizada hacia el usuario (ej: inicio de sesión, email enviado)",
+      "action_type": null
+    }
   }
 ]

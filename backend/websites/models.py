@@ -235,6 +235,7 @@ class WebInteraction(AbstractConnectorInteraction):
     element = models.CharField(max_length=200, blank=True, default="")
     payload = models.JSONField(default=dict, blank=True)
 
+
     is_bot = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -284,3 +285,28 @@ class WebInteraction(AbstractConnectorInteraction):
         """
         super().save(*args, **kwargs)
         self._ensure_touchpoint()
+    
+    @classmethod
+    def process_page_view_event(cls, event_data: dict) -> list:
+        """
+        Process a page view event and create up to 3 interactions.
+        
+        This method implements the multi-interaction approach where a single
+        page view event can create multiple WebInteraction instances:
+        1. Page View Interaction (always created)
+        2. Referrer Click Interaction (if external referrer exists)
+        3. Session Start Interaction (if new session criteria met)
+        
+        Args:
+            event_data: Dictionary containing the page view event data
+            
+        Returns:
+            list: List of created WebInteraction instances
+        """
+        from django.db import transaction
+        from interactions.models import Action, Agent
+        from .processors import PageViewEventProcessor
+        
+        with transaction.atomic():
+            processor = PageViewEventProcessor(event_data)
+            return processor.process()
