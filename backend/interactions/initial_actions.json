@@ -5,7 +5,7 @@
       "name": "Clic",
       "code": "click",
       "description": "El usuario hizo clic",
-      "action_type": null
+      "action_type": "digital"
     }
   },
   {
@@ -13,8 +13,8 @@
     "fields": {
       "name": "Visualizó página",
       "code": "page_view",
-      "description": "El usuario leyó una página",
-      "action_type": null
+      "description": "El usuario visitó o cargó una página",
+      "action_type": "digital"
     }
   },
   {
@@ -23,7 +23,7 @@
       "name": "Llenó formulario",
       "code": "form_submit",
       "description": "El usuario completó un formulario",
-      "action_type": null
+      "action_type": "digital"
     }
   },
   {
@@ -32,7 +32,7 @@
       "name": "Llamada entrante",
       "code": "incoming_call",
       "description": "El usuario llamó a la organización",
-      "action_type": null
+      "action_type": "telefonica"
     }
   },
   {
@@ -41,7 +41,7 @@
       "name": "Asistencia a evento",
       "code": "event_attended",
       "description": "El usuario asistió a un evento",
-      "action_type": null
+      "action_type": "presencial"
     }
   },
   {
@@ -51,6 +51,15 @@
       "code": "no_action",
       "description": "Evento inferido o acción realizada hacia el usuario (ej: inicio de sesión, email enviado)",
       "action_type": null
+    }
+  },
+  {
+    "model": "interactions.action",
+    "fields": {
+      "name": "Leyó página",
+      "code": "page_read",
+      "description": "El usuario leyó una página de manera significativa (cumple criterios de engagement)",
+      "action_type": "digital"
     }
   }
 ]

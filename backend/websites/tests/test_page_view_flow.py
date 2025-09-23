@@ -13,7 +13,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from interactions.models import Action, Agent, Interaction, Touchpoint, TouchpointClass, Channel, Medium
-from websites.models import WebInteraction, Website
+from websites.models import WebInteraction, Website, WebSession, WebAgent
 from our_institution.models import Division, OurOrganization
 
 
@@ -530,3 +530,423 @@ class PageViewFlowTestCase(TestCase):
         self.assertTrue(session_payload['landing_page'])
         self.assertIn('session_start_time', session_payload)
         self.assertIn('inference_reason', session_payload)
+
+
+class PageReadEventProcessorTestCase(TestCase):
+    """Test cases for PageReadEventProcessor functionality."""
+    
+    def setUp(self):
+        """Set up test data for page read event tests."""
+        # Create organization and division
+        from our_institution.models import OurOrganization, Division
+        self.org = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal Name"
+        )
+        self.division = Division.objects.create(
+            name="Test Division",
+            code="TEST",
+            description="Test division",
+            organization=self.org
+        )
+        
+        # Create website
+        self.website = Website.objects.create(
+            base_url="https://test.com",
+            name="Test Website",
+            division=self.division,
+            active=True
+        )
+        
+        # Create actions
+        self.page_read_action = Action.objects.create(
+            code='page_read',
+            name='Leyó página',
+            description='El usuario leyó una página de manera significativa'
+        )
+        
+        self.no_action = Action.objects.create(
+            code='no_action',
+            name='Sin Acción',
+            description='Evento inferido'
+        )
+        
+        # Create test session
+        self.session = WebSession.objects.create(
+            session_id="test_session_123",
+            visitor_cookie="test_visitor_456",
+            website=self.website,
+            utm_source="google",
+            utm_medium="organic",
+            utm_campaign="test_campaign"
+        )
+        
+        # Create test agent
+        self.agent = WebAgent.objects.create(
+            name="Chrome",
+            agent_type="browser",
+            identifier="chrome-91.0.4472-windows",
+            metadata={
+                'browser': {'family': 'Chrome', 'version': '91.0.4472.124'},
+                'os': {'family': 'Windows', 'version': '10.0'},
+                'device': {'family': 'Other'}
+            }
+        )
+        
+        # Create a previous page view interaction (required for page read)
+        self.page_view_interaction = WebInteraction.objects.create(
+            interaction=Interaction.objects.create(
+                action=self.no_action,
+                agent=self.agent,
+                occurred_at=timezone.now() - timedelta(minutes=5),
+                payload={
+                    'interaction_type': 'page_view',
+                    'page_title': 'Test Page',
+                    'page_description': 'Test page description'
+                }
+            ),
+            website=self.website,
+            session_id="test_session_123",
+            visitor_cookie="test_visitor_456",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        )
+    
+    def test_page_read_event_processing(self):
+        """Test basic page read event processing."""
+        from websites.processors import PageReadEventProcessor
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs designed for working professionals',
+                'page_category': 'academic_programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'read_criteria_met': 'scroll_depth',
+                'word_count': 1200,
+                'interactions_count': 3
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        page_read_interaction = processor.process()
+        
+        # Verify interaction was created
+        self.assertIsInstance(page_read_interaction, WebInteraction)
+        self.assertEqual(page_read_interaction.interaction.action, self.page_read_action)
+        self.assertEqual(page_read_interaction.website, self.website)
+        self.assertEqual(page_read_interaction.session_id, 'test_session_123')
+        self.assertEqual(page_read_interaction.visitor_cookie, 'test_visitor_456')
+        
+        # Verify engagement data
+        payload = page_read_interaction.payload
+        self.assertEqual(payload['page_title'], 'MBA Programs - Test University')
+        self.assertEqual(payload['time_on_page'], 45)
+        self.assertEqual(payload['scroll_depth'], 75)
+        self.assertEqual(payload['interactions_count'], 3)
+        self.assertIn('engagement_score', payload)
+        self.assertEqual(payload['interaction_type'], 'page_read')
+        
+        # Verify engagement score calculation
+        self.assertGreater(payload['engagement_score'], 0.5)  # Should be high engagement
+        self.assertLessEqual(payload['engagement_score'], 1.0)
+    
+    def test_engagement_score_calculation(self):
+        """Test engagement score calculation with different scenarios."""
+        from websites.processors import PageReadEventProcessor
+        
+        # High engagement scenario
+        high_engagement_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'High Engagement Page',
+                'page_description': 'High engagement content',
+                'time_on_page': 60,  # High time
+                'scroll_depth': 90,  # High scroll
+                'interactions_count': 5,  # High interactions
+                'word_count': 1000
+            }
+        }
+        
+        processor = PageReadEventProcessor(high_engagement_data)
+        high_interaction = processor.process()
+        high_score = high_interaction.payload['engagement_score']
+        
+        # Low engagement scenario
+        low_engagement_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'Low Engagement Page',
+                'page_description': 'Low engagement content',
+                'time_on_page': 15,  # Low time
+                'scroll_depth': 25,  # Low scroll
+                'interactions_count': 1,  # Low interactions
+                'word_count': 1000
+            }
+        }
+        
+        processor = PageReadEventProcessor(low_engagement_data)
+        low_interaction = processor.process()
+        low_score = low_interaction.payload['engagement_score']
+        
+        # Verify high engagement has higher score
+        self.assertGreater(high_score, low_score)
+        self.assertGreater(high_score, 0.7)  # High engagement
+        self.assertLess(low_score, 0.5)  # Low engagement
+    
+    def test_short_content_adjustment(self):
+        """Test engagement score adjustment for short content."""
+        from websites.processors import PageReadEventProcessor
+        
+        # Short content (should need less time for high engagement)
+        short_content_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'Short Content Page',
+                'page_description': 'Short content',
+                'time_on_page': 15,  # 15 seconds on short content
+                'scroll_depth': 80,  # High scroll
+                'interactions_count': 2,
+                'word_count': 150  # Short content
+            }
+        }
+        
+        processor = PageReadEventProcessor(short_content_data)
+        short_interaction = processor.process()
+        short_score = short_interaction.payload['engagement_score']
+        
+        # Should have good engagement score despite shorter time
+        self.assertGreater(short_score, 0.6)  # Good engagement for short content
+    
+    def test_touchpoint_creation(self):
+        """Test that page touchpoint is created correctly."""
+        from websites.processors import PageReadEventProcessor
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'interactions_count': 3,
+                'word_count': 1200
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        page_read_interaction = processor.process()
+        
+        # Verify touchpoint was created
+        touchpoint = page_read_interaction.interaction.touchpoint
+        self.assertIsNotNone(touchpoint)
+        self.assertEqual(touchpoint.name, 'MBA Programs - Test University')
+        self.assertEqual(touchpoint.description, 'Comprehensive MBA programs')
+        self.assertEqual(touchpoint.url, 'https://test.com/programs/mba')
+        
+        # Verify touchpoint has correct channel and class
+        self.assertEqual(touchpoint.channel.code, 'test.com')
+        self.assertEqual(touchpoint.touchpoint_class.code, 'web.internal_interaction')
+    
+    def test_no_previous_page_view_error(self):
+        """Test that page read fails without previous page view."""
+        from websites.processors import PageReadEventProcessor
+        
+        # Create new session without page view
+        new_session = WebSession.objects.create(
+            session_id="new_session_789",
+            visitor_cookie="new_visitor_012",
+            website=self.website
+        )
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'new_session_789',
+            'visitor_cookie': 'new_visitor_012',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'interactions_count': 3,
+                'word_count': 1200
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        
+        with self.assertRaises(ValueError) as context:
+            processor.process()
+        
+        self.assertIn("Page read requires a previous page view", str(context.exception))
+    
+    def test_session_not_found_error(self):
+        """Test that page read fails with non-existent session."""
+        from websites.processors import PageReadEventProcessor
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'nonexistent_session',
+            'visitor_cookie': 'nonexistent_visitor',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'interactions_count': 3,
+                'word_count': 1200
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        
+        with self.assertRaises(ValueError) as context:
+            processor.process()
+        
+        self.assertIn("Page read requires a previous page view", str(context.exception))
+    
+    def test_no_utm_fields(self):
+        """Test that page read interactions don't have UTM fields."""
+        from websites.processors import PageReadEventProcessor
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'interactions_count': 3,
+                'word_count': 1200
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        page_read_interaction = processor.process()
+        
+        # Verify no UTM fields are set
+        self.assertEqual(page_read_interaction.utm_source, '')
+        self.assertEqual(page_read_interaction.utm_medium, '')
+        self.assertEqual(page_read_interaction.utm_campaign, '')
+        self.assertEqual(page_read_interaction.utm_content, '')
+        self.assertEqual(page_read_interaction.utm_term, '')
+    
+    def test_session_activity_update(self):
+        """Test that session activity is updated after page read."""
+        from websites.processors import PageReadEventProcessor
+        
+        # Get initial last activity
+        initial_activity = self.session.last_activity_at
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'interactions_count': 3,
+                'word_count': 1200
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        page_read_interaction = processor.process()
+        
+        # Refresh session from database
+        self.session.refresh_from_db()
+        
+        # Verify last activity was updated
+        self.assertGreater(self.session.last_activity_at, initial_activity)
+    
+    def test_agent_creation_and_parsing(self):
+        """Test that agents are created and parsed correctly."""
+        from websites.processors import PageReadEventProcessor
+        
+        event_data = {
+            'event_type': 'page_read',
+            'website_base': 'https://test.com',
+            'full_url': 'https://test.com/programs/mba',
+            'session_id': 'test_session_123',
+            'visitor_cookie': 'test_visitor_456',
+            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'element': 'body',
+            'payload': {
+                'page_title': 'MBA Programs - Test University',
+                'page_description': 'Comprehensive MBA programs',
+                'time_on_page': 45,
+                'scroll_depth': 75,
+                'interactions_count': 3,
+                'word_count': 1200
+            }
+        }
+        
+        processor = PageReadEventProcessor(event_data)
+        page_read_interaction = processor.process()
+        
+        # Verify agent was created/used
+        agent = page_read_interaction.interaction.agent
+        self.assertIsNotNone(agent)
+        self.assertIsInstance(agent, WebAgent)
+        
+        # Verify agent has correct metadata
+        self.assertIn('browser', agent.metadata)
+        self.assertIn('os', agent.metadata)
+        self.assertIn('device', agent.metadata)
+        
+        # Verify agent properties work
+        self.assertEqual(agent.browser_family, 'Chrome')
+        self.assertEqual(agent.os_family, 'Mac OS X')
+        self.assertFalse(agent.is_mobile)
+        self.assertFalse(agent.is_bot)
