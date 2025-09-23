@@ -214,10 +214,108 @@ class SurfaceResolver:
 #     division = models.ForeignKey("our_institution.Division", on_delete=models.CASCADE)
 #     role = models.CharField(max_length=20, default="PRIMARY")  # or choices
 
+class WebSession(BaseUUIDModelWithActiveStatus):
+    """
+    Represents a web session - a continuous period of user activity.
+    
+    Sessions are created when:
+    - New visitor arrives (first interaction)
+    - Session timeout (30+ minutes gap)
+    - Cross-domain referrer
+    - UTM parameter changes
+    """
+    
+    # Session identity
+    session_id = models.CharField(max_length=64, db_index=True, unique=True)
+    visitor_cookie = models.CharField(max_length=64, db_index=True)
+    
+    # Session context
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="sessions")
+    agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True, related_name="web_sessions")
+    
+    # Session timing
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    last_activity_at = models.DateTimeField(auto_now=True)
+    
+    # Session attribution (first interaction's UTM data)
+    utm_source = models.CharField(max_length=100, blank=True, default="")
+    utm_medium = models.CharField(max_length=100, blank=True, default="")
+    utm_campaign = models.CharField(max_length=150, blank=True, default="")
+    utm_content = models.CharField(max_length=150, blank=True, default="")
+    utm_term = models.CharField(max_length=100, blank=True, default="")
+    
+    # Session metadata
+    referrer_url = models.URLField(blank=True, default="")
+    landing_page_url = models.URLField(blank=True, default="")
+    user_agent = models.TextField(blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    # Session analytics (computed fields)
+    page_count = models.PositiveIntegerField(default=0)
+    is_bounce = models.BooleanField(default=True)  # Single page session
+    conversion_events = models.JSONField(default=list, blank=True)
+    
+    class Meta:
+        ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['visitor_cookie', 'started_at']),
+            models.Index(fields=['website', 'started_at']),
+            models.Index(fields=['session_id']),
+            models.Index(fields=['utm_source', 'utm_medium']),
+        ]
+    
+    @property
+    def duration(self):
+        """Get session duration."""
+        if self.ended_at:
+            return self.ended_at - self.started_at
+        return timezone.now() - self.started_at
+    
+    @property
+    def is_session_active(self):
+        """Check if session is still active (within 30 minutes)."""
+        if self.ended_at:
+            return False
+        time_since_activity = timezone.now() - self.last_activity_at
+        return time_since_activity.total_seconds() < 1800  # 30 minutes
+    
+    def get_interactions(self):
+        """Get all interactions in this session."""
+        return WebInteraction.objects.filter(session_id=self.session_id)
+    
+    def get_page_views(self):
+        """Get page view interactions in this session."""
+        return self.get_interactions().filter(
+            interaction__action__code='no_action',
+            interaction__payload__interaction_type='page_view'
+        )
+    
+    def get_conversion_events(self):
+        """Get conversion events in this session."""
+        return self.get_interactions().filter(
+            interaction__action__code__in=['form_submit', 'purchase', 'download']
+        )
+    
+    def end_session(self):
+        """Mark session as ended."""
+        self.ended_at = timezone.now()
+        self.save(update_fields=['ended_at'])
+    
+    def update_activity(self):
+        """Update last activity timestamp."""
+        self.last_activity_at = timezone.now()
+        self.save(update_fields=['last_activity_at'])
+    
+    def __str__(self):
+        return f"Session {self.session_id[:8]}... ({self.website.name})"
+
+
 class WebInteraction(AbstractConnectorInteraction):
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="events")
+    # Note: session relationship will be added in a future migration
 
-    # Browser identity
+    # Browser identity (keep for backward compatibility)
     session_id = models.CharField(max_length=64, db_index=True, blank=True, default="")
     visitor_cookie = models.CharField(max_length=64, db_index=True, blank=True, default="")
     user_agent = models.TextField(blank=True, default="")
@@ -234,7 +332,6 @@ class WebInteraction(AbstractConnectorInteraction):
     # Event extras
     element = models.CharField(max_length=200, blank=True, default="")
     payload = models.JSONField(default=dict, blank=True)
-
 
     is_bot = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

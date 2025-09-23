@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 
 from interactions.models import Action, Agent, Interaction
-from .models import WebInteraction, Website, WebAgent
+from .models import WebInteraction, Website, WebAgent, WebSession
 from .resolvers import WebTouchpointResolver
 from .mapping_providers import WebMappingProvider
 
@@ -37,6 +37,7 @@ class PageViewEventProcessor:
         self.event_data = event_data
         self.website = self._get_website()
         self.created_interactions = []
+        self.web_session = None
         
     def process(self) -> List[WebInteraction]:
         """
@@ -48,6 +49,9 @@ class PageViewEventProcessor:
         # Check session start criteria BEFORE creating any interactions
         should_start_session = self._should_start_new_session()
         has_external_referrer = self._has_external_referrer()
+        
+        # Get or create WebSession
+        self.web_session = self._get_or_create_session(should_start_session)
         
         # 1. Always create Page View Interaction
         page_view_interaction = self._create_page_view_interaction()
@@ -62,6 +66,9 @@ class PageViewEventProcessor:
         if should_start_session:
             session_start_interaction = self._create_session_start_interaction()
             self.created_interactions.append(session_start_interaction)
+        
+        # Update session activity
+        self.web_session.update_activity()
         
         return self.created_interactions
     
@@ -171,6 +178,50 @@ class PageViewEventProcessor:
                 return True  # Session timeout = new session
         
         return False  # Existing active session
+    
+    def _get_or_create_session(self, should_start_new: bool) -> WebSession:
+        """Get or create WebSession for this event."""
+        session_id = self.event_data.get('session_id')
+        visitor_cookie = self.event_data.get('visitor_cookie')
+        
+        if should_start_new or not session_id or not visitor_cookie:
+            # Create new session
+            return self._create_new_session()
+        else:
+            # Get existing session
+            try:
+                session = WebSession.objects.get(session_id=session_id)
+                return session
+            except WebSession.DoesNotExist:
+                # Session doesn't exist, create new one
+                return self._create_new_session()
+    
+    def _create_new_session(self) -> WebSession:
+        """Create a new WebSession."""
+        session_id = self.event_data.get('session_id', '')
+        visitor_cookie = self.event_data.get('visitor_cookie', '')
+        
+        # Get agent for this session
+        agent = self._get_or_create_agent()
+        
+        # Create session
+        session = WebSession.objects.create(
+            session_id=session_id,
+            visitor_cookie=visitor_cookie,
+            website=self.website,
+            agent=agent,
+            utm_source=self.event_data.get('utm_source', ''),
+            utm_medium=self.event_data.get('utm_medium', ''),
+            utm_campaign=self.event_data.get('utm_campaign', ''),
+            utm_content=self.event_data.get('utm_content', ''),
+            utm_term=self.event_data.get('utm_term', ''),
+            referrer_url=self.event_data.get('referrer', ''),
+            landing_page_url=self.event_data.get('full_url', ''),
+            user_agent=self.event_data.get('user_agent', ''),
+            ip_address=self.event_data.get('ip')
+        )
+        
+        return session
     
     def _create_page_view_interaction(self) -> WebInteraction:
         """Create the page view interaction."""
