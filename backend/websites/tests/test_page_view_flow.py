@@ -59,12 +59,9 @@ class PageViewFlowTestCase(TestCase):
             description="Click from external source"
         )
         
-        # Create test agent
-        self.agent = Agent.objects.create(
-            name="Chrome",
-            agent_type="browser",
-            identifier="chrome-91.0"
-        )
+        # Create test agent (will be created automatically by processor)
+        # Using the new ua-parser format: browser-version-os
+        self.expected_agent_identifier = "chrome-91.0.4472-windows"
         
         # Create test medium
         self.organic_medium = Medium.objects.create(
@@ -167,16 +164,22 @@ class PageViewFlowTestCase(TestCase):
         No session start (existing session)
         """
         # Create existing interaction for this visitor
+        # Create existing interaction for returning visitor
+        existing_agent = Agent.objects.create(
+            name="Chrome",
+            agent_type="browser",
+            identifier="chrome-91.0.4472-windows"
+        )
         existing_interaction = WebInteraction.objects.create(
             interaction=Interaction.objects.create(
                 action=self.no_action,
-                agent=self.agent,
+                agent=existing_agent,
                 occurred_at=timezone.now() - timedelta(minutes=5)
             ),
             website=self.website,
             session_id="sess_returning_123",
             visitor_cookie="visitor_returning_456",
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
         
         event_data = {
@@ -256,16 +259,21 @@ class PageViewFlowTestCase(TestCase):
         3. Referrer Click Interaction (external_click) - if external referrer
         """
         # Create old interaction (more than 30 minutes ago)
+        old_agent = Agent.objects.create(
+            name="Chrome",
+            agent_type="browser",
+            identifier="chrome-91.0.4472-windows"
+        )
         old_interaction = WebInteraction.objects.create(
             interaction=Interaction.objects.create(
                 action=self.no_action,
-                agent=self.agent,
+                agent=old_agent,
                 occurred_at=timezone.now() - timedelta(minutes=35)
             ),
             website=self.website,
             session_id="sess_timeout_123",
             visitor_cookie="visitor_timeout_456",
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
         
         event_data = {

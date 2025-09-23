@@ -6,7 +6,7 @@ from backend.models import BaseUUIDModelWithActiveStatus
 from django.utils import timezone
 
 # Core relations
-from interactions.models import TouchpointClass, Touchpoint, Channel
+from interactions.models import TouchpointClass, Touchpoint, Channel, Agent
 from products.models import Product  # optional
 from connectors.base import AbstractConnectorInteraction
 from connectors.protocols import TouchpointInferenceProtocol, TouchpointHint
@@ -310,3 +310,137 @@ class WebInteraction(AbstractConnectorInteraction):
         with transaction.atomic():
             processor = PageViewEventProcessor(event_data)
             return processor.process()
+
+
+# --------------------------
+# WebAgent Proxy Model
+# --------------------------
+class WebAgent(Agent):
+    """
+    Proxy model for Agent with website-specific functionality.
+    
+    This proxy model provides website-specific methods and properties
+    for Agent instances without creating a separate database table.
+    """
+    
+    class Meta:
+        proxy = True
+        verbose_name = "Web Agent"
+        verbose_name_plural = "Web Agents"
+    
+    @property
+    def browser_family(self) -> str:
+        """Get the browser family from metadata."""
+        return self.metadata.get('browser', {}).get('family', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def browser_version(self) -> str:
+        """Get the browser version from metadata."""
+        return self.metadata.get('browser', {}).get('version', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def os_family(self) -> str:
+        """Get the operating system family from metadata."""
+        return self.metadata.get('os', {}).get('family', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def os_version(self) -> str:
+        """Get the operating system version from metadata."""
+        return self.metadata.get('os', {}).get('version', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def device_family(self) -> str:
+        """Get the device family from metadata."""
+        return self.metadata.get('device', {}).get('family', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def device_brand(self) -> str:
+        """Get the device brand from metadata."""
+        return self.metadata.get('device', {}).get('brand', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def device_model(self) -> str:
+        """Get the device model from metadata."""
+        return self.metadata.get('device', {}).get('model', 'Unknown') if self.metadata else 'Unknown'
+    
+    @property
+    def is_mobile(self) -> bool:
+        """Check if this is a mobile device."""
+        if not self.metadata:
+            return False
+        device_family = self.metadata.get('device', {}).get('family', '').lower()
+        return device_family in ['mobile', 'smartphone', 'tablet', 'iphone', 'ipad', 'android']
+    
+    @property
+    def is_bot(self) -> bool:
+        """Check if this is a bot/crawler."""
+        return self.agent_type == 'bot'
+    
+    @property
+    def is_webview(self) -> bool:
+        """Check if this is a WebView (mobile app)."""
+        if not self.metadata:
+            return False
+        browser_family = self.metadata.get('browser', {}).get('family', '').lower()
+        return 'webview' in browser_family or self.agent_type == 'device'
+    
+    @property
+    def display_name(self) -> str:
+        """Get a user-friendly display name for the agent."""
+        if self.agent_type == 'bot':
+            return f"Bot: {self.browser_family}"
+        elif self.agent_type == 'device':
+            return f"{self.device_family} ({self.browser_family})"
+        else:  # browser
+            return f"{self.browser_family} on {self.os_family}"
+    
+    @property
+    def technical_summary(self) -> str:
+        """Get a technical summary of the agent."""
+        parts = [f"{self.browser_family} {self.browser_version}"]
+        if self.os_family != 'Unknown':
+            parts.append(f"on {self.os_family} {self.os_version}")
+        if self.device_family != 'Other' and self.device_family != 'Unknown':
+            parts.append(f"({self.device_family})")
+        return " ".join(parts)
+    
+    def get_web_interactions(self):
+        """Get all WebInteraction instances for this agent."""
+        return WebInteraction.objects.filter(interaction__agent=self)
+    
+    def get_web_interactions_by_website(self, website):
+        """Get WebInteraction instances for this agent on a specific website."""
+        return WebInteraction.objects.filter(
+            interaction__agent=self,
+            website=website
+        )
+    
+    def get_session_count(self):
+        """Get the number of unique sessions for this agent."""
+        return self.get_web_interactions().values('session_id').distinct().count()
+    
+    def get_website_count(self):
+        """Get the number of unique websites this agent has visited."""
+        return self.get_web_interactions().values('website').distinct().count()
+    
+    def get_last_activity(self):
+        """Get the last activity timestamp for this agent."""
+        last_interaction = self.get_web_interactions().order_by('-created_at').first()
+        return last_interaction.created_at if last_interaction else None
+    
+    def get_activity_summary(self):
+        """Get a summary of this agent's activity."""
+        interactions = self.get_web_interactions()
+        return {
+            'total_interactions': interactions.count(),
+            'unique_sessions': self.get_session_count(),
+            'unique_websites': self.get_website_count(),
+            'last_activity': self.get_last_activity(),
+            'is_mobile': self.is_mobile,
+            'is_bot': self.is_bot,
+            'is_webview': self.is_webview
+        }
+    
+    def __str__(self):
+        """String representation of the WebAgent."""
+        return f"{self.display_name} ({self.technical_summary})"

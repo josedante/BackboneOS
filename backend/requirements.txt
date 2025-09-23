@@ -16,6 +16,7 @@ Pillow==10.4.0
 requests==2.32.4
 sentry-sdk[django]==2.18.0
 django-storages==1.14.2
+ua-parser==0.18.0
 
 # Testing dependencies
 pytest==8.3.4

@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 
 from interactions.models import Action, Agent, Interaction
-from .models import WebInteraction, Website
+from .models import WebInteraction, Website, WebAgent
 from .resolvers import WebTouchpointResolver
 from .mapping_providers import WebMappingProvider
 
@@ -322,72 +322,134 @@ class PageViewEventProcessor:
         return web_interaction
     
     def _get_or_create_agent(self) -> Agent:
-        """Get or create agent from user agent string."""
+        """Get or create agent from user agent string using ua-parser."""
         user_agent = self.event_data.get('user_agent', '')
         if not user_agent:
             user_agent = 'Unknown Browser'
         
-        # Extract browser name from user agent
-        browser_name = self._extract_browser_name(user_agent)
+        # Parse user agent using ua-parser
+        parsed_ua = self._parse_user_agent(user_agent)
         
-        agent, created = Agent.objects.get_or_create(
-            name=browser_name,
+        # Determine agent type based on parsing results
+        agent_type = self._determine_agent_type(parsed_ua)
+        
+        # Create agent name and identifier
+        agent_name = self._create_agent_name(parsed_ua, agent_type)
+        agent_identifier = self._create_agent_identifier(parsed_ua, agent_type)
+        
+        agent, created = WebAgent.objects.get_or_create(
+            name=agent_name,
             defaults={
-                'agent_type': 'browser',
-                'identifier': f"{browser_name.lower()}-{self._extract_browser_version(user_agent)}"
+                'agent_type': agent_type,
+                'identifier': agent_identifier,
+                'metadata': parsed_ua
             }
         )
         return agent
     
-    def _extract_browser_name(self, user_agent: str) -> str:
-        """Extract browser name from user agent string."""
-        user_agent = user_agent.lower()
-        
-        if 'chrome' in user_agent:
-            return 'Chrome'
-        elif 'firefox' in user_agent:
-            return 'Firefox'
-        elif 'safari' in user_agent:
-            return 'Safari'
-        elif 'edge' in user_agent:
-            return 'Edge'
-        elif 'opera' in user_agent:
-            return 'Opera'
-        else:
-            return 'Unknown Browser'
+    def _parse_user_agent(self, user_agent: str) -> dict:
+        """Parse user agent string using ua-parser library."""
+        try:
+            import ua_parser.user_agent_parser as ua_parser
+            parsed = ua_parser.Parse(user_agent)
+            
+            # Convert to a more usable format
+            return {
+                'browser': {
+                    'family': parsed.get('user_agent', {}).get('family', 'Other'),
+                    'major': parsed.get('user_agent', {}).get('major'),
+                    'minor': parsed.get('user_agent', {}).get('minor'),
+                    'patch': parsed.get('user_agent', {}).get('patch'),
+                    'version': self._build_version_string(parsed.get('user_agent', {}))
+                },
+                'os': {
+                    'family': parsed.get('os', {}).get('family', 'Other'),
+                    'major': parsed.get('os', {}).get('major'),
+                    'minor': parsed.get('os', {}).get('minor'),
+                    'patch': parsed.get('os', {}).get('patch'),
+                    'version': self._build_version_string(parsed.get('os', {}))
+                },
+                'device': {
+                    'family': parsed.get('device', {}).get('family', 'Other'),
+                    'brand': parsed.get('device', {}).get('brand'),
+                    'model': parsed.get('device', {}).get('model')
+                },
+                'raw_user_agent': user_agent
+            }
+        except Exception as e:
+            # Fallback to basic parsing if ua-parser fails
+            return {
+                'browser': {'family': 'Other', 'version': 'Unknown'},
+                'os': {'family': 'Other', 'version': 'Unknown'},
+                'device': {'family': 'Other'},
+                'raw_user_agent': user_agent,
+                'parse_error': str(e)
+            }
     
-    def _extract_browser_version(self, user_agent: str) -> str:
-        """Extract browser version from user agent string."""
-        import re
-        
-        # Try to extract version number
-        version_match = re.search(r'version/(\d+\.\d+)', user_agent.lower())
-        if version_match:
-            return version_match.group(1)
-        
-        # Try Chrome version
-        chrome_match = re.search(r'chrome/(\d+\.\d+)', user_agent.lower())
-        if chrome_match:
-            return chrome_match.group(1)
-        
-        return 'Unknown'
-    
-    def _extract_platform(self, user_agent: str) -> str:
-        """Extract platform from user agent string."""
-        user_agent = user_agent.lower()
-        
-        if 'windows' in user_agent:
-            return 'Windows'
-        elif 'mac' in user_agent or 'macos' in user_agent:
-            return 'macOS'
-        elif 'linux' in user_agent:
-            return 'Linux'
-        elif 'android' in user_agent:
-            return 'Android'
-        elif 'ios' in user_agent or 'iphone' in user_agent or 'ipad' in user_agent:
-            return 'iOS'
-        else:
+    def _build_version_string(self, version_dict: dict) -> str:
+        """Build version string from version components."""
+        if not version_dict:
             return 'Unknown'
+        
+        major = version_dict.get('major')
+        minor = version_dict.get('minor')
+        patch = version_dict.get('patch')
+        
+        if major is None:
+            return 'Unknown'
+        
+        version_parts = [str(major)]
+        if minor is not None:
+            version_parts.append(str(minor))
+        if patch is not None:
+            version_parts.append(str(patch))
+        
+        return '.'.join(version_parts)
+    
+    def _determine_agent_type(self, parsed_ua: dict) -> str:
+        """Determine agent type based on parsed user agent data."""
+        browser_family = parsed_ua.get('browser', {}).get('family', '').lower()
+        device_family = parsed_ua.get('device', {}).get('family', '').lower()
+        
+        # Check for bots/crawlers
+        bot_indicators = ['bot', 'crawler', 'spider', 'scraper', 'crawling', 'headless']
+        if any(indicator in browser_family.lower() for indicator in bot_indicators):
+            return 'bot'
+        
+        # Check for mobile apps (WebView)
+        if 'webview' in browser_family.lower() or 'mobile' in device_family.lower():
+            return 'device'
+        
+        # Default to browser for web traffic
+        return 'browser'
+    
+    def _create_agent_name(self, parsed_ua: dict, agent_type: str) -> str:
+        """Create agent name based on parsed data and agent type."""
+        if agent_type == 'bot':
+            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown Bot')
+            return f"Bot: {browser_family}"
+        elif agent_type == 'device':
+            device_family = parsed_ua.get('device', {}).get('family', 'Unknown Device')
+            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown')
+            return f"{device_family} ({browser_family})"
+        else:  # browser
+            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown Browser')
+            return browser_family
+    
+    def _create_agent_identifier(self, parsed_ua: dict, agent_type: str) -> str:
+        """Create agent identifier based on parsed data and agent type."""
+        browser_family = parsed_ua.get('browser', {}).get('family', 'unknown').lower()
+        browser_version = parsed_ua.get('browser', {}).get('version', 'unknown')
+        os_family = parsed_ua.get('os', {}).get('family', 'unknown').lower()
+        device_family = parsed_ua.get('device', {}).get('family', 'unknown').lower()
+        
+        if agent_type == 'bot':
+            return f"bot-{browser_family}-{browser_version}"
+        elif agent_type == 'device':
+            return f"device-{device_family}-{browser_family}-{browser_version}"
+        else:  # browser
+            return f"{browser_family}-{browser_version}-{os_family}"
+    
     
     def _has_existing_visitor(self) -> bool:
         """Check if visitor has existing interactions."""
