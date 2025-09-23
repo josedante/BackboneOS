@@ -2,8 +2,10 @@
 from __future__ import annotations
 import uuid, re
 from django.db import models, transaction
+from django.conf import settings
 from backend.models import BaseUUIDModelWithActiveStatus
 from django.utils import timezone
+from datetime import timedelta
 
 # Core relations
 from interactions.models import TouchpointClass, Touchpoint, Channel, Agent
@@ -274,11 +276,10 @@ class WebSession(BaseUUIDModelWithActiveStatus):
     
     @property
     def is_session_active(self):
-        """Check if session is still active (within 30 minutes)."""
-        if self.ended_at:
-            return False
-        time_since_activity = timezone.now() - self.last_activity_at
-        return time_since_activity.total_seconds() < 1800  # 30 minutes
+        """Check if session is still active based on ended_at timestamp."""
+        if not self.ended_at:
+            return True
+        return timezone.now() < self.ended_at
     
     def get_interactions(self):
         """Get all interactions in this session."""
@@ -303,9 +304,28 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         self.save(update_fields=['ended_at'])
     
     def update_activity(self):
-        """Update last activity timestamp."""
-        self.last_activity_at = timezone.now()
-        self.save(update_fields=['last_activity_at'])
+        """Update last activity timestamp and extend session."""
+        now = timezone.now()
+        self.last_activity_at = now
+        
+        # Extend session if it's still active
+        if not self.ended_at or self.ended_at > now:
+            self.ended_at = now + timedelta(seconds=settings.WEB_SESSION_DURATION_SECONDS)
+            self.save(update_fields=['last_activity_at', 'ended_at'])
+        else:
+            self.save(update_fields=['last_activity_at'])
+    
+    def extend_session(self):
+        """Extend session duration from now."""
+        now = timezone.now()
+        self.ended_at = now + timedelta(seconds=settings.WEB_SESSION_DURATION_SECONDS)
+        self.last_activity_at = now
+        self.save(update_fields=['ended_at', 'last_activity_at'])
+    
+    @classmethod
+    def get_session_end_time(cls):
+        """Get the default session end time from now."""
+        return timezone.now() + timedelta(seconds=settings.WEB_SESSION_DURATION_SECONDS)
     
     def __str__(self):
         return f"Session {self.session_id[:8]}... ({self.website.name})"

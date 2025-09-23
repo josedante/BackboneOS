@@ -343,6 +343,9 @@ SESSION_COOKIE_SECURE = not DEBUG  # HTTPS en producción
 SESSION_COOKIE_HTTPONLY = True  # Previene XSS
 SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
 
+# Web Session Configuration
+WEB_SESSION_DURATION_SECONDS = config('WEB_SESSION_DURATION_SECONDS', default=1800, cast=int)  # 30 minutes
+
 
 
 # =============================================================================

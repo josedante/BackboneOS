@@ -166,16 +166,13 @@ class PageViewEventProcessor:
         if not existing_interactions:
             return True  # First interaction = new session
         
-        # Check for session timeout (30 minutes)
-        last_interaction = WebInteraction.objects.filter(
-            session_id=session_id,
-            visitor_cookie=visitor_cookie
-        ).order_by('-created_at').first()
-        
-        if last_interaction:
-            time_diff = timezone.now() - last_interaction.created_at
-            if time_diff.total_seconds() > 1800:  # 30 minutes
-                return True  # Session timeout = new session
+        # Check for session timeout using WebSession.ended_at
+        try:
+            session = WebSession.objects.get(session_id=session_id)
+            if not session.is_session_active:
+                return True  # Session expired = new session
+        except WebSession.DoesNotExist:
+            return True  # No session exists = new session
         
         return False  # Existing active session
     
@@ -188,9 +185,12 @@ class PageViewEventProcessor:
             # Create new session
             return self._create_new_session()
         else:
-            # Get existing session
+            # Get existing session and extend it
             try:
                 session = WebSession.objects.get(session_id=session_id)
+                if session.is_session_active:
+                    # Extend the session for new activity
+                    session.extend_session()
                 return session
             except WebSession.DoesNotExist:
                 # Session doesn't exist, create new one
@@ -204,7 +204,7 @@ class PageViewEventProcessor:
         # Get agent for this session
         agent = self._get_or_create_agent()
         
-        # Create session
+        # Create session with automatic ended_at
         session = WebSession.objects.create(
             session_id=session_id,
             visitor_cookie=visitor_cookie,
@@ -218,7 +218,8 @@ class PageViewEventProcessor:
             referrer_url=self.event_data.get('referrer', ''),
             landing_page_url=self.event_data.get('full_url', ''),
             user_agent=self.event_data.get('user_agent', ''),
-            ip_address=self.event_data.get('ip')
+            ip_address=self.event_data.get('ip'),
+            ended_at=WebSession.get_session_end_time()
         )
         
         return session
@@ -529,16 +530,13 @@ class PageViewEventProcessor:
         if not existing_interactions:
             return 'first_interaction'
         
-        # Check for session timeout
-        last_interaction = WebInteraction.objects.filter(
-            session_id=session_id,
-            visitor_cookie=visitor_cookie
-        ).order_by('-created_at').first()
-        
-        if last_interaction:
-            time_diff = timezone.now() - last_interaction.created_at
-            if time_diff.total_seconds() > 1800:  # 30 minutes
+        # Check for session timeout using WebSession.ended_at
+        try:
+            session = WebSession.objects.get(session_id=session_id)
+            if not session.is_session_active:
                 return 'session_timeout'
+        except WebSession.DoesNotExist:
+            return 'session_timeout'  # No session exists = timeout
         
         return 'unknown'
     
