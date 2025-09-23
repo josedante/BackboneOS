@@ -888,19 +888,28 @@ class PageReadEventProcessor:
         """Create or get touchpoint for the page being read."""
         from interactions.models import Touchpoint, Channel, TouchpointClass
         
-        # Get or create channel
-        domain_name = self._extract_domain_name(self.website.base_url)
-        channel, _ = Channel.objects.get_or_create(
-            code=domain_name.lower(),
-            defaults={'name': f'{domain_name} Website'}
-        )
-        
         # Get or create medium
         from interactions.models import Medium
         medium, _ = Medium.objects.get_or_create(
             code='web_page',
             defaults={'name': 'Web Page'}
         )
+        
+        # Get or create channel
+        domain_name = self._extract_domain_name(self.website.base_url)
+        # Use consistent channel code (always truncate to 30 chars)
+        channel_code = domain_name.lower()[:30]
+        channel, created = Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': f'{domain_name} Website'
+            }
+        )
+        
+        # Always set the medium
+        if channel.medium != medium:
+            channel.medium = medium
+            channel.save(update_fields=['medium'])
         
         # Get or create touchpoint class
         touchpoint_class, _ = TouchpointClass.objects.get_or_create(
@@ -1226,7 +1235,14 @@ class ClickEventProcessor:
             payload=interaction_payload
         )
         
-        # Create WebInteraction (no UTM fields - clicks don't inherit page context)
+        # Create click touchpoint first
+        click_touchpoint = self._create_click_touchpoint()
+        
+        # Set the touchpoint on the interaction before creating WebInteraction
+        interaction.touchpoint = click_touchpoint
+        interaction.save(update_fields=['touchpoint'])
+        
+        # Create WebInteraction (touchpoint already set, so no automatic resolution)
         web_interaction = WebInteraction.objects.create(
             interaction=interaction,
             website=self.website,
@@ -1237,13 +1253,10 @@ class ClickEventProcessor:
             payload=self.event_data.get('payload', {})
         )
         
-        # Create click touchpoint
-        self._create_click_touchpoint(web_interaction)
-        
         return web_interaction
     
-    def _create_click_touchpoint(self, web_interaction: WebInteraction):
-        """Create and assign click-specific touchpoint for the web interaction."""
+    def _create_click_touchpoint(self):
+        """Create click-specific touchpoint."""
         try:
             # Get click data from event
             payload = self.event_data.get('payload', {})
@@ -1257,30 +1270,37 @@ class ClickEventProcessor:
                 clicked_element, element_id, element_class, target_url
             )
             
-            # Link touchpoint to interaction
-            web_interaction.interaction.touchpoint = click_touchpoint
-            web_interaction.interaction.save(update_fields=['touchpoint'])
+            return click_touchpoint
         except Exception as e:
             # Log error but don't fail the entire process
-            print(f"Error creating click touchpoint for {web_interaction.id}: {e}")
+            print(f"Error creating click touchpoint: {e}")
+            return None
     
     def _get_or_create_click_touchpoint(self, element: str, element_id: str, element_class: str, target_url: str) -> 'Touchpoint':
         """Create or get touchpoint for the clicked element."""
         from interactions.models import Touchpoint, Channel, TouchpointClass
         
-        # Get or create channel
-        domain_name = self._extract_domain_name(self.website.base_url)
-        channel, _ = Channel.objects.get_or_create(
-            code=domain_name.lower(),
-            defaults={'name': f'{domain_name} Website'}
-        )
-        
         # Get or create medium
         from interactions.models import Medium
-        medium, _ = Medium.objects.get_or_create(
+        medium, created_medium = Medium.objects.get_or_create(
             code='web_page',
             defaults={'name': 'Web Page'}
         )
+        # Get or create channel
+        domain_name = self._extract_domain_name(self.website.base_url)
+        # Use consistent channel code (always truncate to 30 chars)
+        channel_code = domain_name.lower()[:30]
+        channel, created = Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': f'{domain_name} Website'
+            }
+        )
+        
+        # Always set the medium
+        if channel.medium != medium:
+            channel.medium = medium
+            channel.save(update_fields=['medium'])
         
         # Get or create touchpoint class
         touchpoint_class, _ = TouchpointClass.objects.get_or_create(
@@ -1311,7 +1331,6 @@ class ClickEventProcessor:
                 'name': touchpoint_name,
                 'description': description,
                 'channel': channel,
-                'medium': medium,
                 'touchpoint_class': touchpoint_class
             }
         )
