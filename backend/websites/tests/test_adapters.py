@@ -65,7 +65,7 @@ class WebTouchpointAdapterTest(TestCase):
         hint = infer_web_touchpoint_hint(mock_interaction)
         
         self.assertIsInstance(hint, TouchpointHint)
-        self.assertEqual(hint.code, 'web.page_read')
+        self.assertEqual(hint.code, 'web.page_view')
         self.assertEqual(hint.label, 'Web Page View - Test Website')
         self.assertIsNotNone(hint.metadata)
     

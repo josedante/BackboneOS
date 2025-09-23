@@ -205,12 +205,12 @@ class PageViewFlowTestCase(TestCase):
         # Process the event
         created_interactions = WebInteraction.process_page_view_event(event_data)
         
-        # Verify 2 interactions were created
-        self.assertEqual(len(created_interactions), 2)
+        # Verify 3 interactions were created (page view, referrer click, session start)
+        self.assertEqual(len(created_interactions), 3)
         
-        # Verify actions are correct (no_action for page view, external_click for referrer)
+        # Verify actions are correct (no_action for page view and session start, external_click for referrer)
         actions = [interaction.interaction.action for interaction in created_interactions]
-        self.assertEqual(actions.count(self.no_action), 1)  # page view only
+        self.assertEqual(actions.count(self.no_action), 2)  # page view and session start
         self.assertEqual(actions.count(self.external_click_action), 1)  # referrer click
     
     def test_direct_traffic_no_referrer(self):

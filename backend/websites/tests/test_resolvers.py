@@ -126,7 +126,7 @@ class WebTouchpointResolverTest(TestCase):
         hint = TouchpointHint(code='web.page_view', label='Page View')
         enhanced_hint = self.resolver._ensure_required_fields(mock_interaction, hint)
         
-        self.assertEqual(enhanced_hint.medium_code, 'direct')
+        self.assertEqual(enhanced_hint.medium_code, 'web_direct')
         self.assertEqual(enhanced_hint.channel_code, 'example.com')
     
     def test_get_website_channel_code(self):
@@ -210,7 +210,7 @@ class WebTouchpointResolverTest(TestCase):
         hint = TouchpointHint(
             code='web.internal_click',
             label='Internal Click',
-            medium_code='direct'
+            medium_code='web_direct'
         )
         touchpoint_class = self.resolver._get_enhanced_touchpoint_class_code(hint)
         self.assertEqual(touchpoint_class, 'web.internal_traffic')
@@ -219,7 +219,7 @@ class WebTouchpointResolverTest(TestCase):
         hint = TouchpointHint(
             code='web.form_submit',
             label='Form Submit',
-            medium_code='direct'
+            medium_code='web_direct'
         )
         with patch.object(self.resolver, '_is_internal_website_interaction', return_value=True):
             touchpoint_class = self.resolver._get_enhanced_touchpoint_class_code(hint)

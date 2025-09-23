@@ -280,9 +280,9 @@ class WebInteractionModelTest(TestCase):
         # Test touchpoint hint inference
         hint = web_interaction.infer_touchpoint_hint()
         self.assertIsNotNone(hint)
-        self.assertEqual(hint.code, 'web.page_read')
+        self.assertEqual(hint.code, 'web.page_view')
         self.assertIsNone(hint.channel_code)  # Should be None to let resolver determine
-        self.assertEqual(hint.medium_code, 'direct')
+        self.assertEqual(hint.medium_code, 'web_direct')
     
     def test_webinteraction_automatic_touchpoint_resolution(self):
         """Test automatic touchpoint resolution on save."""
@@ -306,7 +306,7 @@ class WebInteractionModelTest(TestCase):
         
         # Should have a touchpoint assigned
         self.assertIsNotNone(interaction.touchpoint)
-        self.assertEqual(interaction.touchpoint.code, 'web.page_read')
+        self.assertEqual(interaction.touchpoint.code, 'web.page_view')
     
     def test_webinteraction_channel_property(self):
         """Test channel property access through touchpoint."""

@@ -76,11 +76,11 @@ class IntegrationTest(TestCase):
         
         # Test touchpoint hint inference
         hint = web_interaction.infer_touchpoint_hint()
-        self.assertEqual(hint.code, 'web.page_read')
+        self.assertEqual(hint.code, 'web.page_view')
         
         # Test enhanced hint generation
         enhanced_hint = resolver._ensure_required_fields(web_interaction, hint)
-        self.assertEqual(enhanced_hint.medium_code, 'direct')
+        self.assertEqual(enhanced_hint.medium_code, 'web_direct')
         self.assertEqual(enhanced_hint.channel_code, 'example.com')  # Website-specific channel
         
         # Test touchpoint class generation
@@ -119,7 +119,7 @@ class IntegrationTest(TestCase):
         hint = web_interaction.infer_touchpoint_hint()
         enhanced_hint = cached_resolver._ensure_required_fields(web_interaction, hint)
         
-        self.assertEqual(enhanced_hint.medium_code, 'direct')
+        self.assertEqual(enhanced_hint.medium_code, 'web_direct')
         self.assertEqual(enhanced_hint.channel_code, 'example.com')  # Website-specific channel
         
         # Test touchpoint class for internal click

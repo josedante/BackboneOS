@@ -289,7 +289,7 @@ class ChannelRelationshipTest(TestCase):
         
         # Test touchpoint hint inference
         hint = web_interaction.infer_touchpoint_hint()
-        self.assertEqual(hint.code, 'web.page_read')
+        self.assertEqual(hint.code, 'web.page_view')
         
         # Test channel access through various methods
         self.assertEqual(web_interaction.touchpoint.channel, self.channel)
@@ -318,7 +318,7 @@ class ChannelRelationshipTest(TestCase):
         hint = TouchpointHint(code='web.page_view', label='Page View')
         enhanced_hint = cached_resolver._ensure_required_fields(mock_interaction, hint)
         
-        self.assertEqual(enhanced_hint.medium_code, 'direct')
+        self.assertEqual(enhanced_hint.medium_code, 'web_direct')
         self.assertEqual(enhanced_hint.channel_code, 'example.com')  # Website-specific channel
     
     def test_channel_property_backward_compatibility(self):
