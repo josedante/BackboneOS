@@ -230,7 +230,7 @@ This categorization enables:
 
 ---
 
-### 4. **Click Events**
+### 4. **Internal Click Events**
 
 #### **Event Code**: `web.click`
 - **Description**: Captures user clicks on buttons, links, CTAs
