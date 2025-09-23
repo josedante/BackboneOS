@@ -774,32 +774,36 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         
         # If it's a click event, it should be traffic regardless of medium
         if is_click_event:
-            if medium == 'social':
-                return 'web.social_traffic'
-            elif medium == 'organic':
-                return 'web.organic_traffic'
-            elif medium == 'paid':
-                return 'web.paid_traffic'
-            elif medium == 'email':
-                return 'web.email_traffic'
-            elif medium == 'referral':
-                return 'web.referral_traffic'
-            elif medium == 'web_direct':
-                return 'web.internal_traffic'  # Internal clicks are traffic
-            elif medium == 'mobile':
-                return 'web.mobile_traffic'
-            elif medium == 'app':
-                return 'web.app_traffic'
-            elif medium == 'display':
-                return 'web.display_traffic'
-            elif medium == 'video':
-                return 'web.video_traffic'
-            elif medium == 'affiliate':
-                return 'web.affiliate_traffic'
-            elif medium == 'content':
-                return 'web.content_traffic'
+            # Click events should have their own medium classification
+            # Check if it's an internal click (same domain) or external click
+            if self._is_internal_click_event(hint):
+                return 'web.internal_click'  # Internal clicks are their own thing
             else:
-                return 'web.unknown_traffic'
+                # External clicks should be classified by their source
+                if medium == 'social':
+                    return 'web.social_traffic'
+                elif medium == 'organic':
+                    return 'web.organic_traffic'
+                elif medium == 'paid':
+                    return 'web.paid_traffic'
+                elif medium == 'email':
+                    return 'web.email_traffic'
+                elif medium == 'referral':
+                    return 'web.referral_traffic'
+                elif medium == 'mobile':
+                    return 'web.mobile_traffic'
+                elif medium == 'app':
+                    return 'web.app_traffic'
+                elif medium == 'display':
+                    return 'web.display_traffic'
+                elif medium == 'video':
+                    return 'web.video_traffic'
+                elif medium == 'affiliate':
+                    return 'web.affiliate_traffic'
+                elif medium == 'content':
+                    return 'web.content_traffic'
+                else:
+                    return 'web.unknown_traffic'
         
         # For non-click events, use medium-based classification
         if medium == 'social':
@@ -812,6 +816,12 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             return 'web.email_traffic'
         elif medium == 'referral':
             return 'web.referral_traffic'
+        elif medium == 'web_page':
+            # Page-based interactions - check if it's a click or page read
+            if self._is_click_event(hint):
+                return 'web.internal_click'
+            else:
+                return 'web.internal_interaction'
         elif medium == 'web_direct':
             # Check if this is truly direct traffic or internal website interaction
             if self._is_internal_website_interaction(hint):
@@ -873,6 +883,102 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         # Default to false (true direct traffic)
         return False
     
+    def _is_internal_click_event(self, hint: TouchpointHint) -> bool:
+        """
+        Determine if this is an internal click event (within same website) or external click.
+        
+        Args:
+            hint: The touchpoint hint
+            
+        Returns:
+            bool: True if internal click, False if external click
+        """
+        # Check if there's a target URL in the hint metadata
+        if hint.metadata:
+            target_url = hint.metadata.get('target_url')
+            if target_url:
+                # If target URL is provided, check if it's internal or external
+                return self._is_internal_url(target_url, hint)
+        
+        # Check if there's a target URL in the hint payload
+        if hasattr(hint, 'payload') and hint.payload:
+            target_url = hint.payload.get('target_url')
+            if target_url:
+                return self._is_internal_url(target_url, hint)
+        
+        # If no target URL, assume it's an internal click (button, form, etc.)
+        return True
+    
+    def _is_internal_url(self, target_url: str, hint: TouchpointHint) -> bool:
+        """
+        Check if target URL is internal to the website.
+        
+        Args:
+            target_url: The target URL of the click
+            hint: The touchpoint hint
+            
+        Returns:
+            bool: True if internal URL, False if external
+        """
+        if not target_url:
+            return True  # No target URL = internal action
+        
+        try:
+            from urllib.parse import urlparse
+            parsed_target = urlparse(target_url)
+            target_domain = parsed_target.netloc.lower()
+            
+            # Get website domain from hint metadata
+            website_domain = None
+            if hint.metadata:
+                website_url = hint.metadata.get('website_url') or hint.metadata.get('website_base')
+                if website_url:
+                    parsed_website = urlparse(website_url)
+                    website_domain = parsed_website.netloc.lower()
+            
+            if not website_domain:
+                return True  # No website domain = assume internal
+            
+            # Remove www. prefix for comparison
+            if target_domain.startswith('www.'):
+                target_domain = target_domain[4:]
+            if website_domain.startswith('www.'):
+                website_domain = website_domain[4:]
+            
+            # Check if target is internal
+            return target_domain == website_domain
+            
+        except Exception:
+            return True  # Assume internal if we can't parse
+    
+    def _is_click_event(self, hint: TouchpointHint) -> bool:
+        """
+        Check if this is a click event based on the hint metadata.
+        
+        Args:
+            hint: The touchpoint hint
+            
+        Returns:
+            bool: True if click event, False otherwise
+        """
+        # Check if there's a click indicator in the hint metadata
+        if hint.metadata:
+            event_type = hint.metadata.get('event_type', '')
+            if 'click' in event_type.lower():
+                return True
+        
+        # Check if there's a click indicator in the hint payload
+        if hasattr(hint, 'payload') and hint.payload:
+            interaction_type = hint.payload.get('interaction_type', '')
+            if 'click' in interaction_type.lower():
+                return True
+        
+        # Check if the hint code indicates a click event
+        if hint.code and 'click' in hint.code.lower():
+            return True
+        
+        return False
+    
     
     def _get_enhanced_touchpoint_class_name(self, touchpoint_class_code: str) -> str:
         """
@@ -894,6 +1000,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             'web.direct_traffic': 'Direct Traffic',
             'web.internal_traffic': 'Internal Website Traffic',
             'web.internal_interaction': 'Internal Website Interaction',
+            'web.internal_click': 'Internal Click',
             'web.mobile_traffic': 'Mobile Traffic',
             'web.app_traffic': 'Mobile App Traffic',
             'web.display_traffic': 'Display Advertising Traffic',

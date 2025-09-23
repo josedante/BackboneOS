@@ -233,6 +233,12 @@ def _analyze_utm_medium(web_interaction: WebInteraction) -> str:
     Returns:
         str: The analyzed medium code
     """
+    # Check if this is a click or page read event - these should have web_page medium
+    if hasattr(web_interaction, 'interaction') and web_interaction.interaction and web_interaction.interaction.action:
+        action_code = web_interaction.interaction.action.code
+        if action_code in ['click', 'page_read']:
+            return 'web_page'
+    
     if not web_interaction.utm_medium:
         return 'web_direct'
     

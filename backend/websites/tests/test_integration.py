@@ -124,4 +124,4 @@ class IntegrationTest(TestCase):
         
         # Test touchpoint class for internal click
         touchpoint_class_code = cached_resolver._get_enhanced_touchpoint_class_code(enhanced_hint)
-        self.assertEqual(touchpoint_class_code, 'web.internal_traffic')
+        self.assertEqual(touchpoint_class_code, 'web.internal_click')

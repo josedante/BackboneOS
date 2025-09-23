@@ -213,7 +213,7 @@ class WebTouchpointResolverTest(TestCase):
             medium_code='web_direct'
         )
         touchpoint_class = self.resolver._get_enhanced_touchpoint_class_code(hint)
-        self.assertEqual(touchpoint_class, 'web.internal_traffic')
+        self.assertEqual(touchpoint_class, 'web.internal_click')
         
         # Test non-click event (should be interaction)
         hint = TouchpointHint(
