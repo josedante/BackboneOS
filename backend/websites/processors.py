@@ -1,8 +1,13 @@
 """
-Page view event processors for multi-interaction approach.
+Event processors for website interactions.
 
-This module contains the logic for processing page view events and creating
-multiple interactions (page view, referrer click, session start) from a single event.
+This module contains refactored processors for handling different types of website events:
+- PageViewEventProcessor: Multi-interaction approach for page views
+- PageReadEventProcessor: Engagement-focused interactions for page reads  
+- ClickEventProcessor: Click-specific interactions
+
+All processors inherit from BaseWebEventProcessor to eliminate code duplication
+and provide consistent functionality across all event types.
 """
 
 from django.db import transaction
@@ -10,12 +15,285 @@ from django.utils import timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 import logging
+import ua_parser.user_agent_parser
 
-from interactions.models import Action, Agent, Interaction
+from interactions.models import Action, Agent, Interaction, Touchpoint, Channel, TouchpointClass, Medium
 from .models import WebInteraction, Website, WebAgent, WebSession
-from .base_processors import BaseWebEventProcessor
+from our_institution.models import Division, OurOrganization
 
 logger = logging.getLogger(__name__)
+
+
+class BaseWebEventProcessor:
+    """
+    Base class for all web event processors.
+    
+    This class provides common functionality for all web event processors,
+    eliminating code duplication and ensuring consistent behavior.
+    """
+    
+    def __init__(self, event_data: Dict[str, Any]):
+        """
+        Initialize the processor with event data.
+        
+        Args:
+            event_data: Dictionary containing the event data
+        """
+        self.event_data = event_data
+        self.website = self._get_website()
+        self.web_session = None
+        
+    def _get_website(self) -> Website:
+        """Get or create website from event data."""
+        website_base = self.event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required in event data")
+        
+        try:
+            website = Website.objects.get(base_url=website_base)
+            return website
+        except Website.DoesNotExist:
+            return self._create_website(website_base)
+    
+    def _create_website(self, base_url: str) -> Website:
+        """Create a new website with fallback to default division."""
+        try:
+            # Try to get the first available division
+            division = Division.objects.first()
+            if not division:
+                # Create default division if none exists
+                org = OurOrganization.objects.first()
+                if not org:
+                    org = OurOrganization.objects.create(
+                        name="Default Organization",
+                        legal_name="Default Organization Legal Name"
+                    )
+                division = Division.objects.create(
+                    name="Default Division",
+                    code="DEFAULT",
+                    description="Default division for websites",
+                    organization=org
+                )
+            
+            website = Website.objects.create(
+                base_url=base_url,
+                name=f"{self._extract_domain_name(base_url)} Website",
+                division=division,
+                active=True
+            )
+            
+            logger.info(f"Created new website: {website.base_url}")
+            return website
+            
+        except Exception as e:
+            logger.error(f"Error creating website {base_url}: {e}")
+            raise
+    
+    def _extract_domain_name(self, url: str) -> str:
+        """Extract domain name from URL."""
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            # Remove www. prefix if present
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            return domain
+        except Exception:
+            return 'unknown'
+    
+    def _parse_user_agent(self, user_agent_string: str) -> Dict[str, str]:
+        """Parse user agent string to extract browser information."""
+        try:
+            parsed_ua = ua_parser.user_agent_parser.Parse(user_agent_string)
+            
+            # Extract browser information
+            browser_family = parsed_ua.get('user_agent', {}).get('family', 'Unknown')
+            browser_major = parsed_ua.get('user_agent', {}).get('major', '')
+            browser_minor = parsed_ua.get('user_agent', {}).get('minor', '')
+            
+            # Extract OS information
+            os_family = parsed_ua.get('os', {}).get('family', 'Unknown')
+            os_major = parsed_ua.get('os', {}).get('major', '')
+            os_minor = parsed_ua.get('os', {}).get('minor', '')
+            
+            # Build browser name
+            browser_name = browser_family
+            if browser_major:
+                browser_name += f" {browser_major}"
+                if browser_minor:
+                    browser_name += f".{browser_minor}"
+            
+            # Build OS name
+            os_name = os_family
+            if os_major:
+                os_name += f" {os_major}"
+                if os_minor:
+                    os_name += f".{os_minor}"
+            
+            # Determine agent type
+            agent_type = 'browser'
+            if 'bot' in browser_family.lower() or 'crawler' in browser_family.lower():
+                agent_type = 'bot'
+            elif 'mobile' in os_family.lower() or 'android' in os_family.lower() or 'ios' in os_family.lower():
+                agent_type = 'mobile'
+            
+            # Create identifier
+            identifier = f"{browser_name} on {os_name}".lower().replace(' ', '-')
+            
+            return {
+                'name': browser_name,
+                'agent_type': agent_type,
+                'identifier': identifier,
+                'os_name': os_name,
+                'browser_family': browser_family,
+                'browser_version': f"{browser_major}.{browser_minor}" if browser_major and browser_minor else browser_major or 'Unknown'
+            }
+            
+        except Exception as e:
+            logger.warning(f"Error parsing user agent '{user_agent_string}': {e}")
+            return {
+                'name': 'Unknown Browser',
+                'agent_type': 'unknown',
+                'identifier': 'unknown-browser',
+                'os_name': 'Unknown OS',
+                'browser_family': 'Unknown',
+                'browser_version': 'Unknown'
+            }
+    
+    def _get_or_create_agent(self) -> WebAgent:
+        """Get or create WebAgent from user agent string."""
+        user_agent_string = self.event_data.get('user_agent', '')
+        if not user_agent_string:
+            # Create default agent
+            agent, _ = WebAgent.objects.get_or_create(
+                name='Unknown Browser',
+                defaults={
+                    'agent_type': 'unknown',
+                    'identifier': 'unknown-browser'
+                }
+            )
+            return agent
+        
+        # Parse user agent
+        ua_info = self._parse_user_agent(user_agent_string)
+        
+        # Get or create agent
+        agent, _ = WebAgent.objects.get_or_create(
+            name=ua_info['name'],
+            defaults={
+                'agent_type': ua_info['agent_type'],
+                'identifier': ua_info['identifier']
+            }
+        )
+        
+        return agent
+    
+    def _get_or_create_website_channel_and_medium(self):
+        """Get or create channel and medium for touchpoint creation."""
+        # Get or create medium
+        medium, _ = Medium.objects.get_or_create(
+            code='owned_website',
+            defaults={'name': 'Owned Website'}
+        )
+        
+        # Get or create channel
+        domain_name = self._extract_domain_name(self.website.base_url)
+        # Use consistent channel code (always truncate to 30 chars)
+        channel_code = f"{domain_name} website"[:30]
+        channel, created = Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': f'{domain_name} Website'
+            }
+        )
+        
+        # Always set the medium
+        if channel.medium != medium:
+            channel.medium = medium
+            channel.save(update_fields=['medium'])
+        
+        return channel, medium
+    
+    def _get_or_create_session(self, should_start_new: bool = True) -> WebSession:
+        """Get or create WebSession for the event."""
+        session_id = self.event_data.get('session_id')
+        visitor_cookie = self.event_data.get('visitor_cookie')
+        
+        if not session_id or not visitor_cookie:
+            if should_start_new:
+                return self._create_new_session()
+            else:
+                raise ValueError("session_id and visitor_cookie are required")
+        
+        try:
+            # Try to get existing session
+            session = WebSession.objects.get(session_id=session_id)
+            if not session.is_session_active and should_start_new:
+                return self._create_new_session()
+            return session
+        except WebSession.DoesNotExist:
+            if should_start_new:
+                return self._create_new_session()
+            else:
+                raise ValueError("Session not found")
+    
+    def _create_new_session(self) -> WebSession:
+        """Create a new WebSession."""
+        session_id = self.event_data.get('session_id')
+        visitor_cookie = self.event_data.get('visitor_cookie')
+        
+        if not session_id:
+            session_id = f"session_{timezone.now().timestamp()}"
+        if not visitor_cookie:
+            visitor_cookie = f"visitor_{timezone.now().timestamp()}"
+        
+        agent = self._get_or_create_agent()
+        
+        session = WebSession.objects.create(
+            session_id=session_id,
+            visitor_cookie=visitor_cookie,
+            website=self.website,
+            agent=agent,
+            ended_at=WebSession.get_session_end_time()
+        )
+        
+        logger.info(f"Created new session: {session_id}")
+        return session
+    
+    def _create_base_web_interaction(self, action_code: str, action_name: str, 
+                                   action_description: str, interaction_type: str, 
+                                   payload: Dict[str, Any]) -> WebInteraction:
+        """Create a base WebInteraction with common fields."""
+        # Get or create action
+        action, _ = Action.objects.get_or_create(
+            code=action_code,
+            defaults={
+                'name': action_name,
+                'description': action_description
+            }
+        )
+        
+        # Get or create agent
+        agent = self._get_or_create_agent()
+        
+        # Create interaction
+        interaction = Interaction.objects.create(
+            action=action,
+            agent=agent,
+            occurred_at=timezone.now(),
+            payload=payload
+        )
+        
+        # Create WebInteraction
+        web_interaction = WebInteraction.objects.create(
+            interaction=interaction,
+            website=self.website,
+            session_id=self.event_data.get('session_id', ''),
+            visitor_cookie=self.event_data.get('visitor_cookie', ''),
+            user_agent=self.event_data.get('user_agent', '')
+        )
+        
+        return web_interaction
 
 
 class PageViewEventProcessor(BaseWebEventProcessor):
@@ -79,56 +357,6 @@ class PageViewEventProcessor(BaseWebEventProcessor):
             logger.error(f"Error processing page view event: {e}")
             raise
     
-    def _get_website(self) -> Website:
-        """Get or create the website from event data."""
-        website_base = self.event_data.get('website_base')
-        if not website_base:
-            raise ValueError("website_base is required in event data")
-        
-        # Try to find an existing division, or create a default one
-        from our_institution.models import Division
-        try:
-            default_division = Division.objects.first()
-            if not default_division:
-                # Create a default division if none exists
-                from our_institution.models import OurOrganization
-                default_org = OurOrganization.objects.first()
-                if not default_org:
-                    default_org = OurOrganization.objects.create(
-                        name="Default Organization",
-                        legal_name="Default Organization Legal Name"
-                    )
-                default_division = Division.objects.create(
-                    name="Default Division",
-                    code="DEFAULT",
-                    description="Default division for websites",
-                    organization=default_org
-                )
-        except:
-            default_division = None
-        
-        website, created = Website.objects.get_or_create(
-            base_url=website_base,
-            defaults={
-                'name': self._extract_domain_name(website_base),
-                'division': default_division,
-                'active': True
-            }
-        )
-        return website
-    
-    def _extract_domain_name(self, url: str) -> str:
-        """Extract a friendly domain name from URL."""
-        try:
-            parsed = urlparse(url)
-            domain = parsed.netloc.lower()
-            if domain.startswith('www.'):
-                domain = domain[4:]
-            # Capitalize first letter of the domain, but keep the rest as is
-            return f"{domain.capitalize()} Website"
-        except:
-            return "Unknown Website"
-    
     def _has_external_referrer(self) -> bool:
         """Check if there's an external referrer."""
         referrer = self.event_data.get('referrer')
@@ -149,7 +377,8 @@ class PageViewEventProcessor(BaseWebEventProcessor):
                 website_domain = website_domain[4:]
             
             return referrer_domain != website_domain
-        except:
+        except Exception as e:
+            logger.warning(f"Error parsing referrer URL {referrer}: {e}")
             return True  # Assume external if we can't parse
     
     def _should_start_new_session(self) -> bool:
@@ -183,384 +412,222 @@ class PageViewEventProcessor(BaseWebEventProcessor):
         
         return False  # Existing active session
     
-    def _get_or_create_session(self, should_start_new: bool) -> WebSession:
-        """Get or create WebSession for this event."""
-        session_id = self.event_data.get('session_id')
-        visitor_cookie = self.event_data.get('visitor_cookie')
-        
-        if should_start_new or not session_id or not visitor_cookie:
-            # Create new session
-            return self._create_new_session()
-        else:
-            # Get existing session and extend it
-            try:
-                session = WebSession.objects.get(session_id=session_id)
-                if session.is_session_active:
-                    # Extend the session for new activity
-                    session.extend_session()
-                return session
-            except WebSession.DoesNotExist:
-                # Session doesn't exist, create new one
-                return self._create_new_session()
-    
-    def _create_new_session(self) -> WebSession:
-        """Create a new WebSession."""
-        session_id = self.event_data.get('session_id', '')
-        visitor_cookie = self.event_data.get('visitor_cookie', '')
-        
-        # Get agent for this session
-        agent = self._get_or_create_agent()
-        
-        # Create session with automatic ended_at
-        session = WebSession.objects.create(
-            session_id=session_id,
-            visitor_cookie=visitor_cookie,
-            website=self.website,
-            agent=agent,
-            utm_source=self.event_data.get('utm_source', ''),
-            utm_medium=self.event_data.get('utm_medium', ''),
-            utm_campaign=self.event_data.get('utm_campaign', ''),
-            utm_content=self.event_data.get('utm_content', ''),
-            utm_term=self.event_data.get('utm_term', ''),
-            referrer_url=self.event_data.get('referrer', ''),
-            landing_page_url=self.event_data.get('full_url', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            ip_address=self.event_data.get('ip'),
-            ended_at=WebSession.get_session_end_time()
-        )
-        
-        return session
-    
     def _create_page_view_interaction(self) -> WebInteraction:
-        """Create the page view interaction."""
-        # Get or create action
-        action = Action.objects.get_or_create(
-            code='no_action',
-            defaults={'name': 'Sin Acción', 'description': 'Evento inferido o acción realizada hacia el usuario'}
-        )[0]
+        """Create page view interaction with page touchpoint."""
+        # Get page data for touchpoint creation
+        payload = self.event_data.get('payload', {})
+        page_title = payload.get('page_title', '')
+        page_description = payload.get('page_description', '')
+        full_url = self.event_data.get('full_url', '')
         
-        # Get or create agent
-        agent = self._get_or_create_agent()
-        
-        # Create interaction payload with all event data
+        # Create interaction payload
         interaction_payload = {
             'interaction_type': 'page_view',
-            'full_url': self.event_data.get('full_url'),
+            'full_url': full_url,
             'session_id': self.event_data.get('session_id'),
-            'visitor_cookie': self.event_data.get('visitor_cookie')
+            'visitor_cookie': self.event_data.get('visitor_cookie'),
+            'referrer': self.event_data.get('referrer'),
+            'page_title': page_title,
+            'page_description': page_description
         }
         
         # Add all payload data from event
-        event_payload = self.event_data.get('payload', {})
-        interaction_payload.update(event_payload)
+        interaction_payload.update(payload)
         
-        # Create interaction
-        interaction = Interaction.objects.create(
-            action=action,
-            agent=agent,
-            occurred_at=timezone.now(),
+        # Create base interaction
+        web_interaction = self._create_base_web_interaction(
+            action_code='no_action',
+            action_name='Sin Acción',
+            action_description='Acción sin clasificar específica',
+            interaction_type='page_view',
             payload=interaction_payload
         )
         
-        # Create WebInteraction
-        web_interaction = WebInteraction.objects.create(
-            interaction=interaction,
-            website=self.website,
-            session_id=self.event_data.get('session_id', ''),
-            visitor_cookie=self.event_data.get('visitor_cookie', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            utm_source=self.event_data.get('utm_source', ''),
-            utm_medium=self.event_data.get('utm_medium', ''),
-            utm_campaign=self.event_data.get('utm_campaign', ''),
-            utm_content=self.event_data.get('utm_content', ''),
-            utm_term=self.event_data.get('utm_term', ''),
-            element=self.event_data.get('element', ''),
-            payload=self.event_data.get('payload', {})
+        # Create page view touchpoint
+        page_touchpoint = self._create_page_view_touchpoint(
+            page_title, page_description, full_url
         )
         
-        # Resolve touchpoint
-        self._resolve_touchpoint(web_interaction)
+        # Link touchpoint to interaction
+        if page_touchpoint:
+            web_interaction.interaction.touchpoint = page_touchpoint
+            web_interaction.interaction.save(update_fields=['touchpoint'])
         
         return web_interaction
     
     def _create_referrer_click_interaction(self) -> WebInteraction:
-        """Create the referrer click interaction."""
-        # Get or create action
-        action = Action.objects.get_or_create(
-            code='external_click',
-            defaults={'name': 'External Click', 'description': 'Click from external source'}
-        )[0]
+        """Create referrer click interaction."""
+        referrer = self.event_data.get('referrer', '')
         
-        # Get or create agent
-        agent = self._get_or_create_agent()
+        # Create interaction payload
+        interaction_payload = {
+            'interaction_type': 'referrer_click',
+            'referrer': referrer,
+            'session_id': self.event_data.get('session_id'),
+            'visitor_cookie': self.event_data.get('visitor_cookie'),
+            'full_url': self.event_data.get('full_url')
+        }
         
-        # Create interaction
-        interaction = Interaction.objects.create(
-            action=action,
-            agent=agent,
-            occurred_at=timezone.now(),
-            payload={
-                'interaction_type': 'referrer_click',
-                'referrer_url': self.event_data.get('referrer'),
-                'referrer_title': self.event_data.get('payload', {}).get('referrer_title'),
-                'referrer_description': self.event_data.get('payload', {}).get('referrer_description'),
-                'session_id': self.event_data.get('session_id'),
-                'visitor_cookie': self.event_data.get('visitor_cookie')
-            }
+        # Create base interaction
+        web_interaction = self._create_base_web_interaction(
+            action_code='no_action',
+            action_name='Sin Acción',
+            action_description='Acción sin clasificar específica',
+            interaction_type='referrer_click',
+            payload=interaction_payload
         )
         
-        # Create WebInteraction
-        web_interaction = WebInteraction.objects.create(
-            interaction=interaction,
-            website=self.website,
-            session_id=self.event_data.get('session_id', ''),
-            visitor_cookie=self.event_data.get('visitor_cookie', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            utm_source=self.event_data.get('utm_source', ''),
-            utm_medium=self.event_data.get('utm_medium', ''),
-            utm_campaign=self.event_data.get('utm_campaign', ''),
-            utm_content=self.event_data.get('utm_content', ''),
-            utm_term=self.event_data.get('utm_term', ''),
-            element=self.event_data.get('element', ''),
-            payload=self.event_data.get('payload', {})
-        )
+        # Create referrer click touchpoint
+        referrer_touchpoint = self._create_referrer_click_touchpoint(referrer)
         
-        # Resolve touchpoint
-        self._resolve_touchpoint(web_interaction)
+        # Link touchpoint to interaction
+        if referrer_touchpoint:
+            web_interaction.interaction.touchpoint = referrer_touchpoint
+            web_interaction.interaction.save(update_fields=['touchpoint'])
         
         return web_interaction
     
     def _create_session_start_interaction(self) -> WebInteraction:
-        """Create the session start interaction."""
-        # Get or create action
-        action = Action.objects.get_or_create(
-            code='no_action',
-            defaults={'name': 'Sin Acción', 'description': 'Evento inferido o acción realizada hacia el usuario'}
-        )[0]
+        """Create session start interaction."""
+        # Check if this is a new visitor
+        visitor_cookie = self.event_data.get('visitor_cookie')
+        is_new_visitor = not WebInteraction.objects.filter(
+            visitor_cookie=visitor_cookie
+        ).exists() if visitor_cookie else True
         
-        # Get or create agent
-        agent = self._get_or_create_agent()
+        # Create interaction payload
+        interaction_payload = {
+            'interaction_type': 'session_start',
+            'session_id': self.event_data.get('session_id'),
+            'visitor_cookie': visitor_cookie,
+            'is_new_visitor': is_new_visitor,
+            'landing_page': True,
+            'full_url': self.event_data.get('full_url'),
+            'referrer': self.event_data.get('referrer')
+        }
         
-        # Create interaction
-        interaction = Interaction.objects.create(
-            action=action,
-            agent=agent,
-            occurred_at=timezone.now(),
-            payload={
-                'interaction_type': 'session_start',
-                'session_start_time': timezone.now().isoformat(),
-                'is_new_visitor': not self._has_existing_visitor(),
-                'landing_page': True,
-                'inference_reason': self._get_session_start_reason(),
-                'page_title': self.event_data.get('payload', {}).get('page_title'),
-                'full_url': self.event_data.get('full_url'),
-                'session_id': self.event_data.get('session_id'),
-                'visitor_cookie': self.event_data.get('visitor_cookie')
-            }
+        # Create base interaction
+        web_interaction = self._create_base_web_interaction(
+            action_code='no_action',
+            action_name='Sin Acción',
+            action_description='Acción sin clasificar específica',
+            interaction_type='session_start',
+            payload=interaction_payload
         )
         
-        # Create WebInteraction
-        web_interaction = WebInteraction.objects.create(
-            interaction=interaction,
-            website=self.website,
-            session_id=self.event_data.get('session_id', ''),
-            visitor_cookie=self.event_data.get('visitor_cookie', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            utm_source=self.event_data.get('utm_source', ''),
-            utm_medium=self.event_data.get('utm_medium', ''),
-            utm_campaign=self.event_data.get('utm_campaign', ''),
-            utm_content=self.event_data.get('utm_content', ''),
-            utm_term=self.event_data.get('utm_term', ''),
-            element=self.event_data.get('element', ''),
-            payload=self.event_data.get('payload', {})
-        )
+        # Create session start touchpoint
+        session_touchpoint = self._create_session_start_touchpoint()
         
-        # Resolve touchpoint
-        self._resolve_touchpoint(web_interaction)
+        # Link touchpoint to interaction
+        if session_touchpoint:
+            web_interaction.interaction.touchpoint = session_touchpoint
+            web_interaction.interaction.save(update_fields=['touchpoint'])
         
         return web_interaction
     
-    def _get_or_create_agent(self) -> Agent:
-        """Get or create agent from user agent string using ua-parser."""
-        user_agent = self.event_data.get('user_agent', '')
-        if not user_agent:
-            user_agent = 'Unknown Browser'
-        
-        # Parse user agent using ua-parser
-        parsed_ua = self._parse_user_agent(user_agent)
-        
-        # Determine agent type based on parsing results
-        agent_type = self._determine_agent_type(parsed_ua)
-        
-        # Create agent name and identifier
-        agent_name = self._create_agent_name(parsed_ua, agent_type)
-        agent_identifier = self._create_agent_identifier(parsed_ua, agent_type)
-        
-        agent, created = WebAgent.objects.get_or_create(
-            name=agent_name,
-            defaults={
-                'agent_type': agent_type,
-                'identifier': agent_identifier,
-                'metadata': parsed_ua
-            }
-        )
-        return agent
-    
-    def _parse_user_agent(self, user_agent: str) -> dict:
-        """Parse user agent string using ua-parser library."""
+    def _create_page_view_touchpoint(self, title: str, description: str, url: str) -> Optional[Touchpoint]:
+        """Create page view specific touchpoint."""
         try:
-            import ua_parser.user_agent_parser as ua_parser
-            parsed = ua_parser.Parse(user_agent)
+            # Get channel and medium
+            channel, medium = self._get_or_create_website_channel_and_medium()
             
-            # Convert to a more usable format
-            return {
-                'browser': {
-                    'family': parsed.get('user_agent', {}).get('family', 'Other'),
-                    'major': parsed.get('user_agent', {}).get('major'),
-                    'minor': parsed.get('user_agent', {}).get('minor'),
-                    'patch': parsed.get('user_agent', {}).get('patch'),
-                    'version': self._build_version_string(parsed.get('user_agent', {}))
-                },
-                'os': {
-                    'family': parsed.get('os', {}).get('family', 'Other'),
-                    'major': parsed.get('os', {}).get('major'),
-                    'minor': parsed.get('os', {}).get('minor'),
-                    'patch': parsed.get('os', {}).get('patch'),
-                    'version': self._build_version_string(parsed.get('os', {}))
-                },
-                'device': {
-                    'family': parsed.get('device', {}).get('family', 'Other'),
-                    'brand': parsed.get('device', {}).get('brand'),
-                    'model': parsed.get('device', {}).get('model')
-                },
-                'raw_user_agent': user_agent
-            }
-        except Exception as e:
-            # Fallback to basic parsing if ua-parser fails
-            return {
-                'browser': {'family': 'Other', 'version': 'Unknown'},
-                'os': {'family': 'Other', 'version': 'Unknown'},
-                'device': {'family': 'Other'},
-                'raw_user_agent': user_agent,
-                'parse_error': str(e)
-            }
-    
-    def _build_version_string(self, version_dict: dict) -> str:
-        """Build version string from version components."""
-        if not version_dict:
-            return 'Unknown'
-        
-        major = version_dict.get('major')
-        minor = version_dict.get('minor')
-        patch = version_dict.get('patch')
-        
-        if major is None:
-            return 'Unknown'
-        
-        version_parts = [str(major)]
-        if minor is not None:
-            version_parts.append(str(minor))
-        if patch is not None:
-            version_parts.append(str(patch))
-        
-        return '.'.join(version_parts)
-    
-    def _determine_agent_type(self, parsed_ua: dict) -> str:
-        """Determine agent type based on parsed user agent data."""
-        browser_family = parsed_ua.get('browser', {}).get('family', '').lower()
-        device_family = parsed_ua.get('device', {}).get('family', '').lower()
-        
-        # Check for bots/crawlers
-        bot_indicators = ['bot', 'crawler', 'spider', 'scraper', 'crawling', 'headless']
-        if any(indicator in browser_family.lower() for indicator in bot_indicators):
-            return 'bot'
-        
-        # Check for mobile apps (WebView)
-        if 'webview' in browser_family.lower() or 'mobile' in device_family.lower():
-            return 'device'
-        
-        # Default to browser for web traffic
-        return 'browser'
-    
-    def _create_agent_name(self, parsed_ua: dict, agent_type: str) -> str:
-        """Create agent name based on parsed data and agent type."""
-        if agent_type == 'bot':
-            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown Bot')
-            return f"Bot: {browser_family}"
-        elif agent_type == 'device':
-            device_family = parsed_ua.get('device', {}).get('family', 'Unknown Device')
-            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown')
-            return f"{device_family} ({browser_family})"
-        else:  # browser
-            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown Browser')
-            return browser_family
-    
-    def _create_agent_identifier(self, parsed_ua: dict, agent_type: str) -> str:
-        """Create agent identifier based on parsed data and agent type."""
-        browser_family = parsed_ua.get('browser', {}).get('family', 'unknown').lower()
-        browser_version = parsed_ua.get('browser', {}).get('version', 'unknown')
-        os_family = parsed_ua.get('os', {}).get('family', 'unknown').lower()
-        device_family = parsed_ua.get('device', {}).get('family', 'unknown').lower()
-        
-        if agent_type == 'bot':
-            return f"bot-{browser_family}-{browser_version}"
-        elif agent_type == 'device':
-            return f"device-{device_family}-{browser_family}-{browser_version}"
-        else:  # browser
-            return f"{browser_family}-{browser_version}-{os_family}"
-    
-    
-    def _has_existing_visitor(self) -> bool:
-        """Check if visitor has existing interactions."""
-        visitor_cookie = self.event_data.get('visitor_cookie')
-        if not visitor_cookie:
-            return False
-        
-        return WebInteraction.objects.filter(
-            visitor_cookie=visitor_cookie
-        ).exists()
-    
-    def _get_session_start_reason(self) -> str:
-        """Get the reason for session start inference."""
-        session_id = self.event_data.get('session_id')
-        visitor_cookie = self.event_data.get('visitor_cookie')
-        
-        if not session_id or not visitor_cookie:
-            return 'no_session_info'
-        
-        # Check if this is the first interaction for this session
-        existing_interactions = WebInteraction.objects.filter(
-            session_id=session_id,
-            visitor_cookie=visitor_cookie
-        ).exists()
-        
-        if not existing_interactions:
-            return 'first_interaction'
-        
-        # Check for session timeout using WebSession.ended_at
-        try:
-            session = WebSession.objects.get(session_id=session_id)
-            if not session.is_session_active:
-                return 'session_timeout'
-        except WebSession.DoesNotExist:
-            return 'session_timeout'  # No session exists = timeout
-        
-        return 'unknown'
-    
-    def _resolve_touchpoint(self, web_interaction: WebInteraction):
-        """Resolve and assign touchpoint for the web interaction."""
-        try:
-            resolver = WebTouchpointResolver(WebMappingProvider())
-            touchpoint = resolver.resolve(web_interaction)
+            # Get or create touchpoint class
+            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+                code='web.internal_interaction',
+                defaults={'name': 'Internal Web Interaction'}
+            )
             
-            web_interaction.interaction.touchpoint = touchpoint
-            web_interaction.interaction.save(update_fields=['touchpoint'])
+            # Create touchpoint code
+            touchpoint_code = f"web.page_view.{title.lower().replace(' ', '_').replace('-', '_')}"
+            
+            # Get or create touchpoint
+            touchpoint, _ = Touchpoint.objects.get_or_create(
+                code=touchpoint_code,
+                defaults={
+                    'name': title,
+                    'description': description,
+                    'url': url,
+                    'channel': channel,
+                    'touchpoint_class': touchpoint_class
+                }
+            )
+            
+            return touchpoint
+            
         except Exception as e:
-            # Log error but don't fail the entire process
-            print(f"Error resolving touchpoint for {web_interaction.id}: {e}")
+            logger.error(f"Error creating page view touchpoint: {e}")
+            return None
+    
+    def _create_referrer_click_touchpoint(self, referrer: str) -> Optional[Touchpoint]:
+        """Create referrer click specific touchpoint."""
+        try:
+            # Get channel and medium
+            channel, medium = self._get_or_create_referrerchannel_and_medium()
+            
+            # Get or create touchpoint class
+            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+                code='web.external_referrer',
+                defaults={'name': 'External Referrer'}
+            )
+            
+            # Create touchpoint code
+            parsed_referrer = urlparse(referrer)
+            domain = parsed_referrer.netloc.lower()
+            touchpoint_code = f"web.referrer.{domain.replace('.', '_')}"
+            
+            # Get or create touchpoint
+            touchpoint, _ = Touchpoint.objects.get_or_create(
+                code=touchpoint_code,
+                defaults={
+                    'name': f"Referrer: {domain}",
+                    'description': f"User came from {referrer}",
+                    'url': referrer,
+                    'channel': channel,
+                    'touchpoint_class': touchpoint_class
+                }
+            )
+            
+            return touchpoint
+            
+        except Exception as e:
+            logger.error(f"Error creating referrer click touchpoint: {e}")
+            return None
+    
+    def _create_session_start_touchpoint(self) -> Optional[Touchpoint]:
+        """Create session start specific touchpoint."""
+        try:
+            # Get channel and medium
+            channel, medium = self._get_or_create_website_channel_and_medium()
+            
+            # Get or create touchpoint class
+            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+                code='web.session_start',
+                defaults={'name': 'Session Start'}
+            )
+            
+            # Create touchpoint code
+            touchpoint_code = f"web.session_start.{self.website.base_url}"
+            
+            # Get or create touchpoint
+            touchpoint, _ = Touchpoint.objects.get_or_create(
+                code=touchpoint_code,
+                defaults={
+                    'name': f"Session Start - {self.website.name}",
+                    'description': f"User started a new session on {self.website.base_url}",
+                    'url': self.website.base_url,
+                    'channel': channel,
+                    'touchpoint_class': touchpoint_class
+                }
+            )
+            
+            return touchpoint
+            
+        except Exception as e:
+            logger.error(f"Error creating session start touchpoint: {e}")
+            return None
 
 
-class PageReadEventProcessor:
+class PageReadEventProcessor(BaseWebEventProcessor):
     """
     Processor for page read events that creates engagement-focused interactions.
     
@@ -579,10 +646,9 @@ class PageReadEventProcessor:
         Args:
             event_data: Dictionary containing the page read event data
         """
-        self.event_data = event_data
-        self.website = self._get_website()
-        self.web_session = None
+        super().__init__(event_data)
         
+    @transaction.atomic
     def process(self) -> WebInteraction:
         """
         Process the page read event and create engagement interaction.
@@ -590,72 +656,26 @@ class PageReadEventProcessor:
         Returns:
             WebInteraction: Created WebInteraction instance
         """
-        # Validate previous page view exists
-        if not self._has_previous_page_view():
-            raise ValueError("Page read requires a previous page view")
-        
-        # Get existing session (don't create new one)
-        self.web_session = self._get_or_create_session()
-        
-        # Create page read interaction
-        page_read_interaction = self._create_page_read_interaction()
-        
-        # Update session activity
-        self.web_session.update_activity()
-        
-        return page_read_interaction
-    
-    def _get_website(self) -> Website:
-        """Get or create the website from event data."""
-        website_base = self.event_data.get('website_base')
-        if not website_base:
-            raise ValueError("website_base is required")
-        
-        # Extract domain name for website creation
-        domain_name = self._extract_domain_name(website_base)
-        
-        # Get or create division
-        from our_institution.models import Division, OurOrganization
-        org = OurOrganization.objects.first()
-        if not org:
-            org = OurOrganization.objects.create(
-                name="Default Organization",
-                legal_name="Default Organization Legal Name"
-            )
-        
-        division = Division.objects.first()
-        if not division:
-            division = Division.objects.create(
-                name="Default Division",
-                code="DEFAULT",
-                description="Default division",
-                organization=org
-            )
-        
-        # Get or create website
-        website, _ = Website.objects.get_or_create(
-            base_url=website_base,
-            defaults={
-                'name': f"{domain_name} Website",
-                'division': division,
-                'active': True
-            }
-        )
-        
-        return website
-    
-    def _extract_domain_name(self, url: str) -> str:
-        """Extract domain name from URL."""
         try:
-            parsed = urlparse(url)
-            domain = parsed.netloc.lower()
-            # Remove www. prefix
-            if domain.startswith('www.'):
-                domain = domain[4:]
-            # Capitalize first letter
-            return domain.capitalize()
-        except:
-            return "Unknown"
+            # Validate previous page view exists
+            if not self._has_previous_page_view():
+                raise ValueError("Page read requires a previous page view")
+            
+            # Get existing session (don't create new one)
+            self.web_session = self._get_or_create_session(should_start_new=False)
+            
+            # Create page read interaction
+            page_read_interaction = self._create_page_read_interaction()
+            
+            # Update session activity
+            self.web_session.update_activity()
+            
+            logger.info(f"Successfully created page read interaction")
+            return page_read_interaction
+            
+        except Exception as e:
+            logger.error(f"Error processing page read event: {e}")
+            raise
     
     def _has_previous_page_view(self) -> bool:
         """Check if there's a previous page view for this session/page."""
@@ -672,7 +692,7 @@ class PageReadEventProcessor:
             interaction__payload__interaction_type='page_view'
         ).exists()
     
-    def _get_or_create_session(self) -> WebSession:
+    def _get_or_create_session(self, should_start_new: bool = True) -> WebSession:
         """Get existing session for this page read event."""
         session_id = self.event_data.get('session_id')
         visitor_cookie = self.event_data.get('visitor_cookie')
@@ -686,135 +706,8 @@ class PageReadEventProcessor:
         except WebSession.DoesNotExist:
             raise ValueError("Session not found - page read requires an existing session")
     
-    def _get_or_create_agent(self) -> WebAgent:
-        """Get or create agent from user agent string using ua-parser."""
-        user_agent = self.event_data.get('user_agent', '')
-        if not user_agent:
-            user_agent = 'Unknown Browser'
-        
-        # Parse user agent using ua-parser
-        parsed_ua = self._parse_user_agent(user_agent)
-        
-        # Determine agent type based on parsing results
-        agent_type = self._determine_agent_type(parsed_ua)
-        
-        # Create agent name and identifier
-        agent_name = self._create_agent_name(parsed_ua, agent_type)
-        agent_identifier = self._create_agent_identifier(parsed_ua, agent_type)
-        
-        agent, created = WebAgent.objects.get_or_create(
-            name=agent_name,
-            defaults={
-                'agent_type': agent_type,
-                'identifier': agent_identifier,
-                'metadata': parsed_ua
-            }
-        )
-        return agent
-    
-    def _parse_user_agent(self, user_agent: str) -> dict:
-        """Parse user agent string using ua-parser library."""
-        try:
-            import ua_parser.user_agent_parser as ua_parser
-            parsed = ua_parser.Parse(user_agent)
-            
-            # Convert to a more usable format
-            return {
-                'browser': {
-                    'family': parsed.get('user_agent', {}).get('family', 'Other'),
-                    'major': parsed.get('user_agent', {}).get('major'),
-                    'minor': parsed.get('user_agent', {}).get('minor'),
-                    'patch': parsed.get('user_agent', {}).get('patch'),
-                    'version': self._build_version_string(parsed.get('user_agent', {}))
-                },
-                'os': {
-                    'family': parsed.get('os', {}).get('family', 'Other'),
-                    'major': parsed.get('os', {}).get('major'),
-                    'minor': parsed.get('os', {}).get('minor'),
-                    'patch': parsed.get('os', {}).get('patch'),
-                    'version': self._build_version_string(parsed.get('os', {}))
-                },
-                'device': {
-                    'family': parsed.get('device', {}).get('family', 'Other'),
-                    'brand': parsed.get('device', {}).get('brand'),
-                    'model': parsed.get('device', {}).get('model')
-                },
-                'raw_user_agent': user_agent
-            }
-        except Exception as e:
-            # Fallback to basic parsing if ua-parser fails
-            return {
-                'browser': {'family': 'Other', 'version': 'Unknown'},
-                'os': {'family': 'Other', 'version': 'Unknown'},
-                'device': {'family': 'Other'},
-                'raw_user_agent': user_agent,
-                'parse_error': str(e)
-            }
-    
-    def _build_version_string(self, component: dict) -> str:
-        """Build version string from component parts."""
-        parts = []
-        if component.get('major'):
-            parts.append(component['major'])
-        if component.get('minor'):
-            parts.append(component['minor'])
-        if component.get('patch'):
-            parts.append(component['patch'])
-        return '.'.join(parts) if parts else 'Unknown'
-    
-    def _determine_agent_type(self, parsed_ua: dict) -> str:
-        """Determine agent type based on parsed user agent."""
-        browser_family = parsed_ua.get('browser', {}).get('family', '').lower()
-        device_family = parsed_ua.get('device', {}).get('family', '').lower()
-        
-        # Check for bots
-        bot_indicators = ['bot', 'crawler', 'spider', 'scraper', 'googlebot', 'bingbot']
-        if any(indicator in browser_family for indicator in bot_indicators):
-            return 'bot'
-        
-        # Check for mobile devices
-        mobile_indicators = ['mobile', 'smartphone', 'tablet', 'iphone', 'ipad', 'android']
-        if any(indicator in device_family for indicator in mobile_indicators):
-            return 'device'
-        
-        # Default to browser
-        return 'browser'
-    
-    def _create_agent_name(self, parsed_ua: dict, agent_type: str) -> str:
-        """Create agent name from parsed user agent."""
-        if agent_type == 'bot':
-            return f"Bot: {parsed_ua.get('browser', {}).get('family', 'Unknown')}"
-        elif agent_type == 'device':
-            device = parsed_ua.get('device', {}).get('family', 'Unknown')
-            browser = parsed_ua.get('browser', {}).get('family', 'Unknown')
-            return f"{device} ({browser})"
-        else:  # browser
-            browser = parsed_ua.get('browser', {}).get('family', 'Unknown')
-            os = parsed_ua.get('os', {}).get('family', 'Unknown')
-            return f"{browser} on {os}"
-    
-    def _create_agent_identifier(self, parsed_ua: dict, agent_type: str) -> str:
-        """Create agent identifier from parsed user agent."""
-        browser = parsed_ua.get('browser', {}).get('family', 'unknown').lower()
-        version = parsed_ua.get('browser', {}).get('version', 'unknown').replace('.', '')
-        os = parsed_ua.get('os', {}).get('family', 'unknown').lower()
-        
-        if agent_type == 'bot':
-            return f"bot-{browser}-{version}"
-        elif agent_type == 'device':
-            device = parsed_ua.get('device', {}).get('family', 'unknown').lower()
-            return f"device-{device}-{browser}-{version}"
-        else:  # browser
-            return f"{browser}-{version}-{os}"
-    
     def _create_page_read_interaction(self) -> WebInteraction:
         """Create page read interaction with engagement data."""
-        # Get or create action
-        action = Action.objects.get_or_create(
-            code='page_read',
-            defaults={'name': 'Leyó página', 'description': 'El usuario leyó una página de manera significativa'}
-        )[0]
-        
         # Get page data for touchpoint creation
         payload = self.event_data.get('payload', {})
         page_title = payload.get('page_title', '')
@@ -826,11 +719,12 @@ class PageReadEventProcessor:
         payload['engagement_score'] = engagement_score
         payload['interaction_type'] = 'page_read'
         
-        # Create interaction
-        interaction = Interaction.objects.create(
-            action=action,
-            agent=self._get_or_create_agent(),
-            occurred_at=timezone.now(),
+        # Create base interaction
+        web_interaction = self._create_base_web_interaction(
+            action_code='page_read',
+            action_name='Leyó página',
+            action_description='El usuario leyó una página de manera significativa',
+            interaction_type='page_read',
             payload=payload
         )
         
@@ -840,19 +734,9 @@ class PageReadEventProcessor:
         )
         
         # Link touchpoint to interaction
-        interaction.touchpoint = page_touchpoint
-        interaction.save(update_fields=['touchpoint'])
-        
-        # Create WebInteraction (no UTM fields)
-        web_interaction = WebInteraction.objects.create(
-            interaction=interaction,
-            website=self.website,
-            session_id=self.event_data.get('session_id', ''),
-            visitor_cookie=self.event_data.get('visitor_cookie', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            element=self.event_data.get('element', 'body'),
-            payload=payload
-        )
+        if page_touchpoint:
+            web_interaction.interaction.touchpoint = page_touchpoint
+            web_interaction.interaction.save(update_fields=['touchpoint'])
         
         return web_interaction
     
@@ -891,58 +775,41 @@ class PageReadEventProcessor:
         
         return round(engagement_score, 2)
     
-    def _get_or_create_page_touchpoint(self, title: str, description: str, url: str) -> 'Touchpoint':
+    def _get_or_create_page_touchpoint(self, title: str, description: str, url: str) -> Optional[Touchpoint]:
         """Create or get touchpoint for the page being read."""
-        from interactions.models import Touchpoint, Channel, TouchpointClass
-        
-        # Get or create medium
-        from interactions.models import Medium
-        medium, _ = Medium.objects.get_or_create(
-            code='owned_website',
-            defaults={'name': 'Owned Website'}
-        )
-        
-        # Get or create channel
-        domain_name = self._extract_domain_name(self.website.base_url)
-        # Use consistent channel code (always truncate to 30 chars)
-        channel_code = domain_name.lower()[:30]
-        channel, created = Channel.objects.get_or_create(
-            code=channel_code,
-            defaults={
-                'name': f'{domain_name} Website'
-            }
-        )
-        
-        # Always set the medium
-        if channel.medium != medium:
-            channel.medium = medium
-            channel.save(update_fields=['medium'])
-        
-        # Get or create touchpoint class
-        touchpoint_class, _ = TouchpointClass.objects.get_or_create(
-            code='web.internal_interaction',
-            defaults={'name': 'Internal Web Interaction'}
-        )
-        
-        # Create touchpoint code
-        touchpoint_code = f"web.page_read.{title.lower().replace(' ', '_').replace('-', '_')}"
-        
-        # Get or create touchpoint
-        touchpoint, _ = Touchpoint.objects.get_or_create(
-            code=touchpoint_code,
-            defaults={
-                'name': title,
-                'description': description,
-                'url': url,
-                'channel': channel,
-                'touchpoint_class': touchpoint_class
-            }
-        )
-        
-        return touchpoint
+        try:
+            # Get channel and medium
+            channel, medium = self._get_or_create_website_channel_and_medium()
+            
+            # Get or create touchpoint class
+            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+                code='web.internal_interaction',
+                defaults={'name': 'Internal Web Interaction'}
+            )
+            
+            # Create touchpoint code
+            touchpoint_code = f"web.page_read.{title.lower().replace(' ', '_').replace('-', '_')}"
+            
+            # Get or create touchpoint
+            touchpoint, _ = Touchpoint.objects.get_or_create(
+                code=touchpoint_code,
+                defaults={
+                    'name': title,
+                    'description': description,
+                    'url': url,
+                    'channel': channel,
+                    'touchpoint_class': touchpoint_class
+                }
+            )
+            
+            return touchpoint
+            
+        except Exception as e:
+            logger.error(f"Error creating page read touchpoint: {e}")
+            return None
 
 
-class ClickEventProcessor:
+class ClickEventProcessor(BaseWebEventProcessor):
     """
     Processor for click events that creates single interactions.
     
@@ -957,10 +824,9 @@ class ClickEventProcessor:
         Args:
             event_data: Dictionary containing the click event data
         """
-        self.event_data = event_data
-        self.website = self._get_website()
-        self.web_session = None
+        super().__init__(event_data)
         
+    @transaction.atomic
     def process(self) -> WebInteraction:
         """
         Process the click event and create click interaction.
@@ -968,255 +834,25 @@ class ClickEventProcessor:
         Returns:
             WebInteraction: Created WebInteraction instance
         """
-        # Get or create session
-        self.web_session = self._get_or_create_session()
-        
-        # Create click interaction
-        click_interaction = self._create_click_interaction()
-        
-        # Update session activity
-        self.web_session.update_activity()
-        
-        return click_interaction
-    
-    def _get_website(self) -> Website:
-        """Get or create the website from event data."""
-        website_base = self.event_data.get('website_base')
-        if not website_base:
-            raise ValueError("website_base is required in event data")
-        
-        # Try to find an existing division, or create a default one
-        from our_institution.models import Division
         try:
-            default_division = Division.objects.first()
-            if not default_division:
-                # Create a default division if none exists
-                from our_institution.models import OurOrganization
-                default_org = OurOrganization.objects.first()
-                if not default_org:
-                    default_org = OurOrganization.objects.create(
-                        name="Default Organization",
-                        legal_name="Default Organization Legal Name"
-                    )
-                default_division = Division.objects.create(
-                    name="Default Division",
-                    code="DEFAULT",
-                    description="Default division for websites",
-                    organization=default_org
-                )
-        except:
-            default_division = None
-        
-        website, created = Website.objects.get_or_create(
-            base_url=website_base,
-            defaults={
-                'name': self._extract_domain_name(website_base),
-                'division': default_division,
-                'active': True
-            }
-        )
-        return website
-    
-    def _extract_domain_name(self, url: str) -> str:
-        """Extract a friendly domain name from URL."""
-        try:
-            parsed = urlparse(url)
-            domain = parsed.netloc.lower()
-            if domain.startswith('www.'):
-                domain = domain[4:]
-            # Capitalize first letter of the domain, but keep the rest as is
-            return f"{domain.capitalize()} Website"
-        except:
-            return "Unknown Website"
-    
-    def _get_or_create_session(self) -> WebSession:
-        """Get or create WebSession for this event."""
-        session_id = self.event_data.get('session_id')
-        visitor_cookie = self.event_data.get('visitor_cookie')
-        
-        if not session_id or not visitor_cookie:
-            # Create new session
-            return self._create_new_session()
-        else:
-            # Get existing session and extend it
-            try:
-                session = WebSession.objects.get(session_id=session_id)
-                if session.is_session_active:
-                    # Extend the session for new activity
-                    session.extend_session()
-                return session
-            except WebSession.DoesNotExist:
-                # Session doesn't exist, create new one
-                return self._create_new_session()
-    
-    def _create_new_session(self) -> WebSession:
-        """Create a new WebSession."""
-        session_id = self.event_data.get('session_id', '')
-        visitor_cookie = self.event_data.get('visitor_cookie', '')
-        
-        # Get agent for this session
-        agent = self._get_or_create_agent()
-        
-        # Create session with automatic ended_at
-        session = WebSession.objects.create(
-            session_id=session_id,
-            visitor_cookie=visitor_cookie,
-            website=self.website,
-            agent=agent,
-            utm_source=self.event_data.get('utm_source', ''),
-            utm_medium=self.event_data.get('utm_medium', ''),
-            utm_campaign=self.event_data.get('utm_campaign', ''),
-            utm_content=self.event_data.get('utm_content', ''),
-            utm_term=self.event_data.get('utm_term', ''),
-            referrer_url=self.event_data.get('referrer', ''),
-            landing_page_url=self.event_data.get('full_url', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            ip_address=self.event_data.get('ip'),
-            ended_at=WebSession.get_session_end_time()
-        )
-        
-        return session
-    
-    def _get_or_create_agent(self) -> WebAgent:
-        """Get or create agent from user agent string using ua-parser."""
-        user_agent = self.event_data.get('user_agent', '')
-        if not user_agent:
-            user_agent = 'Unknown Browser'
-        
-        # Parse user agent using ua-parser
-        parsed_ua = self._parse_user_agent(user_agent)
-        
-        # Determine agent type based on parsing results
-        agent_type = self._determine_agent_type(parsed_ua)
-        
-        # Create agent name and identifier
-        agent_name = self._create_agent_name(parsed_ua, agent_type)
-        agent_identifier = self._create_agent_identifier(parsed_ua, agent_type)
-        
-        agent, created = WebAgent.objects.get_or_create(
-            name=agent_name,
-            defaults={
-                'agent_type': agent_type,
-                'identifier': agent_identifier,
-                'metadata': parsed_ua
-            }
-        )
-        return agent
-    
-    def _parse_user_agent(self, user_agent: str) -> dict:
-        """Parse user agent string using ua-parser library."""
-        try:
-            import ua_parser.user_agent_parser as ua_parser
-            parsed = ua_parser.Parse(user_agent)
+            # Get or create session
+            self.web_session = self._get_or_create_session()
             
-            # Convert to a more usable format
-            return {
-                'browser': {
-                    'family': parsed.get('user_agent', {}).get('family', 'Other'),
-                    'major': parsed.get('user_agent', {}).get('major'),
-                    'minor': parsed.get('user_agent', {}).get('minor'),
-                    'patch': parsed.get('user_agent', {}).get('patch'),
-                    'version': self._build_version_string(parsed.get('user_agent', {}))
-                },
-                'os': {
-                    'family': parsed.get('os', {}).get('family', 'Other'),
-                    'major': parsed.get('os', {}).get('major'),
-                    'minor': parsed.get('os', {}).get('minor'),
-                    'patch': parsed.get('os', {}).get('patch'),
-                    'version': self._build_version_string(parsed.get('os', {}))
-                },
-                'device': {
-                    'family': parsed.get('device', {}).get('family', 'Other'),
-                    'brand': parsed.get('device', {}).get('brand'),
-                    'model': parsed.get('device', {}).get('model')
-                },
-                'raw_user_agent': user_agent
-            }
+            # Create click interaction
+            click_interaction = self._create_click_interaction()
+            
+            # Update session activity
+            self.web_session.update_activity()
+            
+            logger.info(f"Successfully created click interaction")
+            return click_interaction
+            
         except Exception as e:
-            # Fallback to basic parsing if ua-parser fails
-            return {
-                'browser': {'family': 'Other', 'version': 'Unknown'},
-                'os': {'family': 'Other', 'version': 'Unknown'},
-                'device': {'family': 'Other'},
-                'raw_user_agent': user_agent,
-                'parse_error': str(e)
-            }
-    
-    def _build_version_string(self, version_dict: dict) -> str:
-        """Build version string from version components."""
-        if not version_dict:
-            return 'Unknown'
-        
-        major = version_dict.get('major')
-        minor = version_dict.get('minor')
-        patch = version_dict.get('patch')
-        
-        if major is None:
-            return 'Unknown'
-        
-        version_parts = [str(major)]
-        if minor is not None:
-            version_parts.append(str(minor))
-        if patch is not None:
-            version_parts.append(str(patch))
-        
-        return '.'.join(version_parts)
-    
-    def _determine_agent_type(self, parsed_ua: dict) -> str:
-        """Determine agent type based on parsed user agent data."""
-        browser_family = parsed_ua.get('browser', {}).get('family', '').lower()
-        device_family = parsed_ua.get('device', {}).get('family', '').lower()
-        
-        # Check for bots/crawlers
-        bot_indicators = ['bot', 'crawler', 'spider', 'scraper', 'crawling', 'headless']
-        if any(indicator in browser_family.lower() for indicator in bot_indicators):
-            return 'bot'
-        
-        # Check for mobile apps (WebView)
-        if 'webview' in browser_family.lower() or 'mobile' in device_family.lower():
-            return 'device'
-        
-        # Default to browser for web traffic
-        return 'browser'
-    
-    def _create_agent_name(self, parsed_ua: dict, agent_type: str) -> str:
-        """Create agent name based on parsed data and agent type."""
-        if agent_type == 'bot':
-            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown Bot')
-            return f"Bot: {browser_family}"
-        elif agent_type == 'device':
-            device_family = parsed_ua.get('device', {}).get('family', 'Unknown Device')
-            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown')
-            return f"{device_family} ({browser_family})"
-        else:  # browser
-            browser_family = parsed_ua.get('browser', {}).get('family', 'Unknown Browser')
-            return browser_family
-    
-    def _create_agent_identifier(self, parsed_ua: dict, agent_type: str) -> str:
-        """Create agent identifier based on parsed data and agent type."""
-        browser_family = parsed_ua.get('browser', {}).get('family', 'unknown').lower()
-        browser_version = parsed_ua.get('browser', {}).get('version', 'unknown')
-        os_family = parsed_ua.get('os', {}).get('family', 'unknown').lower()
-        device_family = parsed_ua.get('device', {}).get('family', 'unknown').lower()
-        
-        if agent_type == 'bot':
-            return f"bot-{browser_family}-{browser_version}"
-        elif agent_type == 'device':
-            return f"device-{device_family}-{browser_family}-{browser_version}"
-        else:  # browser
-            return f"{browser_family}-{browser_version}-{os_family}"
+            logger.error(f"Error processing click event: {e}")
+            raise
     
     def _create_click_interaction(self) -> WebInteraction:
         """Create the click interaction."""
-        # Get or create action
-        action = Action.objects.get_or_create(
-            code='click',
-            defaults={'name': 'Click', 'description': 'User clicked on an element'}
-        )[0]
-        
-        # Get or create agent
-        agent = self._get_or_create_agent()
-        
         # Create interaction payload with all event data
         interaction_payload = {
             'interaction_type': 'click',
@@ -1234,35 +870,24 @@ class ClickEventProcessor:
         event_payload = self.event_data.get('payload', {})
         interaction_payload.update(event_payload)
         
-        # Create interaction
-        interaction = Interaction.objects.create(
-            action=action,
-            agent=agent,
-            occurred_at=timezone.now(),
+        # Create base interaction
+        web_interaction = self._create_base_web_interaction(
+            action_code='click',
+            action_name='Click',
+            action_description='User clicked on an element',
+            interaction_type='click',
             payload=interaction_payload
         )
         
-        # Create click touchpoint first
+        # Create click touchpoint
         click_touchpoint = self._create_click_touchpoint()
-        
-        # Set the touchpoint on the interaction before creating WebInteraction
-        interaction.touchpoint = click_touchpoint
-        interaction.save(update_fields=['touchpoint'])
-        
-        # Create WebInteraction (touchpoint already set, so no automatic resolution)
-        web_interaction = WebInteraction.objects.create(
-            interaction=interaction,
-            website=self.website,
-            session_id=self.event_data.get('session_id', ''),
-            visitor_cookie=self.event_data.get('visitor_cookie', ''),
-            user_agent=self.event_data.get('user_agent', ''),
-            element=self.event_data.get('element', ''),
-            payload=self.event_data.get('payload', {})
-        )
+        if click_touchpoint:
+            web_interaction.interaction.touchpoint = click_touchpoint
+            web_interaction.interaction.save(update_fields=['touchpoint'])
         
         return web_interaction
     
-    def _create_click_touchpoint(self):
+    def _create_click_touchpoint(self) -> Optional[Touchpoint]:
         """Create click-specific touchpoint."""
         try:
             # Get click data from event
@@ -1272,74 +897,45 @@ class ClickEventProcessor:
             element_class = payload.get('element_class', '')
             target_url = payload.get('target_url', '')
             
-            # Create click touchpoint
-            click_touchpoint = self._get_or_create_click_touchpoint(
-                clicked_element, element_id, element_class, target_url
+            # Get channel and medium
+            channel, medium = self._get_or_create_website_channel_and_medium()
+            
+            # Get or create touchpoint class
+            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+                code='web.internal_click',
+                defaults={'name': 'Internal Click'}
             )
             
-            return click_touchpoint
+            # Create touchpoint code based on element
+            element_name = clicked_element.lower().replace(' ', '_').replace('-', '_')
+            touchpoint_code = f"web.click.{element_name}"
+            
+            # Create touchpoint name
+            touchpoint_name = f"Click: {clicked_element}"
+            if element_id:
+                touchpoint_name += f" (ID: {element_id})"
+            elif element_class:
+                touchpoint_name += f" (Class: {element_class})"
+            
+            # Create touchpoint description
+            description = f"User clicked on {clicked_element}"
+            if target_url:
+                description += f" leading to {target_url}"
+            
+            # Get or create touchpoint
+            touchpoint, _ = Touchpoint.objects.get_or_create(
+                code=touchpoint_code,
+                defaults={
+                    'name': touchpoint_name,
+                    'description': description,
+                    'url': self.event_data.get('full_url', ''),
+                    'channel': channel,
+                    'touchpoint_class': touchpoint_class
+                }
+            )
+            
+            return touchpoint
+            
         except Exception as e:
-            # Log error but don't fail the entire process
-            print(f"Error creating click touchpoint: {e}")
+            logger.error(f"Error creating click touchpoint: {e}")
             return None
-    
-    def _get_or_create_click_touchpoint(self, element: str, element_id: str, element_class: str, target_url: str) -> 'Touchpoint':
-        """Create or get touchpoint for the clicked element."""
-        from interactions.models import Touchpoint, Channel, TouchpointClass
-        
-        # Get or create medium
-        from interactions.models import Medium
-        medium, created_medium = Medium.objects.get_or_create(
-            code='owned_website',
-            defaults={'name': 'Owned Website'}
-        )
-        # Get or create channel
-        domain_name = self._extract_domain_name(self.website.base_url)
-        # Use consistent channel code (always truncate to 30 chars)
-        channel_code = domain_name.lower()[:30]
-        channel, created = Channel.objects.get_or_create(
-            code=channel_code,
-            defaults={
-                'name': f'{domain_name} Website'
-            }
-        )
-        
-        # Always set the medium
-        if channel.medium != medium:
-            channel.medium = medium
-            channel.save(update_fields=['medium'])
-        
-        # Get or create touchpoint class
-        touchpoint_class, _ = TouchpointClass.objects.get_or_create(
-            code='web.internal_click',
-            defaults={'name': 'Internal Click'}
-        )
-        
-        # Create touchpoint code based on element
-        element_name = element.lower().replace(' ', '_').replace('-', '_')
-        touchpoint_code = f"web.click.{element_name}"
-        
-        # Create touchpoint name
-        touchpoint_name = f"Click: {element}"
-        if element_id:
-            touchpoint_name += f" (ID: {element_id})"
-        elif element_class:
-            touchpoint_name += f" (Class: {element_class})"
-        
-        # Create touchpoint description
-        description = f"User clicked on {element}"
-        if target_url:
-            description += f" leading to {target_url}"
-        
-        # Get or create touchpoint
-        touchpoint, _ = Touchpoint.objects.get_or_create(
-            code=touchpoint_code,
-            defaults={
-                'name': touchpoint_name,
-                'description': description,
-                'channel': channel,
-                'touchpoint_class': touchpoint_class
-            }
-        )
-        
-        return touchpoint
