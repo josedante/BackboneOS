@@ -26,12 +26,12 @@ def populate_world_data(apps, schema_editor):
             
         for country_data in countries_data.get('countries', []):
             Country.objects.get_or_create(
-                iso2_code=country_data['code'],
+                iso3_code=country_data['iso3_code'],
                 defaults={
-                    'iso3_code': country_data['code'],  # Using ISO2 as ISO3 for now
-                    'name': country_data['name'],
-                    'official_name': country_data['name'],
-                    'phone_code': country_data.get('dialCode', ''),
+                    'iso2_code': country_data.get('iso2_code', ''),
+                    'name': country_data['short_name'],
+                    'official_name': country_data['official_name'],
+                    'phone_code': country_data.get('phone_code', ''),
                     'is_active': True
                 }
             )
