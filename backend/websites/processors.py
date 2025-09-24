@@ -75,14 +75,33 @@ class BaseWebEventProcessor:
                     organization=org
                 )
             
+            # Create the owned_website medium and channel
+            medium, _ = Medium.objects.get_or_create(
+                code='owned_website',
+                defaults={'name': 'Owned Website'}
+            )
+            
+            domain_name = self._extract_domain_name(base_url)
+            # Truncate domain name if too long for channel code (30 char limit)
+            channel_code = domain_name[:30] if len(domain_name) > 30 else domain_name
+            channel_name = self._get_channel_display_name(domain_name)
+            channel, _ = Channel.objects.get_or_create(
+                code=channel_code,
+                defaults={
+                    'name': channel_name,
+                    'medium': medium
+                }
+            )
+            
             website = Website.objects.create(
                 base_url=base_url,
                 name=f"{self._extract_domain_name(base_url)} Website",
                 division=division,
+                channel=channel,
                 active=True
             )
             
-            logger.info(f"Created new website: {website.base_url}")
+            logger.info(f"Created new website: {website.base_url} with channel: {channel.code}")
             return website
             
         except Exception as e:
@@ -378,6 +397,15 @@ class BaseWebEventProcessor:
                 # Internal referrer - channel should be the internal website
                 return 'owned_website', current_website_domain
             
+            # Check if referrer is from a different owned website (same organization)
+            if self._is_owned_website(hostname):
+                # Different owned website - medium is owned_website, channel is the referrer domain
+                domain_parts = hostname.split('.')
+                if len(domain_parts) >= 2:
+                    domain_name = domain_parts[0]  # Get the main domain part
+                    return 'owned_website', domain_name
+                return 'owned_website', hostname
+            
             # Social media domains
             social_domains = {
                 'facebook.com': 'facebook',
@@ -619,7 +647,7 @@ class BaseWebEventProcessor:
             'affiliate': 'web.affiliate_traffic',
             'content': 'web.content_traffic',
             'web_direct': 'web.direct_traffic',
-            'owned_website': 'web.internal_traffic'
+            'owned_website': 'web.referral_traffic'  # Changed to referral_traffic for owned websites
         }
         
         return touchpoint_class_mappings.get(medium_code, 'web.unknown_traffic')
@@ -651,6 +679,39 @@ class BaseWebEventProcessor:
         }
         
         return touchpoint_class_names.get(touchpoint_class_code, 'Unknown Traffic Source')
+    
+    def _is_owned_website(self, hostname: str) -> bool:
+        """
+        Check if a hostname belongs to an owned website (same organization).
+        
+        This method checks if the referrer domain is from the same organization
+        as the current website. This would typically involve checking against
+        a list of owned domains or using some organizational domain pattern.
+        
+        Args:
+            hostname: The hostname to check
+            
+        Returns:
+            bool: True if the hostname is an owned website
+        """
+        try:
+            # Get all websites in the same division as current website
+            owned_websites = Website.objects.filter(
+                division=self.website.division,
+                active=True
+            ).exclude(id=self.website.id)  # Exclude current website
+            
+            # Check if referrer domain matches any owned website domain
+            for website in owned_websites:
+                owned_domain = self._extract_domain_name(website.base_url)
+                if hostname == owned_domain:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error checking owned website for {hostname}: {e}")
+            return False
     
     def _get_or_create_session(self, should_start_new: bool = True) -> WebSession:
         """Get or create WebSession for the event."""

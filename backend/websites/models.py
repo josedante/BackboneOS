@@ -24,6 +24,9 @@ class Website(BaseUUIDModelWithActiveStatus):
     division = models.ForeignKey("our_institution.Division", on_delete=models.CASCADE)
     # Here we keep it flexible: 1 site ↔ many divisions if needed
     # divisions = models.ManyToManyField('our_institution.Division', through='WebsiteOwnership', blank=True)
+    
+    # Channel for owned website traffic analysis
+    channel = models.ForeignKey("interactions.Channel", on_delete=models.CASCADE, null=True, blank=True)
 
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

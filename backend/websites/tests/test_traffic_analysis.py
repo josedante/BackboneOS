@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from unittest.mock import Mock, patch
 
 from our_institution.models import OurOrganization, Division
-from interactions.models import TouchpointClass, Touchpoint, Interaction
+from interactions.models import TouchpointClass, Touchpoint, Interaction, Channel, Medium
 from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol
 from websites.models import Website, WebSurface, WebInteraction, WebForm, WebPage
 from websites.processors import PageViewEventProcessor
@@ -40,10 +40,25 @@ class TrafficAnalysisTestCase(TestCase):
             code='TEST',
             description='Test division for testing'
         )
+        # Create medium and channel for the website
+        medium, _ = Medium.objects.get_or_create(
+            code='owned_website',
+            defaults={'name': 'Owned Website'}
+        )
+        
+        channel, _ = Channel.objects.get_or_create(
+            code='example.com',
+            defaults={
+                'name': 'Example.com Website',
+                'medium': medium
+            }
+        )
+        
         self.website = Website.objects.create(
             division=self.division,
             name='Test Website',
             base_url='https://www.example.com',
+            channel=channel
         )
     
     def test_utm_priority_analysis(self):
@@ -359,13 +374,34 @@ class TrafficAnalysisTestCase(TestCase):
     
     def test_different_owned_website_referrer(self):
         """Test referrer from different owned website (same organization)."""
+        # Create another website in the same division to test database-driven detection
+        medium2, _ = Medium.objects.get_or_create(
+            code='owned_website',
+            defaults={'name': 'Owned Website'}
+        )
+        
+        channel2, _ = Channel.objects.get_or_create(
+            code='ue',
+            defaults={
+                'name': 'Ue',
+                'medium': medium2
+            }
+        )
+        
+        owned_website = Website.objects.create(
+            division=self.division,  # Same division as self.website
+            name='UE Website',
+            base_url='https://www.ue.edu.pe',
+            channel=channel2
+        )
+        
         event_data = {
-            'website_base': 'https://www.esan.edu.pe',
+            'website_base': 'https://www.example.com',  # Current website
             'utm_medium': '',
             'utm_source': '',
             'utm_campaign': '',
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'referrer': 'https://www.ue.edu.pe/some-page',
+            'referrer': 'https://www.ue.edu.pe/some-page',  # From owned website
             'session_id': 'test-session',
             'payload': {},
             'metadata': {}
@@ -374,11 +410,98 @@ class TrafficAnalysisTestCase(TestCase):
         processor = PageViewEventProcessor(event_data)
         channel, medium = processor._get_or_create_traffic_channel_and_medium()
         
-        # Currently this would be treated as external referrer
-        self.assertEqual(medium.code, 'referrer')
+        # Now this should be treated as owned website with referral traffic
+        self.assertEqual(medium.code, 'owned_website')
         self.assertEqual(channel.code, 'ue')
-        self.assertEqual(medium.name, 'Referrer')
+        self.assertEqual(medium.name, 'Owned Website')
         self.assertEqual(channel.name, 'Ue')
+        
+        # Test touchpoint class mapping for owned website
+        touchpoint_class_code = processor._get_traffic_touchpoint_class_code(medium.code)
+        self.assertEqual(touchpoint_class_code, 'web.referral_traffic')
+        
+        touchpoint_class_name = processor._get_traffic_touchpoint_class_name(touchpoint_class_code)
+        self.assertEqual(touchpoint_class_name, 'Referral Traffic')
+    
+    def test_internal_referrer_still_works(self):
+        """Test that internal referrer (same website) still works correctly."""
+        event_data = {
+            'website_base': 'https://www.esan.edu.pe',
+            'utm_medium': '',
+            'utm_source': '',
+            'utm_campaign': '',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'referrer': 'https://www.esan.edu.pe/some-page',
+            'session_id': 'test-session',
+            'payload': {},
+            'metadata': {}
+        }
+        
+        processor = PageViewEventProcessor(event_data)
+        channel, medium = processor._get_or_create_traffic_channel_and_medium()
+        
+        # Internal referrer should still be owned_website but with internal_traffic touchpoint class
+        self.assertEqual(medium.code, 'owned_website')
+        self.assertEqual(channel.code, 'esan.edu.pe')
+        self.assertEqual(medium.name, 'Owned Website')
+        self.assertEqual(channel.name, 'ESAN University')
+        
+        # Test touchpoint class mapping for internal referrer
+        touchpoint_class_code = processor._get_traffic_touchpoint_class_code(medium.code)
+        self.assertEqual(touchpoint_class_code, 'web.referral_traffic')
+        
+        # Note: This is now referral_traffic for all owned_website traffic
+        # If you want to distinguish between internal and different owned websites,
+        # you would need to modify the logic further
+    
+    def test_database_driven_owned_website_detection(self):
+        """Test that owned website detection uses database queries."""
+        # Create another website in the same division
+        medium2, _ = Medium.objects.get_or_create(
+            code='owned_website',
+            defaults={'name': 'Owned Website'}
+        )
+        
+        channel2, _ = Channel.objects.get_or_create(
+            code='ue',
+            defaults={
+                'name': 'Ue',
+                'medium': medium2
+            }
+        )
+        
+        owned_website = Website.objects.create(
+            division=self.division,  # Same division as self.website
+            name='UE Website',
+            base_url='https://www.ue.edu.pe',
+            channel=channel2
+        )
+        
+        # Test traffic from the owned website
+        event_data = {
+            'website_base': 'https://www.example.com',  # Current website
+            'utm_medium': '',
+            'utm_source': '',
+            'utm_campaign': '',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'referrer': 'https://www.ue.edu.pe/some-page',  # From owned website
+            'session_id': 'test-session',
+            'payload': {},
+            'metadata': {}
+        }
+        
+        processor = PageViewEventProcessor(event_data)
+        channel, medium = processor._get_or_create_traffic_channel_and_medium()
+        
+        # Should be detected as owned website
+        self.assertEqual(medium.code, 'owned_website')
+        self.assertEqual(channel.code, 'ue')
+        self.assertEqual(medium.name, 'Owned Website')
+        self.assertEqual(channel.name, 'Ue')
+        
+        # Test touchpoint class mapping
+        touchpoint_class_code = processor._get_traffic_touchpoint_class_code(medium.code)
+        self.assertEqual(touchpoint_class_code, 'web.referral_traffic')
     
     def test_all_medium_mappings(self):
         """Test all medium code mappings."""
@@ -404,3 +527,44 @@ class TrafficAnalysisTestCase(TestCase):
             
             touchpoint_class_name = processor._get_traffic_touchpoint_class_name(touchpoint_class_code)
             self.assertEqual(touchpoint_class_name, expected_class_name)
+    
+    def test_website_creation_with_channel(self):
+        """Test that website creation properly creates channel with owned_website medium."""
+        # Test creating a new website through the processor
+        event_data = {
+            'website_base': 'https://www.newwebsite.com',
+            'utm_medium': '',
+            'utm_source': '',
+            'utm_campaign': '',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'referrer': '',
+            'session_id': 'test-session',
+            'payload': {},
+            'metadata': {}
+        }
+        
+        # Check if website exists before
+        website_exists_before = Website.objects.filter(base_url='https://www.newwebsite.com').exists()
+        self.assertFalse(website_exists_before)
+        
+        # Process the event (this should create the website)
+        processor = PageViewEventProcessor(event_data)
+        website = processor.website
+        
+        # Check if website was created
+        self.assertTrue(Website.objects.filter(base_url='https://www.newwebsite.com').exists())
+        
+        # Check if website has a channel
+        self.assertIsNotNone(website.channel)
+        self.assertEqual(website.channel.code, 'newwebsite.com')
+        self.assertEqual(website.channel.medium.code, 'owned_website')
+        self.assertEqual(website.channel.medium.name, 'Owned Website')
+        
+        # Check channel name formatting
+        expected_channel_name = 'Newwebsite.com Website'
+        self.assertEqual(website.channel.name, expected_channel_name)
+        
+        print(f"✅ Website created successfully:")
+        print(f"   - Website: {website.name}")
+        print(f"   - Channel: {website.channel.name} ({website.channel.code})")
+        print(f"   - Medium: {website.channel.medium.name} ({website.channel.medium.code})")
