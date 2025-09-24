@@ -64,7 +64,7 @@ urlpatterns = [
     # path('api/auth/', include('users.urls')),  # Add auth endpoints at /api/auth/
     path('api/world/', include('world.urls')),
     # path('api/products/', include('products.urls')),
-    # path('api/entities/', include('entities.urls')),
+    path('api/entities/', include('entities.urls')),
     # path('api/interactions/', include('interactions.urls')),
     # path('api/our-institution/', include('our_institution.urls')),
     # path('api/campaigns/', include('campaigns.urls')),
