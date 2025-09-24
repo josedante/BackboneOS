@@ -225,9 +225,7 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         'products.Product', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='touchpoints', help_text="Producto principal asociado a este punto de contacto"
     )
-    channel = models.ForeignKey(Channel, on_delete=models.SET_NULL, null=True, blank=True, related_name='touchpoints',
-        help_text="Canal a través del cual se organiza este punto de contacto"
-    )
+    
     related_industries = models.ManyToManyField(Industry, blank=True)
     related_functions = models.ManyToManyField(Area, blank=True)
     related_skills = models.ManyToManyField(Skill, blank=True)
