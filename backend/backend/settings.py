@@ -43,17 +43,17 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
-    'users',
+    # 'users',
     'world',
-    'websites',
-    'products',
-    'entities',
-    'interactions',
-    'our_institution',
-    'offers',
-    'campaigns',
-    'connectors',
-    'sales',
+    # 'websites',
+    # 'products',
+    # 'entities',
+    # 'interactions',
+    # 'our_institution',
+    # 'offers',
+    # 'campaigns',
+    # 'connectors',
+    # 'sales',
 ]
 
 MIDDLEWARE = [
@@ -120,7 +120,7 @@ else:
             'NAME': config('DATABASE_NAME', default='mydatabase'),
             'USER': config('DATABASE_USER', default='myuser'),
             'PASSWORD': config('DATABASE_PASSWORD', default='mypassword'),
-            'HOST': config('DATABASE_HOST', default='localhost'),
+            'HOST': config('DATABASE_HOST', default='db'),
             'PORT': config('DATABASE_PORT', default='5432'),
         }
     }
