@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 from backend.models import BaseUUIDModelWithActiveStatus
+from our_institution.models import Division
 from world.models import (
     Industry,
     FunctionOrResponsibility,
@@ -13,57 +14,6 @@ from world.models import (
     Tag,
     Country,
 )
-
-
-class Division(BaseUUIDModelWithActiveStatus):
-    """División empresarial que agrupa categorías de productos"""
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=20, unique=True)
-    description = models.TextField(blank=True)
-    
-    class Meta:
-        ordering = ['name']
-        verbose_name = "División"
-        verbose_name_plural = "Divisiones"
-        indexes = [
-            models.Index(fields=['is_active']),
-            models.Index(fields=['name']),
-            models.Index(fields=['code']),
-        ]
-        constraints = []
-
-    def __str__(self):
-        return self.name
-
-    @property
-    def categories_count(self):
-        """Cantidad de categorías en la división"""
-        return self.categories.filter(is_active=True).count()
-
-    @property
-    def products_count(self):
-        """Cantidad total de productos en la división"""
-        from django.db.models import Count
-        return Product.objects.filter(
-            category__division=self,
-            is_active=True
-        ).count()
-
-    def get_revenue_summary(self):
-        """Resumen de ingresos potenciales de la división"""
-        from django.db.models import Sum, Avg, Count
-        
-        products = Product.objects.filter(
-            category__division=self,
-            is_active=True,
-            base_price__isnull=False
-        )
-        
-        return {
-            'total_products_with_price': products.count(),
-            'avg_price': products.aggregate(avg=Avg('base_price'))['avg'],
-            'total_potential_value': products.aggregate(total=Sum('base_price'))['total']
-        }
 
 
 class ProductCategory(BaseUUIDModelWithActiveStatus):

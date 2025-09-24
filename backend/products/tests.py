@@ -8,7 +8,8 @@ from decimal import Decimal
 from datetime import timedelta
 from unittest.mock import patch
 
-from .models import Division, ProductCategory, Modality, Customization, Product
+from our_institution.models import Division
+from .models import ProductCategory, Modality, Customization, Product
 from .serializers import (
     DivisionSerializer, ProductCategorySerializer, ModalitySerializer,
     CustomizationSerializer, ProductListSerializer, ProductDetailSerializer

@@ -10,7 +10,8 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters
-from .models import Division, ProductCategory, Modality, Customization, Product
+from our_institution.models import Division
+from .models import ProductCategory, Modality, Customization, Product
 from .serializers import (
     DivisionSerializer, ProductCategorySerializer, ProductCategoryTreeSerializer,
     ModalitySerializer, CustomizationSerializer,

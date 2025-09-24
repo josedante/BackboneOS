@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     # 'users',
     'world',
     # 'websites',
-    # 'products',
+    'products',
     'entities',
     # 'interactions',
     'our_institution',

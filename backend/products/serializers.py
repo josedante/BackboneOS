@@ -3,7 +3,8 @@ from world.serializers import (
     IndustrySerializer, SkillSerializer, MarketSegmentSerializer,
     FunctionSerializer, WorldDescriptorSerializer, TagSerializer
 )
-from .models import Division, ProductCategory, Modality, Customization, Product
+from our_institution.models import Division
+from .models import ProductCategory, Modality, Customization, Product
 
 
 class DivisionSerializer(serializers.ModelSerializer):

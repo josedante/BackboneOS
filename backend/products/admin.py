@@ -4,7 +4,8 @@ from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import Division, ProductCategory, Modality, Customization, Product
+from our_institution.models import Division
+from .models import ProductCategory, Modality, Customization, Product
 
 
 class HasCanonicalUrlFilter(admin.SimpleListFilter):
@@ -44,41 +45,6 @@ class IsBundleFilter(admin.SimpleListFilter):
         if self.value() == 'included':
             return queryset.filter(included_in_products__isnull=False).distinct()
         return queryset
-
-
-@admin.register(Division)
-class DivisionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'categories_count', 'products_count', 'is_active')
-    list_filter = ('is_active',)
-    search_fields = ('name', 'code', 'description')
-    ordering = ('name',)
-    prepopulated_fields = {'code': ('name',)}
-    
-    fieldsets = (
-        (None, {
-            'fields': ('name', 'code', 'description')
-        }),
-        ('Estado', {
-            'fields': ('is_active',),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).annotate(
-            categories_count=Count('categories', filter=Q(categories__is_active=True)),
-            products_count=Count('categories__product', filter=Q(categories__product__is_active=True))
-        )
-    
-    def categories_count(self, obj):
-        return obj.categories_count
-    categories_count.short_description = 'Categorías'
-    categories_count.admin_order_field = 'categories_count'
-    
-    def products_count(self, obj):
-        return obj.products_count
-    products_count.short_description = 'Productos'
-    products_count.admin_order_field = 'products_count'
 
 
 class ProductCategoryAdmin(admin.ModelAdmin):

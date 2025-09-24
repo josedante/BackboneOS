@@ -10,7 +10,8 @@ from decimal import Decimal
 from datetime import date, timedelta
 from unittest.mock import patch
 
-from .models import Division, ProductCategory, Modality, Customization, Product
+from our_institution.models import Division
+from .models import ProductCategory, Modality, Customization, Product
 from world.models import (
     Industry, FunctionOrResponsibility, Skill, MarketSegment, Tag,
     Country, DescriptorFamily, WorldDescriptor

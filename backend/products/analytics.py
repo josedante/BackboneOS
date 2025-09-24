@@ -4,7 +4,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from datetime import datetime, timedelta
-from .models import Division, Product, ProductCategory, Modality
+from our_institution.models import Division
+from .models import Product, ProductCategory, Modality
 
 
 @api_view(['GET'])
