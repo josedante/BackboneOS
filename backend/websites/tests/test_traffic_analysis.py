@@ -151,7 +151,7 @@ class TrafficAnalysisTestCase(TestCase):
         processor = PageViewEventProcessor(event_data)
         channel, medium = processor._get_or_create_traffic_channel_and_medium()
         
-        self.assertEqual(medium.code, 'organic')
+        self.assertEqual(medium.code, 'organic_search')
         self.assertEqual(channel.code, 'google')
         self.assertEqual(medium.name, 'Organic Search')
         self.assertEqual(channel.name, 'Google')
@@ -356,6 +356,29 @@ class TrafficAnalysisTestCase(TestCase):
         self.assertEqual(channel.code, 'example.com')
         self.assertEqual(medium.name, 'Owned Website')
         self.assertEqual(channel.name, 'Example.com Website')
+    
+    def test_different_owned_website_referrer(self):
+        """Test referrer from different owned website (same organization)."""
+        event_data = {
+            'website_base': 'https://www.esan.edu.pe',
+            'utm_medium': '',
+            'utm_source': '',
+            'utm_campaign': '',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'referrer': 'https://www.ue.edu.pe/some-page',
+            'session_id': 'test-session',
+            'payload': {},
+            'metadata': {}
+        }
+        
+        processor = PageViewEventProcessor(event_data)
+        channel, medium = processor._get_or_create_traffic_channel_and_medium()
+        
+        # Currently this would be treated as external referrer
+        self.assertEqual(medium.code, 'referrer')
+        self.assertEqual(channel.code, 'ue')
+        self.assertEqual(medium.name, 'Referrer')
+        self.assertEqual(channel.name, 'Ue')
     
     def test_all_medium_mappings(self):
         """Test all medium code mappings."""

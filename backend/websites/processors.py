@@ -518,12 +518,14 @@ class BaseWebEventProcessor:
             'social': 'Social Media',
             'referral': 'Referral Traffic',
             'organic': 'Organic Search',
+            'organic_search': 'Organic Search',
             'display': 'Display Advertising',
             'video': 'Video Advertising',
             'mobile': 'Mobile App',
             'affiliate': 'Affiliate Marketing',
             'content': 'Content Marketing',
-            'web_direct': 'Direct Traffic'
+            'web_direct': 'Direct Traffic',
+            'owned_website': 'Owned Website'
         }
         
         return medium_names.get(medium_code, medium_code.title())
@@ -610,12 +612,14 @@ class BaseWebEventProcessor:
             'social': 'web.social_traffic',
             'referral': 'web.referral_traffic',
             'organic': 'web.organic_traffic',
+            'organic_search': 'web.organic_traffic',
             'display': 'web.display_traffic',
             'video': 'web.video_traffic',
             'mobile': 'web.mobile_traffic',
             'affiliate': 'web.affiliate_traffic',
             'content': 'web.content_traffic',
-            'web_direct': 'web.direct_traffic'
+            'web_direct': 'web.direct_traffic',
+            'owned_website': 'web.internal_traffic'
         }
         
         return touchpoint_class_mappings.get(medium_code, 'web.unknown_traffic')
@@ -642,6 +646,7 @@ class BaseWebEventProcessor:
             'web.affiliate_traffic': 'Affiliate Marketing Traffic',
             'web.content_traffic': 'Content Marketing Traffic',
             'web.direct_traffic': 'Direct Traffic',
+            'web.internal_traffic': 'Internal Website Traffic',
             'web.unknown_traffic': 'Unknown Traffic Source'
         }
         
