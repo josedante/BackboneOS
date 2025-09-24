@@ -25,7 +25,8 @@ def populate_world_data(apps, schema_editor):
             countries_data = json.load(f)
             
         for country_data in countries_data.get('countries', []):
-            Country.objects.get_or_create(
+            # Use update_or_create to handle existing records
+            country, created = Country.objects.update_or_create(
                 iso3_code=country_data['iso3_code'],
                 defaults={
                     'iso2_code': country_data.get('iso2_code', ''),
@@ -43,7 +44,7 @@ def populate_world_data(apps, schema_editor):
             industries_data = json.load(f)
             
         for industry_data in industries_data.get('industries', []):
-            Industry.objects.get_or_create(
+            Industry.objects.update_or_create(
                 code=industry_data['code'],
                 defaults={
                     'name': industry_data['name'],
@@ -59,7 +60,7 @@ def populate_world_data(apps, schema_editor):
             functions_data = json.load(f)
             
         for function_data in functions_data.get('functions', []):
-            FunctionOrResponsibility.objects.get_or_create(
+            FunctionOrResponsibility.objects.update_or_create(
                 code=function_data['code'],
                 defaults={
                     'name': function_data['name'],
@@ -75,7 +76,7 @@ def populate_world_data(apps, schema_editor):
             positions_data = json.load(f)
             
         for position_data in positions_data.get('positions', []):
-            Position.objects.get_or_create(
+            Position.objects.update_or_create(
                 code=position_data['code'],
                 defaults={
                     'name': position_data['name'],

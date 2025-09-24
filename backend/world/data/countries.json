@@ -9,10 +9,10 @@
     },
     {
       "iso3_code": "ALB",
-      "iso2_code": "DE",
+      "iso2_code": "AL",
       "short_name": "Albania",
       "official_name": "la República de Albania",
-      "phone_code": "+49"
+      "phone_code": "+355"
     },
     {
       "iso3_code": "DEU",
@@ -65,7 +65,7 @@
     },
     {
       "iso3_code": "ARM",
-      "iso2_code": "",
+      "iso2_code": "AM",
       "short_name": "Armenia",
       "official_name": "la República de Armenia"
     },
@@ -85,7 +85,7 @@
     },
     {
       "iso3_code": "AZE",
-      "iso2_code": "",
+      "iso2_code": "AZ",
       "short_name": "Azerbaiyán",
       "official_name": "la República de Azerbaiyán"
     },
@@ -119,7 +119,7 @@
     },
     {
       "iso3_code": "BLR",
-      "iso2_code": "",
+      "iso2_code": "BY",
       "short_name": "Belarús",
       "official_name": "la República de Belarús"
     },
@@ -139,13 +139,13 @@
     },
     {
       "iso3_code": "BEN",
-      "iso2_code": "",
+      "iso2_code": "BJ",
       "short_name": "Benin",
       "official_name": "la República de Benin"
     },
     {
       "iso3_code": "BTN",
-      "iso2_code": "",
+      "iso2_code": "BT",
       "short_name": "Bhután",
       "official_name": "el Reino de Bhután"
     },
@@ -158,7 +158,7 @@
     },
     {
       "iso3_code": "BIH",
-      "iso2_code": "",
+      "iso2_code": "BA",
       "short_name": "Bosnia y Herzegovina",
       "official_name": "Bosnia y Herzegovina"
     },
@@ -178,7 +178,7 @@
     },
     {
       "iso3_code": "BRN",
-      "iso2_code": "",
+      "iso2_code": "BN",
       "short_name": "Brunei Darussalam",
       "official_name": "Brunei Darussalam"
     },
@@ -205,7 +205,7 @@
     },
     {
       "iso3_code": "CPV",
-      "iso2_code": "",
+      "iso2_code": "CV",
       "short_name": "Cabo Verde",
       "official_name": "la República de Cabo Verde"
     },
@@ -295,7 +295,7 @@
     },
     {
       "iso3_code": "CIV",
-      "iso2_code": "",
+      "iso2_code": "CI",
       "short_name": "Côte d'Ivoire",
       "official_name": "la República de Côte d'Ivoire"
     },
@@ -405,7 +405,7 @@
     },
     {
       "iso3_code": "SWZ",
-      "iso2_code": "",
+      "iso2_code": "SZ",
       "short_name": "Eswatini",
       "official_name": "el Reino de Eswatini"
     },
@@ -452,20 +452,20 @@
     },
     {
       "iso3_code": "GAB",
-      "iso2_code": "",
+      "iso2_code": "GA",
       "short_name": "Gabón",
       "official_name": "la República Gabonesa"
     },
     {
       "iso3_code": "GMB",
-      "iso2_code": "ZM",
+      "iso2_code": "GM",
       "short_name": "Gambia",
       "official_name": "la República de Gambia",
       "phone_code": "+260"
     },
     {
       "iso3_code": "GEO",
-      "iso2_code": "",
+      "iso2_code": "GE",
       "short_name": "Georgia",
       "official_name": "Georgia"
     },
@@ -499,19 +499,19 @@
     },
     {
       "iso3_code": "GIN",
-      "iso2_code": "",
+      "iso2_code": "GN",
       "short_name": "Guinea",
       "official_name": "la República de Guinea"
     },
     {
       "iso3_code": "GNQ",
-      "iso2_code": "",
+      "iso2_code": "GQ",
       "short_name": "Guinea Ecuatorial",
       "official_name": "la República de Guinea Ecuatorial"
     },
     {
       "iso3_code": "GNB",
-      "iso2_code": "",
+      "iso2_code": "GW",
       "short_name": "Guinea-Bissau",
       "official_name": "la República de Guinea-Bissau"
     },
@@ -559,7 +559,7 @@
     },
     {
       "iso3_code": "IRN",
-      "iso2_code": "",
+      "iso2_code": "IR",
       "short_name": "Irán (República Islámica del)",
       "official_name": "la República Islámica del Irán"
     },
@@ -592,7 +592,7 @@
     },
     {
       "iso3_code": "FRO",
-      "iso2_code": "",
+      "iso2_code": "FO",
       "short_name": "Islas Feroe",
       "official_name": "las Islas Feroe"
     },
@@ -682,7 +682,7 @@
     },
     {
       "iso3_code": "LSO",
-      "iso2_code": "",
+      "iso2_code": "LS",
       "short_name": "Lesotho",
       "official_name": "el Reino de Lesotho"
     },
@@ -702,7 +702,7 @@
     },
     {
       "iso3_code": "LBR",
-      "iso2_code": "LY",
+      "iso2_code": "LR",
       "short_name": "Liberia",
       "official_name": "la República de Liberia",
       "phone_code": "+218"
@@ -730,7 +730,7 @@
     },
     {
       "iso3_code": "MKD",
-      "iso2_code": "",
+      "iso2_code": "MK",
       "short_name": "Macedonia del Norte",
       "official_name": "la República de Macedonia del Norte"
     },
@@ -750,13 +750,13 @@
     },
     {
       "iso3_code": "MWI",
-      "iso2_code": "",
+      "iso2_code": "MW",
       "short_name": "Malawi",
       "official_name": "la República de Malawi"
     },
     {
       "iso3_code": "MDV",
-      "iso2_code": "",
+      "iso2_code": "MV",
       "short_name": "Maldivas",
       "official_name": "la República de Maldivas"
     },
@@ -790,7 +790,7 @@
     },
     {
       "iso3_code": "MRT",
-      "iso2_code": "",
+      "iso2_code": "MR",
       "short_name": "Mauritania",
       "official_name": "la República Islámica de Mauritania"
     },
@@ -803,7 +803,7 @@
     },
     {
       "iso3_code": "FSM",
-      "iso2_code": "",
+      "iso2_code": "FM",
       "short_name": "Micronesia (Estados Federados de)",
       "official_name": "los Estados Federados de Micronesia"
     },
@@ -823,7 +823,7 @@
     },
     {
       "iso3_code": "MNE",
-      "iso2_code": "",
+      "iso2_code": "ME",
       "short_name": "Montenegro",
       "official_name": "Montenegro"
     },
@@ -989,7 +989,7 @@
     },
     {
       "iso3_code": "SYR",
-      "iso2_code": "",
+      "iso2_code": "SY",
       "short_name": "República Árabe Siria",
       "official_name": "la República Árabe Siria"
     },
@@ -1009,7 +1009,7 @@
     },
     {
       "iso3_code": "MDA",
-      "iso2_code": "",
+      "iso2_code": "MD",
       "short_name": "República de Moldova",
       "official_name": "la República de Moldova"
     },
@@ -1022,7 +1022,7 @@
     },
     {
       "iso3_code": "LAO",
-      "iso2_code": "",
+      "iso2_code": "LA",
       "short_name": "República Democrática Popular Lao",
       "official_name": "la República Democrática Popular Lao"
     },
@@ -1035,13 +1035,13 @@
     },
     {
       "iso3_code": "PRK",
-      "iso2_code": "",
+      "iso2_code": "KP",
       "short_name": "República Popular Democrática de Corea",
       "official_name": "la República Popular Democrática de Corea"
     },
     {
       "iso3_code": "TZA",
-      "iso2_code": "",
+      "iso2_code": "TZ",
       "short_name": "República Unida de Tanzanía",
       "official_name": "la República Unida de Tanzanía"
     },
@@ -1095,7 +1095,7 @@
     },
     {
       "iso3_code": "STP",
-      "iso2_code": "",
+      "iso2_code": "ST",
       "short_name": "Santo Tomé y Príncipe",
       "official_name": "la República Democrática de Santo Tomé y Príncipe"
     },
@@ -1108,7 +1108,7 @@
     },
     {
       "iso3_code": "SRB",
-      "iso2_code": "",
+      "iso2_code": "RS",
       "short_name": "Serbia",
       "official_name": "la República de Serbia"
     },
@@ -1121,7 +1121,7 @@
     },
     {
       "iso3_code": "SLE",
-      "iso2_code": "",
+      "iso2_code": "SL",
       "short_name": "Sierra Leona",
       "official_name": "la República de Sierra Leona"
     },
@@ -1204,13 +1204,13 @@
     },
     {
       "iso3_code": "TLS",
-      "iso2_code": "",
+      "iso2_code": "TL",
       "short_name": "Timor-Leste",
       "official_name": "la República Democrática de Timor-Leste"
     },
     {
       "iso3_code": "TGO",
-      "iso2_code": "",
+      "iso2_code": "TG",
       "short_name": "Togo",
       "official_name": "la República Togolesa"
     },
