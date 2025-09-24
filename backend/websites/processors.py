@@ -199,11 +199,11 @@ class BaseWebEventProcessor:
         # Get or create channel
         domain_name = self._extract_domain_name(self.website.base_url)
         # Use consistent channel code (always truncate to 30 chars)
-        channel_code = f"{domain_name} website"[:30]
+        channel_code = f"{domain_name}"[:30]
         channel, created = Channel.objects.get_or_create(
             code=channel_code,
             defaults={
-                'name': f'{domain_name} Website'
+                'name': f'{domain_name}'
             }
         )
         
@@ -213,6 +213,439 @@ class BaseWebEventProcessor:
             channel.save(update_fields=['medium'])
         
         return channel, medium
+    
+    def _get_or_create_traffic_channel_and_medium(self):
+        """
+        Get or create channel and medium for traffic source analysis.
+        
+        This method analyzes the event data to determine the traffic source
+        and creates appropriate channel and medium objects based on:
+        1. UTM parameters (highest priority)
+        2. Referrer analysis (second priority) 
+        3. User agent analysis (third priority)
+        4. Direct traffic fallback (lowest priority)
+        
+        Returns:
+            tuple: (channel, medium) objects
+        """
+        # Extract traffic source information
+        utm_medium = self.event_data.get('utm_medium', '')
+        utm_source = self.event_data.get('utm_source', '')
+        utm_campaign = self.event_data.get('utm_campaign', '')
+        referrer_url = self.event_data.get('referrer', '')
+        user_agent = self.event_data.get('user_agent', '')
+        
+        # Priority 1: UTM parameters analysis
+        if utm_medium:
+            medium_code, channel_code = self._analyze_utm_traffic(utm_medium, utm_source)
+        # Priority 2: Referrer analysis
+        elif referrer_url:
+            medium_code, channel_code = self._analyze_referrer_traffic(referrer_url)
+        # Priority 3: User agent analysis for native apps
+        elif user_agent:
+            medium_code, channel_code = self._analyze_user_agent_traffic(user_agent)
+        # Priority 4: Direct traffic fallback
+        else:
+            medium_code, channel_code = self._get_direct_traffic()
+        
+        # Get or create medium
+        medium, _ = Medium.objects.get_or_create(
+            code=medium_code,
+            defaults={'name': self._get_medium_display_name(medium_code)}
+        )
+        
+        # Get or create channel
+        channel_name = self._get_channel_display_name(channel_code)
+        channel, _ = Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': channel_name,
+                'medium': medium
+            }
+        )
+        
+        # Ensure medium is set on channel
+        if channel.medium != medium:
+            channel.medium = medium
+            channel.save(update_fields=['medium'])
+        
+        return channel, medium
+    
+    def _analyze_utm_traffic(self, utm_medium: str, utm_source: str) -> tuple:
+        """
+        Analyze UTM parameters to determine medium and channel.
+        
+        Args:
+            utm_medium: UTM medium parameter
+            utm_source: UTM source parameter
+            
+        Returns:
+            tuple: (medium_code, channel_code)
+        """
+        # Normalize UTM medium
+        utm_medium = utm_medium.lower().strip()
+        
+        # Map UTM medium to standardized medium codes
+        medium_mappings = {
+            'cpc': 'paid',
+            'ppc': 'paid', 
+            'paid': 'paid',
+            'paidsearch': 'paid',
+            'paid_search': 'paid',
+            'email': 'email',
+            'newsletter': 'email',
+            'mail': 'email',
+            'mailing': 'email',
+            'social': 'social',
+            'facebook': 'social',
+            'twitter': 'social',
+            'linkedin': 'social',
+            'instagram': 'social',
+            'tiktok': 'social',
+            'youtube': 'social',
+            'referral': 'referral',
+            'referrer': 'referral',
+            'refer': 'referral',
+            'organic': 'organic',
+            'seo': 'organic',
+            'search': 'organic',
+            'natural': 'organic',
+            'display': 'display',
+            'banner': 'display',
+            'cpm': 'display',
+            'video': 'video',
+            'youtube_ads': 'video',
+            'video_ads': 'video',
+            'mobile': 'mobile',
+            'app': 'mobile',
+            'mobile_app': 'mobile',
+            'affiliate': 'affiliate',
+            'partner': 'affiliate',
+            'aff': 'affiliate',
+            'content': 'content',
+            'blog': 'content',
+            'article': 'content'
+        }
+        
+        medium_code = medium_mappings.get(utm_medium, utm_medium)
+        
+        # Normalize UTM source to channel code
+        if utm_source:
+            utm_source = utm_source.lower().strip()
+            channel_mappings = {
+                'google': 'google',
+                'facebook': 'facebook',
+                'twitter': 'twitter',
+                'linkedin': 'linkedin',
+                'instagram': 'instagram',
+                'youtube': 'youtube',
+                'substack': 'substack',
+                'email': 'email',
+                'newsletter': 'email',
+                'web_direct': 'web_direct'
+            }
+            channel_code = channel_mappings.get(utm_source, utm_source)
+        else:
+            channel_code = 'web_direct'
+        
+        return medium_code, channel_code
+    
+    def _analyze_referrer_traffic(self, referrer_url: str) -> tuple:
+        """
+        Analyze referrer URL to determine medium and channel.
+        
+        Args:
+            referrer_url: The referrer URL
+            
+        Returns:
+            tuple: (medium_code, channel_code)
+        """
+        if not referrer_url:
+            return 'web_direct', 'web_direct'
+        
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(referrer_url)
+            hostname = parsed.hostname.lower() if parsed.hostname else ''
+            
+            # Remove www. prefix
+            if hostname.startswith('www.'):
+                hostname = hostname[4:]
+            
+            # Check if referrer is internal to the current website
+            current_website_domain = self._extract_domain_name(self.website.base_url)
+            if hostname == current_website_domain:
+                # Internal referrer - channel should be the internal website
+                return 'owned_website', current_website_domain
+            
+            # Social media domains
+            social_domains = {
+                'facebook.com': 'facebook',
+                'fb.com': 'facebook', 
+                'twitter.com': 'twitter',
+                'x.com': 'twitter',
+                't.co': 'twitter',
+                'linkedin.com': 'linkedin',
+                'instagram.com': 'instagram',
+                'tiktok.com': 'tiktok',
+                'youtube.com': 'youtube',
+                'pinterest.com': 'pinterest',
+                'reddit.com': 'reddit',
+                'snapchat.com': 'snapchat',
+                'whatsapp.com': 'whatsapp'
+            }
+            
+            # Check for social media
+            for domain, channel in social_domains.items():
+                if domain in hostname:
+                    return 'social', channel
+            
+            # Search engines
+            search_domains = {
+                'google.com': 'google',
+                'bing.com': 'bing',
+                'yahoo.com': 'yahoo',
+                'duckduckgo.com': 'duckduckgo',
+                'baidu.com': 'baidu',
+                'yandex.com': 'yandex',
+                'ask.com': 'ask',
+                'aol.com': 'aol',
+                'kagi.com': 'kagi'
+            }
+            
+            # Check for search engines
+            for domain, channel in search_domains.items():
+                if domain in hostname:
+                    return 'organic_search', channel
+            
+            # Email providers
+            email_domains = {
+                'gmail.com': 'gmail',
+                'outlook.com': 'outlook',
+                'yahoo.com': 'yahoo',
+                'hotmail.com': 'hotmail',
+                'mail.yahoo.com': 'yahoo',
+                'mail.google.com': 'gmail'
+            }
+            
+            # Check for email providers
+            for domain, channel in email_domains.items():
+                if domain in hostname:
+                    return 'email', channel
+            
+            # If it's an external referrer, it's referral
+            if hostname and not hostname.startswith('localhost') and not hostname.startswith('127.0.0.1'):
+                # Extract domain name without TLD for generic external referrers
+                domain_parts = hostname.split('.')
+                if len(domain_parts) >= 2:
+                    domain_name = domain_parts[0]  # Get the main domain part
+                    return 'referrer', domain_name
+                return 'referrer', hostname
+            
+            return 'owned_website', 'web.owned_referrer'
+            
+        except Exception:
+            return 'owned_website', 'web.owned_referrer'
+    
+    def _analyze_user_agent_traffic(self, user_agent: str) -> tuple:
+        """
+        Analyze user agent to detect native app traffic.
+        
+        Args:
+            user_agent: The user agent string
+            
+        Returns:
+            tuple: (medium_code, channel_code)
+        """
+        if not user_agent:
+            return 'web_direct', 'web_direct'
+        
+        user_agent = user_agent.lower()
+        
+        # App-specific user agent patterns
+        app_patterns = {
+            r'substackapp': ('mobile', 'substack'),
+            r'esanapp': ('mobile', 'esan_app'),
+            r'myapp': ('mobile', 'generic_app'),
+            r'mobileapp': ('mobile', 'generic_app'),
+            r'app/\d+\.\d+': ('mobile', 'generic_app')
+        }
+        
+        import re
+        for pattern, (medium, channel) in app_patterns.items():
+            if re.search(pattern, user_agent):
+                return medium, channel
+        
+        # Check for WebView patterns
+        webview_patterns = [
+            r'wv\)',              # WebView indicator
+            r'webview',           # WebView in user agent
+            r'mobile safari.*wv', # iOS WebView
+            r'chrome.*mobile.*wv' # Android WebView
+        ]
+        
+        for pattern in webview_patterns:
+            if re.search(pattern, user_agent):
+                return 'mobile', 'webview'
+        
+        # If no app patterns found, fall back to direct traffic
+        return self._get_direct_traffic()
+    
+    def _get_direct_traffic(self) -> tuple:
+        """
+        Get direct traffic classification.
+        
+        Returns:
+            tuple: (medium_code, channel_code)
+        """
+        # Extract domain from website base URL for channel
+        domain_name = self._extract_domain_name(self.website.base_url)
+        return 'web_direct', domain_name
+    
+    def _get_medium_display_name(self, medium_code: str) -> str:
+        """
+        Get human-friendly display name for medium code.
+        
+        Args:
+            medium_code: The medium code
+            
+        Returns:
+            str: Human-friendly medium name
+        """
+        medium_names = {
+            'paid': 'Paid Advertising',
+            'email': 'Email Marketing',
+            'social': 'Social Media',
+            'referral': 'Referral Traffic',
+            'organic': 'Organic Search',
+            'display': 'Display Advertising',
+            'video': 'Video Advertising',
+            'mobile': 'Mobile App',
+            'affiliate': 'Affiliate Marketing',
+            'content': 'Content Marketing',
+            'web_direct': 'Direct Traffic'
+        }
+        
+        return medium_names.get(medium_code, medium_code.title())
+    
+    def _get_channel_display_name(self, channel_code: str) -> str:
+        """
+        Get human-friendly display name for channel code.
+        
+        Args:
+            channel_code: The channel code
+            
+        Returns:
+            str: Human-friendly channel name
+        """
+        channel_names = {
+            # Search engines
+            'google': 'Google',
+            'bing': 'Bing',
+            'yahoo': 'Yahoo',
+            'duckduckgo': 'DuckDuckGo',
+            'baidu': 'Baidu',
+            'yandex': 'Yandex',
+            'ask': 'Ask',
+            'aol': 'AOL',
+            
+            # Social media
+            'facebook': 'Facebook',
+            'twitter': 'Twitter',
+            'linkedin': 'LinkedIn',
+            'instagram': 'Instagram',
+            'youtube': 'YouTube',
+            'tiktok': 'TikTok',
+            'pinterest': 'Pinterest',
+            'reddit': 'Reddit',
+            'snapchat': 'Snapchat',
+            'whatsapp': 'WhatsApp',
+            
+            # Email providers
+            'gmail': 'Gmail',
+            'outlook': 'Outlook',
+            'hotmail': 'Hotmail',
+            
+            # Apps
+            'substack': 'Substack',
+            'esan_app': 'ESAN App',
+            'generic_app': 'Mobile App',
+            'webview': 'WebView',
+            
+            # Direct
+            'web_direct': 'Direct Traffic'
+        }
+        
+        # Check for exact matches first
+        if channel_code in channel_names:
+            return channel_names[channel_code]
+        
+        # Handle domain patterns
+        if channel_code.endswith('.com'):
+            domain_part = channel_code.replace('.com', '')
+            return f"{domain_part.title()}.com Website"
+        elif channel_code.endswith('.edu.pe'):
+            domain_part = channel_code.replace('.edu.pe', '')
+            return f"{domain_part.upper()} University"
+        elif channel_code.endswith('.edu'):
+            domain_part = channel_code.replace('.edu', '')
+            return f"{domain_part.title()} University"
+        else:
+            # Generic fallback - capitalize
+            return f"{channel_code.title()}"
+    
+    def _get_traffic_touchpoint_class_code(self, medium_code: str) -> str:
+        """
+        Get touchpoint class code based on medium for traffic classification.
+        
+        Args:
+            medium_code: The medium code from traffic analysis
+            
+        Returns:
+            str: The touchpoint class code
+        """
+        touchpoint_class_mappings = {
+            'paid': 'web.paid_traffic',
+            'email': 'web.email_traffic',
+            'social': 'web.social_traffic',
+            'referral': 'web.referral_traffic',
+            'organic': 'web.organic_traffic',
+            'display': 'web.display_traffic',
+            'video': 'web.video_traffic',
+            'mobile': 'web.mobile_traffic',
+            'affiliate': 'web.affiliate_traffic',
+            'content': 'web.content_traffic',
+            'web_direct': 'web.direct_traffic'
+        }
+        
+        return touchpoint_class_mappings.get(medium_code, 'web.unknown_traffic')
+    
+    def _get_traffic_touchpoint_class_name(self, touchpoint_class_code: str) -> str:
+        """
+        Get human-friendly touchpoint class name.
+        
+        Args:
+            touchpoint_class_code: The touchpoint class code
+            
+        Returns:
+            str: Human-friendly touchpoint class name
+        """
+        touchpoint_class_names = {
+            'web.paid_traffic': 'Paid Advertising Traffic',
+            'web.email_traffic': 'Email Marketing Traffic',
+            'web.social_traffic': 'Social Media Traffic',
+            'web.referral_traffic': 'Referral Traffic',
+            'web.organic_traffic': 'Organic Search Traffic',
+            'web.display_traffic': 'Display Advertising Traffic',
+            'web.video_traffic': 'Video Advertising Traffic',
+            'web.mobile_traffic': 'Mobile App Traffic',
+            'web.affiliate_traffic': 'Affiliate Marketing Traffic',
+            'web.content_traffic': 'Content Marketing Traffic',
+            'web.direct_traffic': 'Direct Traffic',
+            'web.unknown_traffic': 'Unknown Traffic Source'
+        }
+        
+        return touchpoint_class_names.get(touchpoint_class_code, 'Unknown Traffic Source')
     
     def _get_or_create_session(self, should_start_new: bool = True) -> WebSession:
         """Get or create WebSession for the event."""
@@ -561,13 +994,16 @@ class PageViewEventProcessor(BaseWebEventProcessor):
     def _create_referrer_click_touchpoint(self, referrer: str) -> Optional[Touchpoint]:
         """Create referrer click specific touchpoint."""
         try:
-            # Get channel and medium
+            # Get channel and medium using traffic analysis
             channel, medium = self._get_or_create_traffic_channel_and_medium()
             
-            # Get or create touchpoint class
+            # Determine touchpoint class based on medium
+            touchpoint_class_code = self._get_traffic_touchpoint_class_code(medium.code)
+            touchpoint_class_name = self._get_traffic_touchpoint_class_name(touchpoint_class_code)
+            
             touchpoint_class, _ = TouchpointClass.objects.get_or_create(
-                code='web.external_referrer',
-                defaults={'name': 'External Referrer'}
+                code=touchpoint_class_code,
+                defaults={'name': touchpoint_class_name}
             )
             
             # Create touchpoint code
