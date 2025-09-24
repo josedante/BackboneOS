@@ -200,7 +200,7 @@ class TouchpointListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Touchpoint
         fields = [
-            'id', 'name', 'code', 'touchpoint_class', 'channel', 'funnel_stage', 'content_type',
+            'id', 'name', 'code', 'touchpoint_class', 'channel', 'content_type',
             'assigned_staff_display', 'product_display', 'interactions_count',
             'semantic_tags', 'is_active'
         ]
@@ -247,7 +247,7 @@ class TouchpointDetailSerializer(serializers.ModelSerializer):
         model = Touchpoint
         fields = [
             'id', 'name', 'code', 'description', 'url', 'external_id',
-            'touchpoint_class', 'channel', 'funnel_stage', 'content_type', 'product', 'assigned_staff',
+            'touchpoint_class', 'channel', 'content_type', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'interactions_count', 'recent_interactions', 'is_active',
             'created_at', 'updated_at'
@@ -266,7 +266,7 @@ class TouchpointCreateUpdateSerializer(serializers.ModelSerializer):
         model = Touchpoint
         fields = [
             'id', 'name', 'code', 'description', 'url', 'external_id',
-            'touchpoint_class', 'channel', 'funnel_stage', 'content_type', 'product', 'assigned_staff',
+            'touchpoint_class', 'channel', 'content_type', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'is_active'
         ]
@@ -276,7 +276,7 @@ class TouchpointChoiceSerializer(serializers.ModelSerializer):
     """Serializer simple para choices"""
     class Meta:
         model = Touchpoint
-        fields = ['id', 'name', 'code', 'funnel_stage', 'content_type']
+        fields = ['id', 'name', 'code', 'content_type']
 
 
 class InteractionListSerializer(serializers.ModelSerializer):
@@ -293,8 +293,7 @@ class InteractionListSerializer(serializers.ModelSerializer):
         model = Interaction
         fields = [
             'id', 'occurred_at', 'entity_display', 'agent_display',
-            'touchpoint_display', 'action_display', 'channel_display',
-            'jtbd_stage', 'duration_display', 'geographic_location',
+            'touchpoint_display', 'action_display', 'channel_display', 'duration_display', 'geographic_location',
             'source', 'is_active'
         ]
     
@@ -360,7 +359,7 @@ class InteractionDetailSerializer(serializers.ModelSerializer):
             'agent', 'representative', 'product',
             'occurred_at', 'duration_seconds', 'session_id',
             'latitude', 'longitude', 'referrer_url', 'user_agent', 'ip_address',
-            'source', 'jtbd_stage', 'payload', 'metadata',
+            'source', 'payload', 'metadata',
             'resolved_person_display', 'resolved_organization_display',
             'duration_display', 'geographic_location', 'has_duration',
             'is_active', 'created_at', 'updated_at'
@@ -394,7 +393,7 @@ class InteractionCreateUpdateSerializer(serializers.ModelSerializer):
             'agent', 'representative', 'product',
             'occurred_at', 'duration_seconds', 'session_id',
             'latitude', 'longitude', 'referrer_url', 'user_agent', 'ip_address',
-            'source', 'jtbd_stage', 'payload', 'metadata', 'is_active'
+            'source', 'payload', 'metadata', 'is_active'
         ]
     
     def validate(self, data):

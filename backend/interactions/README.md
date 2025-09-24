@@ -126,19 +126,11 @@ class TouchpointClass(models.Model):
 
 ```python
 class Touchpoint(models.Model):
-    FUNNEL_STAGES = [
-        ('awareness', 'Consciencia'),
-        ('consideration', 'Consideración'),
-        ('decision', 'Decisión'),
-        ('retention', 'Retención')
-    ]
-
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=100, unique=True)
     touchpoint_class = models.ForeignKey(TouchpointClass, null=True, blank=True)
     channel = models.ForeignKey(Channel, null=True, blank=True, related_name='touchpoints',
         help_text="Canal a través del cual se organiza este punto de contacto")
-    funnel_stage = models.CharField(max_length=20, choices=FUNNEL_STAGES)
 
     # URLs y ubicación
     url = models.URLField(blank=True)
@@ -161,15 +153,6 @@ class Touchpoint(models.Model):
 
 ```python
 class Interaction(models.Model):
-    JOB_STAGES = [
-        ('awareness', 'Consciencia'),
-        ('consideration', 'Consideración'),
-        ('decision', 'Decisión'),
-        ('onboarding', 'Incorporación'),
-        ('usage', 'Uso'),
-        ('advocacy', 'Recomendación'),
-        ('any', 'Cualquiera')
-    ]
 
     # Identificación
     session_id = models.CharField(max_length=100)
@@ -194,9 +177,6 @@ class Interaction(models.Model):
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
     latitude = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True)
     longitude = models.DecimalField(max_digits=11, decimal_places=8, null=True, blank=True)
-
-    # Contexto del Jobs-to-be-Done
-    jtbd_stage = models.CharField(max_length=20, choices=JOB_STAGES, default='any')
 
     # Metadatos técnicos
     source = models.CharField(max_length=200, blank=True)
@@ -336,7 +316,6 @@ GET    /api/interactions/touchpoints/{id}/          # Detalle de touchpoint
 PUT    /api/interactions/touchpoints/{id}/          # Actualizar touchpoint
 DELETE /api/interactions/touchpoints/{id}/          # Eliminar touchpoint
 GET    /api/interactions/touchpoints/choices/       # Choices para formularios
-GET    /api/interactions/touchpoints/by_funnel_stage/ # Filtrar por etapa del funnel
 GET    /api/interactions/touchpoints/{id}/interactions/ # Interacciones del touchpoint
 GET    /api/interactions/touchpoints/analytics/     # Analytics de touchpoints
 ```
@@ -374,10 +353,6 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
     { "action__name": "Clic", "count": 4 },
     { "action__name": "Visualización", "count": 3 }
   ],
-  "by_jtbd_stage": [
-    { "jtbd_stage": "awareness", "count": 6 },
-    { "jtbd_stage": "consideration", "count": 5 }
-  ]
 }
 ```
 
@@ -410,9 +385,6 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
 ```json
 {
   "total_touchpoints": 3,
-  "touchpoints_by_stage": [
-    { "funnel_stage": "awareness", "count": 2, "interactions_count": 5 }
-  ],
   "touchpoints_by_class": [
     { "touchpoint_class__name": "Landing Page", "count": 2 }
   ],
@@ -420,7 +392,6 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
     {
       "id": "uuid",
       "name": "Homepage",
-      "funnel_stage": "awareness",
       "interactions_count": 8
     }
   ]
@@ -459,7 +430,6 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
 #### **Touchpoints**
 
 - `is_active`: Filtrar por estado activo
-- `funnel_stage`: Filtrar por etapa del funnel
 - `touchpoint_class`: Filtrar por clase
 - `assigned_staff`: Filtrar por staff asignado
 - `related_industries`: Filtrar por industrias relacionadas
@@ -469,7 +439,6 @@ POST   /api/interactions/interactions/bulk_create/  # Creación en lote
 #### **Interactions**
 
 - `is_active`: Filtrar por estado activo
-- `jtbd_stage`: Filtrar por etapa Jobs-to-be-Done
 - `touchpoint`: Filtrar por touchpoint
 - `action`: Filtrar por acción
 - `agent`: Filtrar por agente
@@ -642,7 +611,6 @@ interaction = Interaction.objects.create(
     action=click_action,
     agent=browser_agent,
     channel=website_channel,
-    jtbd_stage="awareness",
     duration_seconds=45,
     metadata={"page_url": "/landing", "utm_source": "google"}
 )
@@ -667,7 +635,6 @@ performance_metrics = {
 touchpoints = Touchpoint.objects.filter(
     related_industries__name="Financial Services",
     related_functions__name="Marketing",
-    funnel_stage="consideration"
 )
 ```
 

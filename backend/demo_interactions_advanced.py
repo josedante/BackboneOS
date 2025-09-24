@@ -84,13 +84,6 @@ class InteractionsSystemDemo:
                         count = item.get('count', 0)
                         print(f"   • {channel}: {count} interacciones")
                 
-                # Distribución por etapa JTBD
-                if 'by_jtbd_stage' in data and data['by_jtbd_stage']:
-                    print("\n🎯 DISTRIBUCIÓN POR ETAPA JTBD:")
-                    for item in data['by_jtbd_stage']:
-                        stage = item.get('jtbd_stage', 'N/A')
-                        count = item.get('count', 0)
-                        print(f"   • {stage.title()}: {count} interacciones")
         except Exception as e:
             print(f"❌ Error en analytics de interacciones: {e}")
         
@@ -139,17 +132,6 @@ class InteractionsSystemDemo:
                         print(f"   • {name} ({medium})")
         except Exception as e:
             print(f"❌ Error en filtrado de canales: {e}")
-        
-        # Filtro por etapa JTBD
-        print("\n🎯 FILTRADO POR ETAPA JTBD 'AWARENESS':")
-        try:
-            response = self.session.get(f"{self.base_url}/interactions/?jtbd_stage=awareness")
-            if response.status_code == 200:
-                data = response.json()
-                count = data.get('count', 0) if isinstance(data, dict) else len(data)
-                print(f"   Interacciones en etapa 'awareness': {count}")
-        except Exception as e:
-            print(f"❌ Error en filtrado por JTBD: {e}")
         
         # Filtro por tipo de agente
         print("\n🤖 FILTRADO POR TIPO DE AGENTE 'BROWSER':")

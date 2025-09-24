@@ -141,17 +141,7 @@
 
 ### Framework de Interacciones Customer Journey
 
-1. **Seguimiento Jobs-to-be-Done**
-
-   ```python
-   # Interacciones por etapa del trabajo del cliente
-   awareness_interactions = Interaction.objects.filter(
-       jtbd_stage='awareness',
-       touchpoint__touchpoint_class__name='Digital Marketing'
-   )
-   ```
-
-2. **Analytics de Touchpoints**
+1. **Analytics de Touchpoints**
 
    ```python
    # Performance de puntos de contacto

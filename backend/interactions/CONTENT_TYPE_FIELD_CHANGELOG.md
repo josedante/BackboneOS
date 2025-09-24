@@ -64,7 +64,6 @@ mba_touchpoint = Touchpoint.objects.create(
     name="Página MBA",
     url="https://example.com/mba",
     content_type="product",
-    funnel_stage="think",
     description="Página principal del programa MBA"
 )
 
@@ -73,7 +72,6 @@ about_touchpoint = Touchpoint.objects.create(
     name="Página Nosotros",
     url="https://example.com/nosotros",
     content_type="brand",
-    funnel_stage="see",
     description="Página institucional sobre la organización"
 )
 

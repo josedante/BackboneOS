@@ -67,7 +67,6 @@ class ProductAcquisition(Interaction):
                 self.touchpoint = Touchpoint.objects.create(
                     name="Adquisición de Producto",
                     code="product_acquisition",
-                    funnel_stage="do",  # o "decision"
                     description="Registro de una compra o matrícula de producto"
                 )
 
@@ -83,11 +82,7 @@ class ProductAcquisition(Interaction):
         if not self.representative and self.touchpoint and self.touchpoint.assigned_staff:
             self.representative = self.touchpoint.assigned_staff
 
-        # 6. Etapa JTBD
-        if not self.jtbd_stage or self.jtbd_stage == "any":
-            self.jtbd_stage = "job_decision"
-
-        # 7. Fecha de ocurrencia
+        # 6. Fecha de ocurrencia
         if not self.occurred_at:
             self.occurred_at = timezone.now()
 
@@ -699,7 +694,7 @@ class SalesSession(Interaction):
         base_tp, _ = Touchpoint.objects.get_or_create(
             name="Sesión de ventas",
             channel=sales_channel,
-            defaults={"code": "sales_session", "funnel_stage": "engage"}
+            defaults={"code": "sales_session"}
         )
         
         # Create detailed touchpoint based on contact medium
@@ -711,8 +706,7 @@ class SalesSession(Interaction):
             channel=sales_channel,
             defaults={
                 "name": f"Contacto vía {medium_label}",
-                "description": f"Touchpoint de ventas creado manualmente para {medium_label}",
-                "funnel_stage": "engage"
+                "description": f"Touchpoint de ventas creado manualmente para {medium_label}"
             }
         )
         

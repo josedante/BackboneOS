@@ -179,22 +179,7 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         related_name='assigned_touchpoints',
         help_text="Miembro del equipo responsable de este punto de contacto"
     )
-    SEE = 'see'
-    THINK = 'think'
-    DO = 'do'
-    CARE = 'care'
-    ANY = 'any'
-    FUNNEL_STAGES = [
-        (SEE, 'Ver'),
-        (THINK, 'Pensar'),
-        (DO, 'Hacer'),
-        (CARE, 'Cuidar'),
-        (ANY, 'Cualquiera'),
-    ]
-    funnel_stage = models.CharField(
-        max_length=50, blank=True, choices=FUNNEL_STAGES, default=ANY,
-        help_text="Etapa del embudo de ventas para el cual fue diseñado este punto de contacto"
-    )
+
     channel = models.ForeignKey(
         Channel, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='touchpoints',
@@ -298,21 +283,6 @@ class Interaction(BaseUUIDModelWithActiveStatus):
         related_name='interactions', help_text="Producto vinculado a esta interacción"
         
     )
-    JOB_STAGES = [
-        ('any', 'Cualquiera'),
-        ('job_oblivious', 'Trabajo Desconocido'),
-        ('job_awareness', 'Conciencia del Trabajo'),
-        ('job_research', 'Investigación'),
-        ('job_decision', 'Toma de decisión'),
-        ('job_execution', 'Ejecución'),
-        ('job_solved', 'Resuelto'),
-        ('stage_unknown', 'Etapa Desconocida'),
-    ]
-    jtbd_stage = models.CharField(
-        max_length=50, blank=True, choices=JOB_STAGES, default='any',
-        verbose_name="Etapa JTBD",
-        help_text="Etapa del proceso de progreso del cliente (Jobs to Be Done)"
-    )
 
     class Meta:
         ordering = ['-occurred_at']
@@ -331,13 +301,11 @@ class Interaction(BaseUUIDModelWithActiveStatus):
             # Nuevos índices para campos añadidos
             models.Index(fields=['session_id']),
             models.Index(fields=['ip_address']),
-            models.Index(fields=['jtbd_stage']),
             models.Index(fields=['duration_seconds']),
             models.Index(fields=['source']),
             # Índices compuestos para analytics
             models.Index(fields=['touchpoint', 'occurred_at']),
             models.Index(fields=['agent', 'occurred_at']),
-            models.Index(fields=['jtbd_stage', 'occurred_at']),
         ]
 
     def clean(self):

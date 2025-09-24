@@ -110,11 +110,11 @@ class TouchpointClassAdmin(admin.ModelAdmin):
 @admin.register(Touchpoint)
 class TouchpointAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'touchpoint_class', 'channel', 'funnel_stage', 'content_type', 'product', 
+        'name', 'touchpoint_class', 'channel', 'content_type', 'product', 
         'assigned_staff', 'is_active', 'interactions_count'
     ]
     list_filter = [
-        'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 'channel',
+        'is_active', 'content_type', 'touchpoint_class', 'channel',
         'related_industries', 'related_functions'
     ]
     search_fields = ['name', 'code', 'description', 'url']
@@ -130,7 +130,7 @@ class TouchpointAdmin(admin.ModelAdmin):
             'fields': ('name', 'code', 'touchpoint_class', 'channel', 'description', 'is_active')
         }),
         ('Configuración de Negocio', {
-            'fields': ('funnel_stage', 'content_type', 'product', 'assigned_staff')
+            'fields': ('content_type', 'product', 'assigned_staff')
         }),
         ('Detalles Técnicos', {
             'fields': ('url', 'external_id'),
@@ -155,11 +155,10 @@ class TouchpointAdmin(admin.ModelAdmin):
 class InteractionAdmin(admin.ModelAdmin):
     list_display = [
         'occurred_at', 'entity_display', 'touchpoint', 'action', 
-        'channel_display', 'agent_display', 'duration_display', 'jtbd_stage', 'is_active'
+        'channel_display', 'agent_display', 'duration_display', 'is_active'
     ]
     list_filter = [
-        'is_active', 'jtbd_stage', 'occurred_at', 'touchpoint__channel', 'action',
-        'touchpoint__funnel_stage', 'agent__agent_type'
+        'is_active', 'occurred_at', 'touchpoint__channel', 'action', 'agent__agent_type'
     ]
     search_fields = [
         'person__full_name', 'organization__name', 'touchpoint__name',
@@ -177,7 +176,7 @@ class InteractionAdmin(admin.ModelAdmin):
             'fields': ('person', 'organization', 'agent', 'representative')
         }),
         ('Detalles de la Interacción', {
-            'fields': ('touchpoint', 'action', 'product', 'jtbd_stage')
+            'fields': ('touchpoint', 'action', 'product')
         }),
         ('Contexto Temporal', {
             'fields': ('occurred_at', 'duration_seconds', 'session_id')

@@ -245,7 +245,6 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
             defaults={
                 'name': hint.label,
                 'channel': channel,
-                'funnel_stage': self._get_funnel_stage_for_code(hint.code),
                 'description': self._generate_sales_description(hint)
             }
         )
@@ -291,25 +290,6 @@ class SalesTouchpointResolver(DefaultTouchpointResolver):
         )
         
         return channel
-    
-    def _get_funnel_stage_for_code(self, code: str) -> str:
-        """
-        Get appropriate funnel stage for touchpoint code.
-        
-        Args:
-            code: The touchpoint code
-            
-        Returns:
-            str: Funnel stage
-        """
-        if 'session' in code:
-            return 'engage'  # Sales sessions are engagement
-        elif 'acquisition' in code:
-            return 'do'      # Product acquisitions are decision/action
-        elif 'opportunity' in code:
-            return 'think'   # Opportunities are consideration
-        else:
-            return 'engage'  # Default to engagement
     
     def _generate_sales_description(self, hint: TouchpointHint) -> str:
         """

@@ -243,7 +243,7 @@ class TouchpointViewSet(viewsets.ModelViewSet):
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
-        'is_active', 'funnel_stage', 'content_type', 'touchpoint_class', 'assigned_staff',
+        'is_active', 'content_type', 'touchpoint_class', 'assigned_staff',
         'related_industries', 'related_functions', 'channel'
     ]
     search_fields = ['name', 'code', 'description', 'url']
@@ -263,18 +263,6 @@ class TouchpointViewSet(viewsets.ModelViewSet):
         """Endpoint para obtener choices simples"""
         queryset = self.get_queryset().filter(is_active=True)
         serializer = TouchpointChoiceSerializer(queryset, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def by_funnel_stage(self, request):
-        """Endpoint para obtener touchpoints por etapa del funnel"""
-        stage = request.query_params.get('stage')
-        if stage:
-            queryset = self.get_queryset().filter(funnel_stage=stage, is_active=True)
-        else:
-            queryset = self.get_queryset().filter(is_active=True)
-        
-        serializer = TouchpointListSerializer(queryset, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
@@ -317,12 +305,6 @@ class TouchpointViewSet(viewsets.ModelViewSet):
         # Estadísticas básicas
         total_touchpoints = self.get_queryset().filter(is_active=True).count()
         
-        # Distribución por stage del funnel
-        touchpoints_by_stage = self.get_queryset().filter(is_active=True).values('funnel_stage').annotate(
-            count=Count('id'),
-            interactions_count=Count('interaction', filter=Q(interaction__is_active=True))
-        ).order_by('-count')
-        
         # Distribución por clase de touchpoint
         touchpoints_by_class = self.get_queryset().filter(is_active=True).select_related('touchpoint_class').values(
             'touchpoint_class__name'
@@ -342,7 +324,6 @@ class TouchpointViewSet(viewsets.ModelViewSet):
             top_touchpoints_data.append({
                 'id': str(touchpoint.id),
                 'name': touchpoint.name,
-                'funnel_stage': touchpoint.funnel_stage,
                 'touchpoint_class': touchpoint.touchpoint_class.name if touchpoint.touchpoint_class else None,
                 'interactions_count': touchpoint.interactions_count
             })
@@ -368,7 +349,7 @@ class InteractionViewSet(viewsets.ModelViewSet):
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
-        'is_active', 'jtbd_stage', 'touchpoint__channel', 'action', 'touchpoint',
+        'is_active', 'touchpoint__channel', 'action', 'touchpoint',
         'agent__agent_type', 'representative'
     ]
     search_fields = [
@@ -433,11 +414,6 @@ class InteractionViewSet(viewsets.ModelViewSet):
             count=Count('id')
         ).order_by('-count')[:10]
         
-        # Interacciones por etapa JTBD
-        by_jtbd_stage = queryset.values('jtbd_stage').annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
         # Duración promedio
         avg_duration = queryset.filter(duration_seconds__gt=0).aggregate(
             avg_duration=Avg('duration_seconds')
@@ -449,25 +425,6 @@ class InteractionViewSet(viewsets.ModelViewSet):
             'avg_duration_seconds': avg_duration['avg_duration'],
             'by_channel': list(by_channel),
             'by_action': list(by_action),
-            'by_jtbd_stage': list(by_jtbd_stage),
-        })
-    
-    @action(detail=False, methods=['get'])
-    def funnel_analysis(self, request):
-        """Análisis de funnel basado en touchpoints"""
-        queryset = self.get_queryset().filter(is_active=True)
-        
-        funnel_data = queryset.filter(
-            touchpoint__isnull=False
-        ).values(
-            'touchpoint__funnel_stage'
-        ).annotate(
-            count=Count('id'),
-            unique_users=Count('person', distinct=True) + Count('organization', distinct=True)
-        ).order_by('touchpoint__funnel_stage')
-        
-        return Response({
-            'funnel_stages': list(funnel_data)
         })
     
     @action(detail=False, methods=['get'])
