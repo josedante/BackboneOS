@@ -1,1066 +1,1572 @@
 {
   "countries": [
-    {
-      "code": "US",
-      "name": "Estados Unidos",
-      "dialCode": "+1",
-      "flag": "🇺🇸"
-    },
-    {
-      "code": "CA",
-      "name": "Canadá",
-      "dialCode": "+1",
-      "flag": "🇨🇦"
-    },
-    {
-      "code": "MX",
-      "name": "México",
-      "dialCode": "+52",
-      "flag": "🇲🇽"
-    },
-    {
-      "code": "GT",
-      "name": "Guatemala",
-      "dialCode": "+502",
-      "flag": "🇬🇹"
-    },
-    {
-      "code": "BZ",
-      "name": "Belice",
-      "dialCode": "+501",
-      "flag": "🇧🇿"
-    },
-    {
-      "code": "SV",
-      "name": "El Salvador",
-      "dialCode": "+503",
-      "flag": "🇸🇻"
-    },
-    {
-      "code": "HN",
-      "name": "Honduras",
-      "dialCode": "+504",
-      "flag": "🇭🇳"
-    },
-    {
-      "code": "NI",
-      "name": "Nicaragua",
-      "dialCode": "+505",
-      "flag": "🇳🇮"
-    },
-    {
-      "code": "CR",
-      "name": "Costa Rica",
-      "dialCode": "+506",
-      "flag": "🇨🇷"
-    },
-    {
-      "code": "PA",
-      "name": "Panamá",
-      "dialCode": "+507",
-      "flag": "🇵🇦"
-    },
-    {
-      "code": "PE",
-      "name": "Perú",
-      "dialCode": "+51",
-      "flag": "🇵🇪"
-    },
-    {
-      "code": "CO",
-      "name": "Colombia",
-      "dialCode": "+57",
-      "flag": "🇨🇴"
-    },
-    {
-      "code": "AR",
-      "name": "Argentina",
-      "dialCode": "+54",
-      "flag": "🇦🇷"
-    },
-    {
-      "code": "CL",
-      "name": "Chile",
-      "dialCode": "+56",
-      "flag": "🇨🇱"
-    },
-    {
-      "code": "BR",
-      "name": "Brasil",
-      "dialCode": "+55",
-      "flag": "🇧🇷"
-    },
-    {
-      "code": "EC",
-      "name": "Ecuador",
-      "dialCode": "+593",
-      "flag": "🇪🇨"
-    },
-    {
-      "code": "BO",
-      "name": "Bolivia",
-      "dialCode": "+591",
-      "flag": "🇧🇴"
-    },
-    {
-      "code": "PY",
-      "name": "Paraguay",
-      "dialCode": "+595",
-      "flag": "🇵🇾"
-    },
-    {
-      "code": "UY",
-      "name": "Uruguay",
-      "dialCode": "+598",
-      "flag": "🇺🇾"
-    },
-    {
-      "code": "VE",
-      "name": "Venezuela",
-      "dialCode": "+58",
-      "flag": "🇻🇪"
-    },
-    {
-      "code": "GY",
-      "name": "Guyana",
-      "dialCode": "+592",
-      "flag": "🇬🇾"
-    },
-    {
-      "code": "SR",
-      "name": "Surinam",
-      "dialCode": "+597",
-      "flag": "🇸🇷"
-    },
-    {
-      "code": "GF",
-      "name": "Guayana Francesa",
-      "dialCode": "+594",
-      "flag": "🇬🇫"
-    },
-    {
-      "code": "ES",
-      "name": "España",
-      "dialCode": "+34",
-      "flag": "🇪🇸"
-    },
-    {
-      "code": "GB",
-      "name": "Reino Unido",
-      "dialCode": "+44",
-      "flag": "🇬🇧"
-    },
-    {
-      "code": "DE",
-      "name": "Alemania",
-      "dialCode": "+49",
-      "flag": "🇩🇪"
-    },
-    {
-      "code": "FR",
-      "name": "Francia",
-      "dialCode": "+33",
-      "flag": "🇫🇷"
-    },
-    {
-      "code": "IT",
-      "name": "Italia",
-      "dialCode": "+39",
-      "flag": "🇮🇹"
-    },
-    {
-      "code": "PT",
-      "name": "Portugal",
-      "dialCode": "+351",
-      "flag": "🇵🇹"
-    },
-    {
-      "code": "NL",
-      "name": "Países Bajos",
-      "dialCode": "+31",
-      "flag": "🇳🇱"
-    },
-    {
-      "code": "BE",
-      "name": "Bélgica",
-      "dialCode": "+32",
-      "flag": "🇧🇪"
-    },
-    {
-      "code": "CH",
-      "name": "Suiza",
-      "dialCode": "+41",
-      "flag": "🇨🇭"
-    },
-    {
-      "code": "AT",
-      "name": "Austria",
-      "dialCode": "+43",
-      "flag": "🇦🇹"
-    },
-    {
-      "code": "SE",
-      "name": "Suecia",
-      "dialCode": "+46",
-      "flag": "🇸🇪"
-    },
-    {
-      "code": "NO",
-      "name": "Noruega",
-      "dialCode": "+47",
-      "flag": "🇳🇴"
-    },
-    {
-      "code": "DK",
-      "name": "Dinamarca",
-      "dialCode": "+45",
-      "flag": "🇩🇰"
-    },
-    {
-      "code": "FI",
-      "name": "Finlandia",
-      "dialCode": "+358",
-      "flag": "🇫🇮"
-    },
-    {
-      "code": "PL",
-      "name": "Polonia",
-      "dialCode": "+48",
-      "flag": "🇵🇱"
-    },
-    {
-      "code": "CZ",
-      "name": "República Checa",
-      "dialCode": "+420",
-      "flag": "🇨🇿"
-    },
-    {
-      "code": "HU",
-      "name": "Hungría",
-      "dialCode": "+36",
-      "flag": "🇭🇺"
-    },
-    {
-      "code": "RO",
-      "name": "Rumania",
-      "dialCode": "+40",
-      "flag": "🇷🇴"
-    },
-    {
-      "code": "BG",
-      "name": "Bulgaria",
-      "dialCode": "+359",
-      "flag": "🇧🇬"
-    },
-    {
-      "code": "HR",
-      "name": "Croacia",
-      "dialCode": "+385",
-      "flag": "🇭🇷"
-    },
-    {
-      "code": "SI",
-      "name": "Eslovenia",
-      "dialCode": "+386",
-      "flag": "🇸🇮"
-    },
-    {
-      "code": "SK",
-      "name": "Eslovaquia",
-      "dialCode": "+421",
-      "flag": "🇸🇰"
-    },
-    {
-      "code": "LT",
-      "name": "Lituania",
-      "dialCode": "+370",
-      "flag": "🇱🇹"
-    },
-    {
-      "code": "LV",
-      "name": "Letonia",
-      "dialCode": "+371",
-      "flag": "🇱🇻"
-    },
-    {
-      "code": "EE",
-      "name": "Estonia",
-      "dialCode": "+372",
-      "flag": "🇪🇪"
-    },
-    {
-      "code": "IE",
-      "name": "Irlanda",
-      "dialCode": "+353",
-      "flag": "🇮🇪"
-    },
-    {
-      "code": "GR",
-      "name": "Grecia",
-      "dialCode": "+30",
-      "flag": "🇬🇷"
-    },
-    {
-      "code": "RU",
-      "name": "Rusia",
-      "dialCode": "+7",
-      "flag": "🇷🇺"
-    },
-    {
-      "code": "UA",
-      "name": "Ucrania",
-      "dialCode": "+380",
-      "flag": "🇺🇦"
-    },
-    {
-      "code": "BY",
-      "name": "Bielorrusia",
-      "dialCode": "+375",
-      "flag": "🇧🇾"
-    },
-    {
-      "code": "MD",
-      "name": "Moldavia",
-      "dialCode": "+373",
-      "flag": "🇲🇩"
-    },
-    {
-      "code": "CN",
-      "name": "China",
-      "dialCode": "+86",
-      "flag": "🇨🇳"
-    },
-    {
-      "code": "JP",
-      "name": "Japón",
-      "dialCode": "+81",
-      "flag": "🇯🇵"
-    },
-    {
-      "code": "KR",
-      "name": "Corea del Sur",
-      "dialCode": "+82",
-      "flag": "🇰🇷"
-    },
-    {
-      "code": "IN",
-      "name": "India",
-      "dialCode": "+91",
-      "flag": "🇮🇳"
-    },
-    {
-      "code": "TH",
-      "name": "Tailandia",
-      "dialCode": "+66",
-      "flag": "🇹🇭"
-    },
-    {
-      "code": "VN",
-      "name": "Vietnam",
-      "dialCode": "+84",
-      "flag": "🇻🇳"
-    },
-    {
-      "code": "MY",
-      "name": "Malasia",
-      "dialCode": "+60",
-      "flag": "🇲🇾"
-    },
-    {
-      "code": "SG",
-      "name": "Singapur",
-      "dialCode": "+65",
-      "flag": "🇸🇬"
-    },
-    {
-      "code": "ID",
-      "name": "Indonesia",
-      "dialCode": "+62",
-      "flag": "🇮🇩"
-    },
-    {
-      "code": "PH",
-      "name": "Filipinas",
-      "dialCode": "+63",
-      "flag": "🇵🇭"
-    },
-    {
-      "code": "TW",
-      "name": "Taiwán",
-      "dialCode": "+886",
-      "flag": "🇹🇼"
-    },
-    {
-      "code": "HK",
-      "name": "Hong Kong",
-      "dialCode": "+852",
-      "flag": "🇭🇰"
-    },
-    {
-      "code": "MO",
-      "name": "Macao",
-      "dialCode": "+853",
-      "flag": "🇲🇴"
-    },
-    {
-      "code": "BD",
-      "name": "Bangladesh",
-      "dialCode": "+880",
-      "flag": "🇧🇩"
-    },
-    {
-      "code": "PK",
-      "name": "Pakistán",
-      "dialCode": "+92",
-      "flag": "🇵🇰"
-    },
-    {
-      "code": "LK",
-      "name": "Sri Lanka",
-      "dialCode": "+94",
-      "flag": "🇱🇰"
-    },
-    {
-      "code": "NP",
-      "name": "Nepal",
-      "dialCode": "+977",
-      "flag": "🇳🇵"
-    },
-    {
-      "code": "MM",
-      "name": "Myanmar",
-      "dialCode": "+95",
-      "flag": "🇲🇲"
-    },
-    {
-      "code": "KH",
-      "name": "Camboya",
-      "dialCode": "+855",
-      "flag": "🇰🇭"
-    },
-    {
-      "code": "LA",
-      "name": "Laos",
-      "dialCode": "+856",
-      "flag": "🇱🇦"
-    },
-    {
-      "code": "MN",
-      "name": "Mongolia",
-      "dialCode": "+976",
-      "flag": "🇲🇳"
-    },
-    {
-      "code": "KZ",
-      "name": "Kazajistán",
-      "dialCode": "+7",
-      "flag": "🇰🇿"
-    },
-    {
-      "code": "UZ",
-      "name": "Uzbekistán",
-      "dialCode": "+998",
-      "flag": "🇺🇿"
-    },
-    {
-      "code": "KG",
-      "name": "Kirguistán",
-      "dialCode": "+996",
-      "flag": "🇰🇬"
-    },
-    {
-      "code": "TJ",
-      "name": "Tayikistán",
-      "dialCode": "+992",
-      "flag": "🇹🇯"
-    },
-    {
-      "code": "TM",
-      "name": "Turkmenistán",
-      "dialCode": "+993",
-      "flag": "🇹🇲"
-    },
-    {
-      "code": "AF",
-      "name": "Afganistán",
-      "dialCode": "+93",
-      "flag": "🇦🇫"
-    },
-    {
-      "code": "IR",
-      "name": "Irán",
-      "dialCode": "+98",
-      "flag": "🇮🇷"
-    },
-    {
-      "code": "IQ",
-      "name": "Irak",
-      "dialCode": "+964",
-      "flag": "🇮🇶"
-    },
-    {
-      "code": "SA",
-      "name": "Arabia Saudita",
-      "dialCode": "+966",
-      "flag": "🇸🇦"
-    },
-    {
-      "code": "AE",
-      "name": "Emiratos Árabes Unidos",
-      "dialCode": "+971",
-      "flag": "🇦🇪"
-    },
-    {
-      "code": "QA",
-      "name": "Catar",
-      "dialCode": "+974",
-      "flag": "🇶🇦"
-    },
-    {
-      "code": "KW",
-      "name": "Kuwait",
-      "dialCode": "+965",
-      "flag": "🇰🇼"
-    },
-    {
-      "code": "BH",
-      "name": "Bahrein",
-      "dialCode": "+973",
-      "flag": "🇧🇭"
-    },
-    {
-      "code": "OM",
-      "name": "Omán",
-      "dialCode": "+968",
-      "flag": "🇴🇲"
-    },
-    {
-      "code": "YE",
-      "name": "Yemen",
-      "dialCode": "+967",
-      "flag": "🇾🇪"
-    },
-    {
-      "code": "JO",
-      "name": "Jordania",
-      "dialCode": "+962",
-      "flag": "🇯🇴"
-    },
-    {
-      "code": "LB",
-      "name": "Líbano",
-      "dialCode": "+961",
-      "flag": "🇱🇧"
-    },
-    {
-      "code": "SY",
-      "name": "Siria",
-      "dialCode": "+963",
-      "flag": "🇸🇾"
-    },
-    {
-      "code": "IL",
-      "name": "Israel",
-      "dialCode": "+972",
-      "flag": "🇮🇱"
-    },
-    {
-      "code": "TR",
-      "name": "Turquía",
-      "dialCode": "+90",
-      "flag": "🇹🇷"
-    },
-    {
-      "code": "CY",
-      "name": "Chipre",
-      "dialCode": "+357",
-      "flag": "🇨🇾"
-    },
-    {
-      "code": "ZA",
-      "name": "Sudáfrica",
-      "dialCode": "+27",
-      "flag": "🇿🇦"
-    },
-    {
-      "code": "EG",
-      "name": "Egipto",
-      "dialCode": "+20",
-      "flag": "🇪🇬"
-    },
-    {
-      "code": "NG",
-      "name": "Nigeria",
-      "dialCode": "+234",
-      "flag": "🇳🇬"
-    },
-    {
-      "code": "KE",
-      "name": "Kenia",
-      "dialCode": "+254",
-      "flag": "🇰🇪"
-    },
-    {
-      "code": "GH",
-      "name": "Ghana",
-      "dialCode": "+233",
-      "flag": "🇬🇭"
-    },
-    {
-      "code": "ET",
-      "name": "Etiopía",
-      "dialCode": "+251",
-      "flag": "🇪🇹"
-    },
-    {
-      "code": "TZ",
-      "name": "Tanzania",
-      "dialCode": "+255",
-      "flag": "🇹🇿"
-    },
-    {
-      "code": "UG",
-      "name": "Uganda",
-      "dialCode": "+256",
-      "flag": "🇺🇬"
-    },
-    {
-      "code": "DZ",
-      "name": "Argelia",
-      "dialCode": "+213",
-      "flag": "🇩🇿"
-    },
-    {
-      "code": "MA",
-      "name": "Marruecos",
-      "dialCode": "+212",
-      "flag": "🇲🇦"
-    },
-    {
-      "code": "TN",
-      "name": "Túnez",
-      "dialCode": "+216",
-      "flag": "🇹🇳"
-    },
-    {
-      "code": "LY",
-      "name": "Libia",
-      "dialCode": "+218",
-      "flag": "🇱🇾"
-    },
-    {
-      "code": "SD",
-      "name": "Sudán",
-      "dialCode": "+249",
-      "flag": "🇸🇩"
-    },
-    {
-      "code": "CM",
-      "name": "Camerún",
-      "dialCode": "+237",
-      "flag": "🇨🇲"
-    },
-    {
-      "code": "CI",
-      "name": "Costa de Marfil",
-      "dialCode": "+225",
-      "flag": "🇨🇮"
-    },
-    {
-      "code": "SN",
-      "name": "Senegal",
-      "dialCode": "+221",
-      "flag": "🇸🇳"
-    },
-    {
-      "code": "ML",
-      "name": "Malí",
-      "dialCode": "+223",
-      "flag": "🇲🇱"
-    },
-    {
-      "code": "BF",
-      "name": "Burkina Faso",
-      "dialCode": "+226",
-      "flag": "🇧🇫"
-    },
-    {
-      "code": "NE",
-      "name": "Níger",
-      "dialCode": "+227",
-      "flag": "🇳🇪"
-    },
-    {
-      "code": "TD",
-      "name": "Chad",
-      "dialCode": "+235",
-      "flag": "🇹🇩"
-    },
-    {
-      "code": "CF",
-      "name": "República Centroafricana",
-      "dialCode": "+236",
-      "flag": "🇨🇫"
-    },
-    {
-      "code": "CG",
-      "name": "Congo",
-      "dialCode": "+242",
-      "flag": "🇨🇬"
-    },
-    {
-      "code": "CD",
-      "name": "República Democrática del Congo",
-      "dialCode": "+243",
-      "flag": "🇨🇩"
-    },
-    {
-      "code": "AO",
-      "name": "Angola",
-      "dialCode": "+244",
-      "flag": "🇦🇴"
-    },
-    {
-      "code": "ZM",
-      "name": "Zambia",
-      "dialCode": "+260",
-      "flag": "🇿🇲"
-    },
-    {
-      "code": "ZW",
-      "name": "Zimbabue",
-      "dialCode": "+263",
-      "flag": "🇿🇼"
-    },
-    {
-      "code": "BW",
-      "name": "Botsuana",
-      "dialCode": "+267",
-      "flag": "🇧🇼"
-    },
-    {
-      "code": "NA",
-      "name": "Namibia",
-      "dialCode": "+264",
-      "flag": "🇳🇦"
-    },
-    {
-      "code": "MZ",
-      "name": "Mozambique",
-      "dialCode": "+258",
-      "flag": "🇲🇿"
-    },
-    {
-      "code": "MG",
-      "name": "Madagascar",
-      "dialCode": "+261",
-      "flag": "🇲🇬"
-    },
-    {
-      "code": "MU",
-      "name": "Mauricio",
-      "dialCode": "+230",
-      "flag": "🇲🇺"
-    },
-    {
-      "code": "SC",
-      "name": "Seychelles",
-      "dialCode": "+248",
-      "flag": "🇸🇨"
-    },
-    {
-      "code": "KM",
-      "name": "Comoras",
-      "dialCode": "+269",
-      "flag": "🇰🇲"
-    },
-    {
-      "code": "DJ",
-      "name": "Yibuti",
-      "dialCode": "+253",
-      "flag": "🇩🇯"
-    },
-    {
-      "code": "SO",
-      "name": "Somalia",
-      "dialCode": "+252",
-      "flag": "🇸🇴"
-    },
-    {
-      "code": "ER",
-      "name": "Eritrea",
-      "dialCode": "+291",
-      "flag": "🇪🇷"
-    },
-    {
-      "code": "RW",
-      "name": "Ruanda",
-      "dialCode": "+250",
-      "flag": "🇷🇼"
-    },
-    {
-      "code": "BI",
-      "name": "Burundi",
-      "dialCode": "+257",
-      "flag": "🇧🇮"
-    },
-    {
-      "code": "SS",
-      "name": "Sudán del Sur",
-      "dialCode": "+211",
-      "flag": "🇸🇸"
-    },
-    {
-      "code": "AU",
-      "name": "Australia",
-      "dialCode": "+61",
-      "flag": "🇦🇺"
-    },
-    {
-      "code": "NZ",
-      "name": "Nueva Zelanda",
-      "dialCode": "+64",
-      "flag": "🇳🇿"
-    },
-    {
-      "code": "FJ",
-      "name": "Fiyi",
-      "dialCode": "+679",
-      "flag": "🇫🇯"
-    },
-    {
-      "code": "PG",
-      "name": "Papúa Nueva Guinea",
-      "dialCode": "+675",
-      "flag": "🇵🇬"
-    },
-    {
-      "code": "SB",
-      "name": "Islas Salomón",
-      "dialCode": "+677",
-      "flag": "🇸🇧"
-    },
-    {
-      "code": "VU",
-      "name": "Vanuatu",
-      "dialCode": "+678",
-      "flag": "🇻🇺"
-    },
-    {
-      "code": "NC",
-      "name": "Nueva Caledonia",
-      "dialCode": "+687",
-      "flag": "🇳🇨"
-    },
-    {
-      "code": "PF",
-      "name": "Polinesia Francesa",
-      "dialCode": "+689",
-      "flag": "🇵🇫"
-    },
-    {
-      "code": "TO",
-      "name": "Tonga",
-      "dialCode": "+676",
-      "flag": "🇹🇴"
-    },
-    {
-      "code": "WS",
-      "name": "Samoa",
-      "dialCode": "+685",
-      "flag": "🇼🇸"
-    },
-    {
-      "code": "KI",
-      "name": "Kiribati",
-      "dialCode": "+686",
-      "flag": "🇰🇮"
-    },
-    {
-      "code": "TV",
-      "name": "Tuvalu",
-      "dialCode": "+688",
-      "flag": "🇹🇻"
-    },
-    {
-      "code": "NR",
-      "name": "Nauru",
-      "dialCode": "+674",
-      "flag": "🇳🇷"
-    },
-    {
-      "code": "PW",
-      "name": "Palaos",
-      "dialCode": "+680",
-      "flag": "🇵🇼"
-    },
-    {
-      "code": "MH",
-      "name": "Islas Marshall",
-      "dialCode": "+692",
-      "flag": "🇲🇭"
-    },
-    {
-      "code": "FM",
-      "name": "Micronesia",
-      "dialCode": "+691",
-      "flag": "🇫🇲"
-    },
-    {
-      "code": "CK",
-      "name": "Islas Cook",
-      "dialCode": "+682",
-      "flag": "🇨🇰"
-    },
-    {
-      "code": "NU",
-      "name": "Niue",
-      "dialCode": "+683",
-      "flag": "🇳🇺"
-    },
-    {
-      "code": "TK",
-      "name": "Tokelau",
-      "dialCode": "+690",
-      "flag": "🇹🇰"
-    },
-    {
-      "code": "CU",
-      "name": "Cuba",
-      "dialCode": "+53",
-      "flag": "🇨🇺"
-    },
-    {
-      "code": "JM",
-      "name": "Jamaica",
-      "dialCode": "+1876",
-      "flag": "🇯🇲"
-    },
-    {
-      "code": "HT",
-      "name": "Haití",
-      "dialCode": "+509",
-      "flag": "🇭🇹"
-    },
-    {
-      "code": "DO",
-      "name": "República Dominicana",
-      "dialCode": "+1809",
-      "flag": "🇩🇴"
-    },
-    {
-      "code": "PR",
-      "name": "Puerto Rico",
-      "dialCode": "+1787",
-      "flag": "🇵🇷"
-    },
-    {
-      "code": "TT",
-      "name": "Trinidad y Tobago",
-      "dialCode": "+1868",
-      "flag": "🇹🇹"
-    },
-    {
-      "code": "BB",
-      "name": "Barbados",
-      "dialCode": "+1246",
-      "flag": "🇧🇧"
-    },
-    {
-      "code": "GD",
-      "name": "Granada",
-      "dialCode": "+1473",
-      "flag": "🇬🇩"
-    },
-    {
-      "code": "LC",
-      "name": "Santa Lucía",
-      "dialCode": "+1758",
-      "flag": "🇱🇨"
-    },
-    {
-      "code": "VC",
-      "name": "San Vicente y las Granadinas",
-      "dialCode": "+1784",
-      "flag": "🇻🇨"
-    },
-    {
-      "code": "AG",
-      "name": "Antigua y Barbuda",
-      "dialCode": "+1268",
-      "flag": "🇦🇬"
-    },
-    {
-      "code": "KN",
-      "name": "San Cristóbal y Nieves",
-      "dialCode": "+1869",
-      "flag": "🇰🇳"
-    },
-    {
-      "code": "DM",
-      "name": "Dominica",
-      "dialCode": "+1767",
-      "flag": "🇩🇲"
-    },
-    {
-      "code": "BS",
-      "name": "Bahamas",
-      "dialCode": "+1242",
-      "flag": "🇧🇸"
-    },
-    {
-      "code": "GL",
-      "name": "Groenlandia",
-      "dialCode": "+299",
-      "flag": "🇬🇱"
-    },
-    {
-      "code": "IS",
-      "name": "Islandia",
-      "dialCode": "+354",
-      "flag": "🇮🇸"
-    },
-    {
-      "code": "MT",
-      "name": "Malta",
-      "dialCode": "+356",
-      "flag": "🇲🇹"
-    },
-    {
-      "code": "MC",
-      "name": "Mónaco",
-      "dialCode": "+377",
-      "flag": "🇲🇨"
-    },
-    {
-      "code": "LI",
-      "name": "Liechtenstein",
-      "dialCode": "+423",
-      "flag": "🇱🇮"
-    },
-    {
-      "code": "SM",
-      "name": "San Marino",
-      "dialCode": "+378",
-      "flag": "🇸🇲"
-    },
-    {
-      "code": "VA",
-      "name": "Ciudad del Vaticano",
-      "dialCode": "+379",
-      "flag": "🇻🇦"
-    },
-    {
-      "code": "AD",
-      "name": "Andorra",
-      "dialCode": "+376",
-      "flag": "🇦🇩"
-    },
-    {
-      "code": "LU",
-      "name": "Luxemburgo",
-      "dialCode": "+352",
-      "flag": "🇱🇺"
-    }
+  {
+  "iso3_code": "AFG",
+  "iso2_code": "",
+  "short_name": "Afganistán",
+  "official_name": "la República Islámica del Afganistán",
+  "created_at": "2020-11-03T19:13:42.902919-05:00",
+  "updated_at": "2020-11-03T19:13:42.902958-05:00"
+  },
+  {
+  "iso3_code": "ALB",
+  "iso2_code": "",
+  "short_name": "Albania",
+  "official_name": "la República de Albania",
+  "created_at": "2020-11-03T19:13:42.912205-05:00",
+  "updated_at": "2020-11-03T19:13:42.912235-05:00"
+  },
+  {
+  "iso3_code": "DEU",
+  "iso2_code": "",
+  "short_name": "Alemania",
+  "official_name": "la República Federal de Alemania",
+  "created_at": "2020-11-03T19:13:42.923025-05:00",
+  "updated_at": "2020-11-03T19:13:42.923049-05:00"
+  },
+  {
+  "iso3_code": "AND",
+  "iso2_code": "",
+  "short_name": "Andorra",
+  "official_name": "el Principado de Andorra",
+  "created_at": "2020-11-03T19:13:42.929796-05:00",
+  "updated_at": "2020-11-03T19:13:42.929820-05:00"
+  },
+  {
+  "iso3_code": "AGO",
+  "iso2_code": "",
+  "short_name": "Angola",
+  "official_name": "la República de Angola",
+  "created_at": "2020-11-03T19:13:42.935972-05:00",
+  "updated_at": "2020-11-03T19:13:42.935994-05:00"
+  },
+  {
+  "iso3_code": "ATG",
+  "iso2_code": "",
+  "short_name": "Antigua y Barbuda",
+  "official_name": "Antigua y Barbuda",
+  "created_at": "2020-11-03T19:13:42.943199-05:00",
+  "updated_at": "2020-11-03T19:13:42.943221-05:00"
+  },
+  {
+  "iso3_code": "SAU",
+  "iso2_code": "",
+  "short_name": "Arabia Saudita",
+  "official_name": "el Reino de la Arabia Saudita",
+  "created_at": "2020-11-03T19:13:42.949948-05:00",
+  "updated_at": "2020-11-03T19:13:42.949970-05:00"
+  },
+  {
+  "iso3_code": "DZA",
+  "iso2_code": "",
+  "short_name": "Argelia",
+  "official_name": "la República Argelina Democrática y Popular",
+  "created_at": "2020-11-03T19:13:42.958092-05:00",
+  "updated_at": "2020-11-03T19:13:42.958114-05:00"
+  },
+  {
+  "iso3_code": "ARG",
+  "iso2_code": "AR",
+  "short_name": "Argentina",
+  "official_name": "la República Argentina",
+  "created_at": "2020-11-03T19:13:42.965321-05:00",
+  "updated_at": "2021-06-30T17:40:49.131930-05:00"
+  },
+  {
+  "iso3_code": "ARM",
+  "iso2_code": "",
+  "short_name": "Armenia",
+  "official_name": "la República de Armenia",
+  "created_at": "2020-11-03T19:13:42.973249-05:00",
+  "updated_at": "2020-11-03T19:13:42.973271-05:00"
+  },
+  {
+  "iso3_code": "AUS",
+  "iso2_code": "",
+  "short_name": "Australia",
+  "official_name": "Australia",
+  "created_at": "2020-11-03T19:13:42.981473-05:00",
+  "updated_at": "2020-11-03T19:13:42.981495-05:00"
+  },
+  {
+  "iso3_code": "AUT",
+  "iso2_code": "",
+  "short_name": "Austria",
+  "official_name": "la República de Austria",
+  "created_at": "2020-11-03T19:13:42.988964-05:00",
+  "updated_at": "2020-11-03T19:13:42.988986-05:00"
+  },
+  {
+  "iso3_code": "AZE",
+  "iso2_code": "",
+  "short_name": "Azerbaiyán",
+  "official_name": "la República de Azerbaiyán",
+  "created_at": "2020-11-03T19:13:42.996838-05:00",
+  "updated_at": "2020-11-03T19:13:42.996860-05:00"
+  },
+  {
+  "iso3_code": "BHS",
+  "iso2_code": "",
+  "short_name": "Bahamas",
+  "official_name": "el Commonwealth de las Bahamas",
+  "created_at": "2020-11-03T19:13:43.003578-05:00",
+  "updated_at": "2020-11-03T19:13:43.003601-05:00"
+  },
+  {
+  "iso3_code": "BHR",
+  "iso2_code": "",
+  "short_name": "Bahrein",
+  "official_name": "el Reino de Bahrein",
+  "created_at": "2020-11-03T19:13:43.010804-05:00",
+  "updated_at": "2020-11-03T19:13:43.010826-05:00"
+  },
+  {
+  "iso3_code": "BGD",
+  "iso2_code": "",
+  "short_name": "Bangladesh",
+  "official_name": "la República Popular de Bangladesh",
+  "created_at": "2020-11-03T19:13:43.018464-05:00",
+  "updated_at": "2020-11-03T19:13:43.018486-05:00"
+  },
+  {
+  "iso3_code": "BRB",
+  "iso2_code": "",
+  "short_name": "Barbados",
+  "official_name": "Barbados",
+  "created_at": "2020-11-03T19:13:43.024844-05:00",
+  "updated_at": "2020-11-03T19:13:43.024866-05:00"
+  },
+  {
+  "iso3_code": "BLR",
+  "iso2_code": "",
+  "short_name": "Belarús",
+  "official_name": "la República de Belarús",
+  "created_at": "2020-11-03T19:13:43.032055-05:00",
+  "updated_at": "2020-11-03T19:13:43.032077-05:00"
+  },
+  {
+  "iso3_code": "BEL",
+  "iso2_code": "",
+  "short_name": "Bélgica",
+  "official_name": "el Reino de Bélgica",
+  "created_at": "2020-11-03T19:13:43.114244-05:00",
+  "updated_at": "2020-11-03T19:13:43.114267-05:00"
+  },
+  {
+  "iso3_code": "BLZ",
+  "iso2_code": "",
+  "short_name": "Belice",
+  "official_name": "Belice",
+  "created_at": "2020-11-03T19:13:43.040342-05:00",
+  "updated_at": "2020-11-03T19:13:43.040372-05:00"
+  },
+  {
+  "iso3_code": "BEN",
+  "iso2_code": "",
+  "short_name": "Benin",
+  "official_name": "la República de Benin",
+  "created_at": "2020-11-03T19:13:43.046480-05:00",
+  "updated_at": "2020-11-03T19:13:43.046501-05:00"
+  },
+  {
+  "iso3_code": "BTN",
+  "iso2_code": "",
+  "short_name": "Bhután",
+  "official_name": "el Reino de Bhután",
+  "created_at": "2020-11-03T19:13:43.052810-05:00",
+  "updated_at": "2020-11-03T19:13:43.052832-05:00"
+  },
+  {
+  "iso3_code": "BOL",
+  "iso2_code": "BO",
+  "short_name": "Bolivia",
+  "official_name": "Estado Plurinacional de Bolivia",
+  "created_at": "2020-11-03T19:13:43.060020-05:00",
+  "updated_at": "2022-03-16T11:11:40.084608-05:00"
+  },
+  {
+  "iso3_code": "BIH",
+  "iso2_code": "",
+  "short_name": "Bosnia y Herzegovina",
+  "official_name": "Bosnia y Herzegovina",
+  "created_at": "2020-11-03T19:13:43.067681-05:00",
+  "updated_at": "2020-11-03T19:13:43.067703-05:00"
+  },
+  {
+  "iso3_code": "BWA",
+  "iso2_code": "",
+  "short_name": "Botswana",
+  "official_name": "la República de Botswana",
+  "created_at": "2020-11-03T19:13:43.073981-05:00",
+  "updated_at": "2020-11-03T19:13:43.074003-05:00"
+  },
+  {
+  "iso3_code": "BRA",
+  "iso2_code": "BR",
+  "short_name": "Brasil",
+  "official_name": "la República Federativa del Brasil",
+  "created_at": "2020-11-03T19:13:43.080038-05:00",
+  "updated_at": "2022-03-16T11:12:33.421856-05:00"
+  },
+  {
+  "iso3_code": "BRN",
+  "iso2_code": "",
+  "short_name": "Brunei Darussalam",
+  "official_name": "Brunei Darussalam",
+  "created_at": "2020-11-03T19:13:43.086002-05:00",
+  "updated_at": "2020-11-03T19:13:43.086024-05:00"
+  },
+  {
+  "iso3_code": "BGR",
+  "iso2_code": "",
+  "short_name": "Bulgaria",
+  "official_name": "la República de Bulgaria",
+  "created_at": "2020-11-03T19:13:43.092259-05:00",
+  "updated_at": "2020-11-03T19:13:43.092281-05:00"
+  },
+  {
+  "iso3_code": "BFA",
+  "iso2_code": "",
+  "short_name": "Burkina Faso",
+  "official_name": "Burkina Faso",
+  "created_at": "2020-11-03T19:13:43.098106-05:00",
+  "updated_at": "2020-11-03T19:13:43.098127-05:00"
+  },
+  {
+  "iso3_code": "BDI",
+  "iso2_code": "",
+  "short_name": "Burundi",
+  "official_name": "la República de Burundi",
+  "created_at": "2020-11-03T19:13:43.106057-05:00",
+  "updated_at": "2020-11-03T19:13:43.106079-05:00"
+  },
+  {
+  "iso3_code": "CPV",
+  "iso2_code": "",
+  "short_name": "Cabo Verde",
+  "official_name": "la República de Cabo Verde",
+  "created_at": "2020-11-03T19:13:43.120702-05:00",
+  "updated_at": "2020-11-03T19:13:43.120725-05:00"
+  },
+  {
+  "iso3_code": "KHM",
+  "iso2_code": "",
+  "short_name": "Camboya",
+  "official_name": "el Reino de Camboya",
+  "created_at": "2020-11-03T19:13:43.126871-05:00",
+  "updated_at": "2020-11-03T19:13:43.126894-05:00"
+  },
+  {
+  "iso3_code": "CMR",
+  "iso2_code": "",
+  "short_name": "Camerún",
+  "official_name": "la República del Camerún",
+  "created_at": "2020-11-03T19:13:43.133095-05:00",
+  "updated_at": "2020-11-03T19:13:43.133117-05:00"
+  },
+  {
+  "iso3_code": "CAN",
+  "iso2_code": "",
+  "short_name": "Canadá",
+  "official_name": "el Canadá",
+  "created_at": "2020-11-03T19:13:43.139211-05:00",
+  "updated_at": "2020-11-03T19:13:43.139233-05:00"
+  },
+  {
+  "iso3_code": "TCD",
+  "iso2_code": "",
+  "short_name": "Chad",
+  "official_name": "la República del Chad",
+  "created_at": "2020-11-03T19:13:43.146462-05:00",
+  "updated_at": "2020-11-03T19:13:43.146485-05:00"
+  },
+  {
+  "iso3_code": "CZE",
+  "iso2_code": "",
+  "short_name": "Chequia",
+  "official_name": "la República Checa",
+  "created_at": "2020-11-03T19:13:43.152981-05:00",
+  "updated_at": "2020-11-03T19:13:43.153003-05:00"
+  },
+  {
+  "iso3_code": "CHL",
+  "iso2_code": "CL",
+  "short_name": "Chile",
+  "official_name": "la República de Chile",
+  "created_at": "2020-11-03T19:13:43.160217-05:00",
+  "updated_at": "2021-06-30T18:11:29.945401-05:00"
+  },
+  {
+  "iso3_code": "CHN",
+  "iso2_code": "",
+  "short_name": "China",
+  "official_name": "la República Popular China",
+  "created_at": "2020-11-03T19:13:43.166841-05:00",
+  "updated_at": "2020-11-03T19:13:43.166863-05:00"
+  },
+  {
+  "iso3_code": "CYP",
+  "iso2_code": "",
+  "short_name": "Chipre",
+  "official_name": "la República de Chipre",
+  "created_at": "2020-11-03T19:13:43.173859-05:00",
+  "updated_at": "2020-11-03T19:13:43.173881-05:00"
+  },
+  {
+  "iso3_code": "COL",
+  "iso2_code": "CO",
+  "short_name": "Colombia",
+  "official_name": "la República de Colombia",
+  "created_at": "2020-11-03T19:13:43.181003-05:00",
+  "updated_at": "2021-06-30T18:12:28.562015-05:00"
+  },
+  {
+  "iso3_code": "COM",
+  "iso2_code": "",
+  "short_name": "Comoras",
+  "official_name": "la Unión de las Comoras",
+  "created_at": "2020-11-03T19:13:43.187517-05:00",
+  "updated_at": "2020-11-03T19:13:43.187539-05:00"
+  },
+  {
+  "iso3_code": "COG",
+  "iso2_code": "",
+  "short_name": "Congo",
+  "official_name": "la República del Congo",
+  "created_at": "2020-11-03T19:13:43.193697-05:00",
+  "updated_at": "2020-11-03T19:13:43.193719-05:00"
+  },
+  {
+  "iso3_code": "CRI",
+  "iso2_code": "",
+  "short_name": "Costa Rica",
+  "official_name": "la República de Costa Rica",
+  "created_at": "2020-11-03T19:13:43.201655-05:00",
+  "updated_at": "2020-11-03T19:13:43.201677-05:00"
+  },
+  {
+  "iso3_code": "CIV",
+  "iso2_code": "",
+  "short_name": "Côte d'Ivoire",
+  "official_name": "la República de Côte d'Ivoire",
+  "created_at": "2020-11-03T19:13:43.223939-05:00",
+  "updated_at": "2020-11-03T19:13:43.223961-05:00"
+  },
+  {
+  "iso3_code": "HRV",
+  "iso2_code": "",
+  "short_name": "Croacia",
+  "official_name": "la República de Croacia",
+  "created_at": "2020-11-03T19:13:43.208542-05:00",
+  "updated_at": "2020-11-03T19:13:43.208563-05:00"
+  },
+  {
+  "iso3_code": "CUB",
+  "iso2_code": "",
+  "short_name": "Cuba",
+  "official_name": "la República de Cuba",
+  "created_at": "2020-11-03T19:13:43.216232-05:00",
+  "updated_at": "2020-11-03T19:13:43.216254-05:00"
+  },
+  {
+  "iso3_code": "DNK",
+  "iso2_code": "",
+  "short_name": "Dinamarca",
+  "official_name": "el Reino de Dinamarca",
+  "created_at": "2020-11-03T19:13:43.231594-05:00",
+  "updated_at": "2020-11-03T19:13:43.231616-05:00"
+  },
+  {
+  "iso3_code": "DJI",
+  "iso2_code": "",
+  "short_name": "Djibouti",
+  "official_name": "la República de Djibouti",
+  "created_at": "2020-11-03T19:13:43.237824-05:00",
+  "updated_at": "2020-11-03T19:13:43.237846-05:00"
+  },
+  {
+  "iso3_code": "DMA",
+  "iso2_code": "",
+  "short_name": "Dominica",
+  "official_name": "el Commonwealth de Dominica",
+  "created_at": "2020-11-03T19:13:43.244635-05:00",
+  "updated_at": "2020-11-03T19:13:43.244657-05:00"
+  },
+  {
+  "iso3_code": "ECU",
+  "iso2_code": "EC",
+  "short_name": "Ecuador",
+  "official_name": "la República del Ecuador",
+  "created_at": "2020-11-03T19:13:43.251906-05:00",
+  "updated_at": "2021-06-30T18:10:52.784346-05:00"
+  },
+  {
+  "iso3_code": "EGY",
+  "iso2_code": "",
+  "short_name": "Egipto",
+  "official_name": "la República Árabe de Egipto",
+  "created_at": "2020-11-03T19:13:43.258397-05:00",
+  "updated_at": "2020-11-03T19:13:43.258419-05:00"
+  },
+  {
+  "iso3_code": "SLV",
+  "iso2_code": "",
+  "short_name": "El Salvador",
+  "official_name": "la República de El Salvador",
+  "created_at": "2020-11-03T19:13:43.265352-05:00",
+  "updated_at": "2020-11-03T19:13:43.265374-05:00"
+  },
+  {
+  "iso3_code": "ARE",
+  "iso2_code": "",
+  "short_name": "Emiratos Árabes Unidos",
+  "official_name": "los Emiratos Árabes Unidos",
+  "created_at": "2020-11-03T19:13:43.272508-05:00",
+  "updated_at": "2020-11-03T19:13:43.272529-05:00"
+  },
+  {
+  "iso3_code": "ERI",
+  "iso2_code": "",
+  "short_name": "Eritrea",
+  "official_name": "el Estado de Eritrea",
+  "created_at": "2020-11-03T19:13:43.279708-05:00",
+  "updated_at": "2020-11-03T19:13:43.279730-05:00"
+  },
+  {
+  "iso3_code": "SVK",
+  "iso2_code": "",
+  "short_name": "Eslovaquia",
+  "official_name": "la República Eslovaca",
+  "created_at": "2020-11-03T19:13:43.287215-05:00",
+  "updated_at": "2020-11-03T19:13:43.287237-05:00"
+  },
+  {
+  "iso3_code": "SVN",
+  "iso2_code": "",
+  "short_name": "Eslovenia",
+  "official_name": "la República de Eslovenia",
+  "created_at": "2020-11-03T19:13:43.293504-05:00",
+  "updated_at": "2020-11-03T19:13:43.293526-05:00"
+  },
+  {
+  "iso3_code": "ESP",
+  "iso2_code": "",
+  "short_name": "España",
+  "official_name": "el Reino de España",
+  "created_at": "2020-11-03T19:13:43.300704-05:00",
+  "updated_at": "2020-11-03T19:13:43.300726-05:00"
+  },
+  {
+  "iso3_code": "USA",
+  "iso2_code": "US",
+  "short_name": "Estados Unidos de América",
+  "official_name": "los Estados Unidos de América",
+  "created_at": "2020-11-03T19:13:43.307344-05:00",
+  "updated_at": "2022-06-14T17:07:57.521483-05:00"
+  },
+  {
+  "iso3_code": "EST",
+  "iso2_code": "",
+  "short_name": "Estonia",
+  "official_name": "la República de Estonia",
+  "created_at": "2020-11-03T19:13:43.315186-05:00",
+  "updated_at": "2020-11-03T19:13:43.315208-05:00"
+  },
+  {
+  "iso3_code": "SWZ",
+  "iso2_code": "",
+  "short_name": "Eswatini",
+  "official_name": "el Reino de Eswatini",
+  "created_at": "2020-11-03T19:13:43.321403-05:00",
+  "updated_at": "2020-11-03T19:13:43.321424-05:00"
+  },
+  {
+  "iso3_code": "ETH",
+  "iso2_code": "",
+  "short_name": "Etiopía",
+  "official_name": "la República Democrática Federal de Etiopía",
+  "created_at": "2020-11-03T19:13:43.327704-05:00",
+  "updated_at": "2020-11-03T19:13:43.327726-05:00"
+  },
+  {
+  "iso3_code": "RUS",
+  "iso2_code": "",
+  "short_name": "Federación de Rusia",
+  "official_name": "la Federación de Rusia",
+  "created_at": "2020-11-03T19:13:43.333950-05:00",
+  "updated_at": "2020-11-03T19:13:43.333971-05:00"
+  },
+  {
+  "iso3_code": "FJI",
+  "iso2_code": "",
+  "short_name": "Fiji",
+  "official_name": "la República de Fiji",
+  "created_at": "2020-11-03T19:13:43.340090-05:00",
+  "updated_at": "2020-11-03T19:13:43.340113-05:00"
+  },
+  {
+  "iso3_code": "PHL",
+  "iso2_code": "",
+  "short_name": "Filipinas",
+  "official_name": "la República de Filipinas",
+  "created_at": "2020-11-03T19:13:43.346239-05:00",
+  "updated_at": "2020-11-03T19:13:43.346261-05:00"
+  },
+  {
+  "iso3_code": "FIN",
+  "iso2_code": "",
+  "short_name": "Finlandia",
+  "official_name": "la República de Finlandia",
+  "created_at": "2020-11-03T19:13:43.353445-05:00",
+  "updated_at": "2020-11-03T19:13:43.353467-05:00"
+  },
+  {
+  "iso3_code": "FRA",
+  "iso2_code": "",
+  "short_name": "Francia",
+  "official_name": "la República Francesa",
+  "created_at": "2020-11-03T19:13:43.359661-05:00",
+  "updated_at": "2020-11-03T19:13:43.359683-05:00"
+  },
+  {
+  "iso3_code": "GAB",
+  "iso2_code": "",
+  "short_name": "Gabón",
+  "official_name": "la República Gabonesa",
+  "created_at": "2020-11-03T19:13:43.365900-05:00",
+  "updated_at": "2020-11-03T19:13:43.365923-05:00"
+  },
+  {
+  "iso3_code": "GMB",
+  "iso2_code": "",
+  "short_name": "Gambia",
+  "official_name": "la República de Gambia",
+  "created_at": "2020-11-03T19:13:43.371963-05:00",
+  "updated_at": "2020-11-03T19:13:43.371984-05:00"
+  },
+  {
+  "iso3_code": "GEO",
+  "iso2_code": "",
+  "short_name": "Georgia",
+  "official_name": "Georgia",
+  "created_at": "2020-11-03T19:13:43.377895-05:00",
+  "updated_at": "2020-11-03T19:13:43.377917-05:00"
+  },
+  {
+  "iso3_code": "GHA",
+  "iso2_code": "",
+  "short_name": "Ghana",
+  "official_name": "la República de Ghana",
+  "created_at": "2020-11-03T19:13:43.384179-05:00",
+  "updated_at": "2020-11-03T19:13:43.384200-05:00"
+  },
+  {
+  "iso3_code": "GRD",
+  "iso2_code": "",
+  "short_name": "Granada",
+  "official_name": "Granada",
+  "created_at": "2020-11-03T19:13:43.390041-05:00",
+  "updated_at": "2020-11-03T19:13:43.390064-05:00"
+  },
+  {
+  "iso3_code": "GRC",
+  "iso2_code": "",
+  "short_name": "Grecia",
+  "official_name": "la República Helénica",
+  "created_at": "2020-11-03T19:13:43.396188-05:00",
+  "updated_at": "2020-11-03T19:13:43.396210-05:00"
+  },
+  {
+  "iso3_code": "GTM",
+  "iso2_code": "GT",
+  "short_name": "Guatemala",
+  "official_name": "la República de Guatemala",
+  "created_at": "2020-11-03T19:13:43.402485-05:00",
+  "updated_at": "2022-04-13T11:36:57.934033-05:00"
+  },
+  {
+  "iso3_code": "GIN",
+  "iso2_code": "",
+  "short_name": "Guinea",
+  "official_name": "la República de Guinea",
+  "created_at": "2020-11-03T19:13:43.408705-05:00",
+  "updated_at": "2020-11-03T19:13:43.408727-05:00"
+  },
+  {
+  "iso3_code": "GNQ",
+  "iso2_code": "",
+  "short_name": "Guinea Ecuatorial",
+  "official_name": "la República de Guinea Ecuatorial",
+  "created_at": "2020-11-03T19:13:43.415451-05:00",
+  "updated_at": "2020-11-03T19:13:43.415474-05:00"
+  },
+  {
+  "iso3_code": "GNB",
+  "iso2_code": "",
+  "short_name": "Guinea-Bissau",
+  "official_name": "la República de Guinea-Bissau",
+  "created_at": "2020-11-03T19:13:43.422325-05:00",
+  "updated_at": "2020-11-03T19:13:43.422347-05:00"
+  },
+  {
+  "iso3_code": "GUY",
+  "iso2_code": "",
+  "short_name": "Guyana",
+  "official_name": "la República Cooperativa de Guyana",
+  "created_at": "2020-11-03T19:13:43.429410-05:00",
+  "updated_at": "2020-11-03T19:13:43.429432-05:00"
+  },
+  {
+  "iso3_code": "HTI",
+  "iso2_code": "",
+  "short_name": "Haití",
+  "official_name": "la República de Haití",
+  "created_at": "2020-11-03T19:13:43.436103-05:00",
+  "updated_at": "2020-11-03T19:13:43.436124-05:00"
+  },
+  {
+  "iso3_code": "HND",
+  "iso2_code": "",
+  "short_name": "Honduras",
+  "official_name": "la República de Honduras",
+  "created_at": "2020-11-03T19:13:43.442945-05:00",
+  "updated_at": "2020-11-03T19:13:43.442965-05:00"
+  },
+  {
+  "iso3_code": "HUN",
+  "iso2_code": "",
+  "short_name": "Hungría",
+  "official_name": "Hungría",
+  "created_at": "2020-11-03T19:13:43.449202-05:00",
+  "updated_at": "2020-11-03T19:13:43.449224-05:00"
+  },
+  {
+  "iso3_code": "IND",
+  "iso2_code": "",
+  "short_name": "India",
+  "official_name": "la República de la India",
+  "created_at": "2020-11-03T19:13:43.455949-05:00",
+  "updated_at": "2020-11-03T19:13:43.455972-05:00"
+  },
+  {
+  "iso3_code": "IDN",
+  "iso2_code": "",
+  "short_name": "Indonesia",
+  "official_name": "la República de Indonesia",
+  "created_at": "2020-11-03T19:13:43.463093-05:00",
+  "updated_at": "2020-11-03T19:13:43.463115-05:00"
+  },
+  {
+  "iso3_code": "IRN",
+  "iso2_code": "",
+  "short_name": "Irán (República Islámica del)",
+  "official_name": "la República Islámica del Irán",
+  "created_at": "2020-11-03T19:13:43.482704-05:00",
+  "updated_at": "2020-11-03T19:13:43.482726-05:00"
+  },
+  {
+  "iso3_code": "IRQ",
+  "iso2_code": "",
+  "short_name": "Iraq",
+  "official_name": "la República del Iraq",
+  "created_at": "2020-11-03T19:13:43.469457-05:00",
+  "updated_at": "2020-11-03T19:13:43.469480-05:00"
+  },
+  {
+  "iso3_code": "IRL",
+  "iso2_code": "",
+  "short_name": "Irlanda",
+  "official_name": "Irlanda",
+  "created_at": "2020-11-03T19:13:43.476499-05:00",
+  "updated_at": "2020-11-03T19:13:43.476522-05:00"
+  },
+  {
+  "iso3_code": "ISL",
+  "iso2_code": "",
+  "short_name": "Islandia",
+  "official_name": "la República de Islandia",
+  "created_at": "2020-11-03T19:13:43.489670-05:00",
+  "updated_at": "2020-11-03T19:13:43.489691-05:00"
+  },
+  {
+  "iso3_code": "COK",
+  "iso2_code": "",
+  "short_name": "Islas Cook",
+  "official_name": "las Islas Cook",
+  "created_at": "2020-11-03T19:13:43.497593-05:00",
+  "updated_at": "2020-11-03T19:13:43.497616-05:00"
+  },
+  {
+  "iso3_code": "FRO",
+  "iso2_code": "",
+  "short_name": "Islas Feroe",
+  "official_name": "las Islas Feroe",
+  "created_at": "2020-11-03T19:13:43.504271-05:00",
+  "updated_at": "2020-11-03T19:13:43.504292-05:00"
+  },
+  {
+  "iso3_code": "MHL",
+  "iso2_code": "",
+  "short_name": "Islas Marshall",
+  "official_name": "la República de las Islas Marshall",
+  "created_at": "2020-11-03T19:13:43.510933-05:00",
+  "updated_at": "2020-11-03T19:13:43.510955-05:00"
+  },
+  {
+  "iso3_code": "SLB",
+  "iso2_code": "",
+  "short_name": "Islas Salomón",
+  "official_name": "las Islas Salomón",
+  "created_at": "2020-11-03T19:13:43.517970-05:00",
+  "updated_at": "2020-11-03T19:13:43.517992-05:00"
+  },
+  {
+  "iso3_code": "ISR",
+  "iso2_code": "",
+  "short_name": "Israel",
+  "official_name": "el Estado de Israel",
+  "created_at": "2020-11-03T19:13:43.525819-05:00",
+  "updated_at": "2020-11-03T19:13:43.525841-05:00"
+  },
+  {
+  "iso3_code": "ITA",
+  "iso2_code": "",
+  "short_name": "Italia",
+  "official_name": "la República Italiana",
+  "created_at": "2020-11-03T19:13:43.533049-05:00",
+  "updated_at": "2020-11-03T19:13:43.533071-05:00"
+  },
+  {
+  "iso3_code": "JAM",
+  "iso2_code": "",
+  "short_name": "Jamaica",
+  "official_name": "Jamaica",
+  "created_at": "2020-11-03T19:13:43.539668-05:00",
+  "updated_at": "2020-11-03T19:13:43.539690-05:00"
+  },
+  {
+  "iso3_code": "JPN",
+  "iso2_code": "",
+  "short_name": "Japón",
+  "official_name": "el Japón",
+  "created_at": "2020-11-03T19:13:43.545935-05:00",
+  "updated_at": "2020-11-03T19:13:43.545956-05:00"
+  },
+  {
+  "iso3_code": "JOR",
+  "iso2_code": "",
+  "short_name": "Jordania",
+  "official_name": "el Reino Hachemita de Jordania",
+  "created_at": "2020-11-03T19:13:43.552745-05:00",
+  "updated_at": "2020-11-03T19:13:43.552767-05:00"
+  },
+  {
+  "iso3_code": "KAZ",
+  "iso2_code": "",
+  "short_name": "Kazajstán",
+  "official_name": "la República de Kazajstán",
+  "created_at": "2020-11-03T19:13:43.558821-05:00",
+  "updated_at": "2020-11-03T19:13:43.558843-05:00"
+  },
+  {
+  "iso3_code": "KEN",
+  "iso2_code": "",
+  "short_name": "Kenya",
+  "official_name": "la República de Kenya",
+  "created_at": "2020-11-03T19:13:43.565906-05:00",
+  "updated_at": "2020-11-03T19:13:43.565928-05:00"
+  },
+  {
+  "iso3_code": "KGZ",
+  "iso2_code": "",
+  "short_name": "Kirguistán",
+  "official_name": "la República Kirguisa",
+  "created_at": "2020-11-03T19:13:43.572578-05:00",
+  "updated_at": "2020-11-03T19:13:43.572600-05:00"
+  },
+  {
+  "iso3_code": "KIR",
+  "iso2_code": "",
+  "short_name": "Kiribati",
+  "official_name": "la República de Kiribati",
+  "created_at": "2020-11-03T19:13:43.580063-05:00",
+  "updated_at": "2020-11-03T19:13:43.580091-05:00"
+  },
+  {
+  "iso3_code": "KWT",
+  "iso2_code": "",
+  "short_name": "Kuwait",
+  "official_name": "el Estado de Kuwait",
+  "created_at": "2020-11-03T19:13:43.587178-05:00",
+  "updated_at": "2020-11-03T19:13:43.587205-05:00"
+  },
+  {
+  "iso3_code": "LSO",
+  "iso2_code": "",
+  "short_name": "Lesotho",
+  "official_name": "el Reino de Lesotho",
+  "created_at": "2020-11-03T19:13:43.593414-05:00",
+  "updated_at": "2020-11-03T19:13:43.593439-05:00"
+  },
+  {
+  "iso3_code": "LVA",
+  "iso2_code": "",
+  "short_name": "Letonia",
+  "official_name": "la República de Letonia",
+  "created_at": "2020-11-03T19:13:43.600100-05:00",
+  "updated_at": "2020-11-03T19:13:43.600129-05:00"
+  },
+  {
+  "iso3_code": "LBN",
+  "iso2_code": "",
+  "short_name": "Líbano",
+  "official_name": "la República libanesa",
+  "created_at": "2020-11-03T19:13:43.634136-05:00",
+  "updated_at": "2020-11-03T19:13:43.634160-05:00"
+  },
+  {
+  "iso3_code": "LBR",
+  "iso2_code": "",
+  "short_name": "Liberia",
+  "official_name": "la República de Liberia",
+  "created_at": "2020-11-03T19:13:43.606930-05:00",
+  "updated_at": "2020-11-03T19:13:43.606954-05:00"
+  },
+  {
+  "iso3_code": "LBY",
+  "iso2_code": "",
+  "short_name": "Libia",
+  "official_name": "el Estado de Libia",
+  "created_at": "2020-11-03T19:13:43.614121-05:00",
+  "updated_at": "2020-11-03T19:13:43.614145-05:00"
+  },
+  {
+  "iso3_code": "LTU",
+  "iso2_code": "",
+  "short_name": "Lituania",
+  "official_name": "la República de Lituania",
+  "created_at": "2020-11-03T19:13:43.621028-05:00",
+  "updated_at": "2020-11-03T19:13:43.621052-05:00"
+  },
+  {
+  "iso3_code": "LUX",
+  "iso2_code": "",
+  "short_name": "Luxemburgo",
+  "official_name": "el Gran Ducado de Luxemburgo",
+  "created_at": "2020-11-03T19:13:43.627614-05:00",
+  "updated_at": "2020-11-03T19:13:43.627637-05:00"
+  },
+  {
+  "iso3_code": "MKD",
+  "iso2_code": "",
+  "short_name": "Macedonia del Norte",
+  "official_name": "la República de Macedonia del Norte",
+  "created_at": "2020-11-03T19:13:43.641352-05:00",
+  "updated_at": "2020-11-03T19:13:43.641375-05:00"
+  },
+  {
+  "iso3_code": "MDG",
+  "iso2_code": "",
+  "short_name": "Madagascar",
+  "official_name": "la República de Madagascar",
+  "created_at": "2020-11-03T19:13:43.648043-05:00",
+  "updated_at": "2020-11-03T19:13:43.648065-05:00"
+  },
+  {
+  "iso3_code": "MYS",
+  "iso2_code": "",
+  "short_name": "Malasia",
+  "official_name": "Malasia",
+  "created_at": "2020-11-03T19:13:43.654193-05:00",
+  "updated_at": "2020-11-03T19:13:43.654215-05:00"
+  },
+  {
+  "iso3_code": "MWI",
+  "iso2_code": "",
+  "short_name": "Malawi",
+  "official_name": "la República de Malawi",
+  "created_at": "2020-11-03T19:13:43.660560-05:00",
+  "updated_at": "2020-11-03T19:13:43.660583-05:00"
+  },
+  {
+  "iso3_code": "MDV",
+  "iso2_code": "",
+  "short_name": "Maldivas",
+  "official_name": "la República de Maldivas",
+  "created_at": "2020-11-03T19:13:43.668380-05:00",
+  "updated_at": "2020-11-03T19:13:43.668401-05:00"
+  },
+  {
+  "iso3_code": "MLI",
+  "iso2_code": "",
+  "short_name": "Malí",
+  "official_name": "la República de Malí",
+  "created_at": "2020-11-03T19:13:43.680874-05:00",
+  "updated_at": "2020-11-03T19:13:43.680897-05:00"
+  },
+  {
+  "iso3_code": "MLT",
+  "iso2_code": "",
+  "short_name": "Malta",
+  "official_name": "la República de Malta",
+  "created_at": "2020-11-03T19:13:43.674606-05:00",
+  "updated_at": "2020-11-03T19:13:43.674629-05:00"
+  },
+  {
+  "iso3_code": "MAR",
+  "iso2_code": "",
+  "short_name": "Marruecos",
+  "official_name": "el Reino de Marruecos",
+  "created_at": "2020-11-03T19:13:43.686872-05:00",
+  "updated_at": "2020-11-03T19:13:43.686894-05:00"
+  },
+  {
+  "iso3_code": "MUS",
+  "iso2_code": "",
+  "short_name": "Mauricio",
+  "official_name": "la República de Mauricio",
+  "created_at": "2020-11-03T19:13:43.692962-05:00",
+  "updated_at": "2020-11-03T19:13:43.692985-05:00"
+  },
+  {
+  "iso3_code": "MRT",
+  "iso2_code": "",
+  "short_name": "Mauritania",
+  "official_name": "la República Islámica de Mauritania",
+  "created_at": "2020-11-03T19:13:43.699898-05:00",
+  "updated_at": "2020-11-03T19:13:43.699920-05:00"
+  },
+  {
+  "iso3_code": "MEX",
+  "iso2_code": "",
+  "short_name": "México",
+  "official_name": "los Estados Unidos Mexicanos",
+  "created_at": "2020-11-03T19:13:43.741075-05:00",
+  "updated_at": "2020-11-03T19:13:43.741100-05:00"
+  },
+  {
+  "iso3_code": "FSM",
+  "iso2_code": "",
+  "short_name": "Micronesia (Estados Federados de)",
+  "official_name": "los Estados Federados de Micronesia",
+  "created_at": "2020-11-03T19:13:43.706975-05:00",
+  "updated_at": "2020-11-03T19:13:43.706998-05:00"
+  },
+  {
+  "iso3_code": "MCO",
+  "iso2_code": "",
+  "short_name": "Mónaco",
+  "official_name": "el Principado de Mónaco",
+  "created_at": "2020-11-03T19:13:43.748480-05:00",
+  "updated_at": "2020-11-03T19:13:43.748503-05:00"
+  },
+  {
+  "iso3_code": "MNG",
+  "iso2_code": "",
+  "short_name": "Mongolia",
+  "official_name": "Mongolia",
+  "created_at": "2020-11-03T19:13:43.713855-05:00",
+  "updated_at": "2020-11-03T19:13:43.713879-05:00"
+  },
+  {
+  "iso3_code": "MNE",
+  "iso2_code": "",
+  "short_name": "Montenegro",
+  "official_name": "Montenegro",
+  "created_at": "2020-11-03T19:13:43.720585-05:00",
+  "updated_at": "2020-11-03T19:13:43.720608-05:00"
+  },
+  {
+  "iso3_code": "MOZ",
+  "iso2_code": "",
+  "short_name": "Mozambique",
+  "official_name": "la República de Mozambique",
+  "created_at": "2020-11-03T19:13:43.726808-05:00",
+  "updated_at": "2020-11-03T19:13:43.726829-05:00"
+  },
+  {
+  "iso3_code": "MMR",
+  "iso2_code": "",
+  "short_name": "Myanmar",
+  "official_name": "la República de la Unión de Myanmar",
+  "created_at": "2020-11-03T19:13:43.733841-05:00",
+  "updated_at": "2020-11-03T19:13:43.733865-05:00"
+  },
+  {
+  "iso3_code": "NAM",
+  "iso2_code": "",
+  "short_name": "Namibia",
+  "official_name": "la República de Namibia",
+  "created_at": "2020-11-03T19:13:43.754684-05:00",
+  "updated_at": "2020-11-03T19:13:43.754706-05:00"
+  },
+  {
+  "iso3_code": "NRU",
+  "iso2_code": "",
+  "short_name": "Nauru",
+  "official_name": "la República de Nauru",
+  "created_at": "2020-11-03T19:13:43.760555-05:00",
+  "updated_at": "2020-11-03T19:13:43.760577-05:00"
+  },
+  {
+  "iso3_code": "NPL",
+  "iso2_code": "",
+  "short_name": "Nepal",
+  "official_name": "la República Democrática Federal de Nepal",
+  "created_at": "2020-11-03T19:13:43.766788-05:00",
+  "updated_at": "2020-11-03T19:13:43.766810-05:00"
+  },
+  {
+  "iso3_code": "NIC",
+  "iso2_code": "",
+  "short_name": "Nicaragua",
+  "official_name": "la República de Nicaragua",
+  "created_at": "2020-11-03T19:13:43.773055-05:00",
+  "updated_at": "2020-11-03T19:13:43.773076-05:00"
+  },
+  {
+  "iso3_code": "NER",
+  "iso2_code": "",
+  "short_name": "Níger",
+  "official_name": "la República del Níger",
+  "created_at": "2020-11-03T19:13:43.805537-05:00",
+  "updated_at": "2020-11-03T19:13:43.805558-05:00"
+  },
+  {
+  "iso3_code": "NGA",
+  "iso2_code": "",
+  "short_name": "Nigeria",
+  "official_name": "la República Federal de Nigeria",
+  "created_at": "2020-11-03T19:13:43.779352-05:00",
+  "updated_at": "2020-11-03T19:13:43.779374-05:00"
+  },
+  {
+  "iso3_code": "NIU",
+  "iso2_code": "",
+  "short_name": "Niue",
+  "official_name": "Niue",
+  "created_at": "2020-11-03T19:13:43.786454-05:00",
+  "updated_at": "2020-11-03T19:13:43.786476-05:00"
+  },
+  {
+  "iso3_code": "NOR",
+  "iso2_code": "",
+  "short_name": "Noruega",
+  "official_name": "el Reino de Noruega",
+  "created_at": "2020-11-03T19:13:43.793181-05:00",
+  "updated_at": "2020-11-03T19:13:43.793202-05:00"
+  },
+  {
+  "iso3_code": "NZL",
+  "iso2_code": "",
+  "short_name": "Nueva Zelandia",
+  "official_name": "Nueva Zelandia",
+  "created_at": "2020-11-03T19:13:43.799086-05:00",
+  "updated_at": "2020-11-03T19:13:43.799107-05:00"
+  },
+  {
+  "iso3_code": "OMN",
+  "iso2_code": "",
+  "short_name": "Omán",
+  "official_name": "la Sultanía de Omán",
+  "created_at": "2020-11-03T19:13:43.812226-05:00",
+  "updated_at": "2020-11-03T19:13:43.812248-05:00"
+  },
+  {
+  "iso3_code": "NLD",
+  "iso2_code": "",
+  "short_name": "Países Bajos",
+  "official_name": "el Reino de los Países Bajos",
+  "created_at": "2020-11-03T19:13:43.849643-05:00",
+  "updated_at": "2020-11-03T19:13:43.849670-05:00"
+  },
+  {
+  "iso3_code": "PAK",
+  "iso2_code": "",
+  "short_name": "Pakistán",
+  "official_name": "la República Islámica del Pakistán",
+  "created_at": "2020-11-03T19:13:43.818353-05:00",
+  "updated_at": "2020-11-03T19:13:43.818374-05:00"
+  },
+  {
+  "iso3_code": "PLW",
+  "iso2_code": "",
+  "short_name": "Palau",
+  "official_name": "la República de Palau",
+  "created_at": "2020-11-03T19:13:43.824955-05:00",
+  "updated_at": "2020-11-03T19:13:43.824978-05:00"
+  },
+  {
+  "iso3_code": "PAN",
+  "iso2_code": "PA",
+  "short_name": "Panamá",
+  "official_name": "la República de Panamá",
+  "created_at": "2020-11-03T19:13:43.831091-05:00",
+  "updated_at": "2021-06-30T18:10:20.637609-05:00"
+  },
+  {
+  "iso3_code": "PNG",
+  "iso2_code": "",
+  "short_name": "Papua Nueva Guinea",
+  "official_name": "Estado Independiente de Papua Nueva Guinea",
+  "created_at": "2020-11-03T19:13:43.837386-05:00",
+  "updated_at": "2020-11-03T19:13:43.837408-05:00"
+  },
+  {
+  "iso3_code": "PRY",
+  "iso2_code": "PY",
+  "short_name": "Paraguay",
+  "official_name": "la República del Paraguay",
+  "created_at": "2020-11-03T19:13:43.843360-05:00",
+  "updated_at": "2022-03-16T11:13:08.349183-05:00"
+  },
+  {
+  "iso3_code": "PER",
+  "iso2_code": "PE",
+  "short_name": "Perú",
+  "official_name": "la República del Perú",
+  "created_at": "2020-11-03T19:13:43.856420-05:00",
+  "updated_at": "2021-06-30T18:12:03.788734-05:00"
+  },
+  {
+  "iso3_code": "POL",
+  "iso2_code": "",
+  "short_name": "Polonia",
+  "official_name": "la República de Polonia",
+  "created_at": "2020-11-03T19:13:43.863172-05:00",
+  "updated_at": "2020-11-03T19:13:43.863194-05:00"
+  },
+  {
+  "iso3_code": "PRT",
+  "iso2_code": "",
+  "short_name": "Portugal",
+  "official_name": "la República Portuguesa",
+  "created_at": "2020-11-03T19:13:43.869541-05:00",
+  "updated_at": "2020-11-03T19:13:43.869562-05:00"
+  },
+  {
+  "iso3_code": "QAT",
+  "iso2_code": "",
+  "short_name": "Qatar",
+  "official_name": "el Estado de Qatar",
+  "created_at": "2020-11-03T19:13:43.875685-05:00",
+  "updated_at": "2020-11-03T19:13:43.875707-05:00"
+  },
+  {
+  "iso3_code": "GBR",
+  "iso2_code": "",
+  "short_name": "Reino Unido de Gran Bretaña e Irlanda del Norte",
+  "official_name": "el Reino Unido (de Gran Bretaña e Irlanda del Norte)",
+  "created_at": "2020-11-03T19:13:43.881959-05:00",
+  "updated_at": "2020-11-03T19:13:43.881981-05:00"
+  },
+  {
+  "iso3_code": "SYR",
+  "iso2_code": "",
+  "short_name": "República Árabe Siria",
+  "official_name": "la República Árabe Siria",
+  "created_at": "2020-11-03T19:13:43.941547-05:00",
+  "updated_at": "2020-11-03T19:13:43.941569-05:00"
+  },
+  {
+  "iso3_code": "CAF",
+  "iso2_code": "",
+  "short_name": "República Centroafricana",
+  "official_name": "la República Centroafricana",
+  "created_at": "2020-11-03T19:13:43.888056-05:00",
+  "updated_at": "2020-11-03T19:13:43.888078-05:00"
+  },
+  {
+  "iso3_code": "KOR",
+  "iso2_code": "",
+  "short_name": "República de Corea",
+  "official_name": "la República de Corea",
+  "created_at": "2020-11-03T19:13:43.928181-05:00",
+  "updated_at": "2020-11-03T19:13:43.928203-05:00"
+  },
+  {
+  "iso3_code": "MDA",
+  "iso2_code": "",
+  "short_name": "República de Moldova",
+  "official_name": "la República de Moldova",
+  "created_at": "2020-11-03T19:13:43.934675-05:00",
+  "updated_at": "2020-11-03T19:13:43.934697-05:00"
+  },
+  {
+  "iso3_code": "COD",
+  "iso2_code": "",
+  "short_name": "República Democrática del Congo",
+  "official_name": "la República Democrática del Congo",
+  "created_at": "2020-11-03T19:13:43.901956-05:00",
+  "updated_at": "2020-11-03T19:13:43.901978-05:00"
+  },
+  {
+  "iso3_code": "LAO",
+  "iso2_code": "",
+  "short_name": "República Democrática Popular Lao",
+  "official_name": "la República Democrática Popular Lao",
+  "created_at": "2020-11-03T19:13:43.894726-05:00",
+  "updated_at": "2020-11-03T19:13:43.894749-05:00"
+  },
+  {
+  "iso3_code": "DOM",
+  "iso2_code": "DO",
+  "short_name": "República Dominicana",
+  "official_name": "la República Dominicana",
+  "created_at": "2020-11-03T19:13:43.909049-05:00",
+  "updated_at": "2022-04-18T15:13:10.335682-05:00"
+  },
+  {
+  "iso3_code": "PRK",
+  "iso2_code": "",
+  "short_name": "República Popular Democrática de Corea",
+  "official_name": "la República Popular Democrática de Corea",
+  "created_at": "2020-11-03T19:13:43.915731-05:00",
+  "updated_at": "2020-11-03T19:13:43.915752-05:00"
+  },
+  {
+  "iso3_code": "TZA",
+  "iso2_code": "",
+  "short_name": "República Unida de Tanzanía",
+  "official_name": "la República Unida de Tanzanía",
+  "created_at": "2020-11-03T19:13:43.921959-05:00",
+  "updated_at": "2020-11-03T19:13:43.921982-05:00"
+  },
+  {
+  "iso3_code": "ROU",
+  "iso2_code": "",
+  "short_name": "Rumania",
+  "official_name": "Rumania",
+  "created_at": "2020-11-03T19:13:43.948198-05:00",
+  "updated_at": "2020-11-03T19:13:43.948220-05:00"
+  },
+  {
+  "iso3_code": "RWA",
+  "iso2_code": "",
+  "short_name": "Rwanda",
+  "official_name": "la República de Rwanda",
+  "created_at": "2020-11-03T19:13:43.954482-05:00",
+  "updated_at": "2020-11-03T19:13:43.954504-05:00"
+  },
+  {
+  "iso3_code": "KNA",
+  "iso2_code": "",
+  "short_name": "Saint Kitts y Nevis",
+  "official_name": "Saint Kitts y Nevis",
+  "created_at": "2020-11-03T19:13:43.960421-05:00",
+  "updated_at": "2020-11-03T19:13:43.960443-05:00"
+  },
+  {
+  "iso3_code": "WSM",
+  "iso2_code": "",
+  "short_name": "Samoa",
+  "official_name": "el Estado Independiente de Samoa",
+  "created_at": "2020-11-03T19:13:43.966762-05:00",
+  "updated_at": "2020-11-03T19:13:43.966784-05:00"
+  },
+  {
+  "iso3_code": "SMR",
+  "iso2_code": "",
+  "short_name": "San Marino",
+  "official_name": "la República de San Marino",
+  "created_at": "2020-11-03T19:13:43.973284-05:00",
+  "updated_at": "2020-11-03T19:13:43.973306-05:00"
+  },
+  {
+  "iso3_code": "VCT",
+  "iso2_code": "",
+  "short_name": "San Vicente y las Granadinas",
+  "official_name": "San Vicente y las Granadinas",
+  "created_at": "2020-11-03T19:13:43.980392-05:00",
+  "updated_at": "2020-11-03T19:13:43.980414-05:00"
+  },
+  {
+  "iso3_code": "LCA",
+  "iso2_code": "",
+  "short_name": "Santa Lucía",
+  "official_name": "Santa Lucía",
+  "created_at": "2020-11-03T19:13:43.986935-05:00",
+  "updated_at": "2020-11-03T19:13:43.986957-05:00"
+  },
+  {
+  "iso3_code": "STP",
+  "iso2_code": "",
+  "short_name": "Santo Tomé y Príncipe",
+  "official_name": "la República Democrática de Santo Tomé y Príncipe",
+  "created_at": "2020-11-03T19:13:43.994630-05:00",
+  "updated_at": "2020-11-03T19:13:43.994652-05:00"
+  },
+  {
+  "iso3_code": "SEN",
+  "iso2_code": "",
+  "short_name": "Senegal",
+  "official_name": "la República del Senegal",
+  "created_at": "2020-11-03T19:13:44.001837-05:00",
+  "updated_at": "2020-11-03T19:13:44.001859-05:00"
+  },
+  {
+  "iso3_code": "SRB",
+  "iso2_code": "",
+  "short_name": "Serbia",
+  "official_name": "la República de Serbia",
+  "created_at": "2020-11-03T19:13:44.009015-05:00",
+  "updated_at": "2020-11-03T19:13:44.009038-05:00"
+  },
+  {
+  "iso3_code": "SYC",
+  "iso2_code": "",
+  "short_name": "Seychelles",
+  "official_name": "la República de Seychelles",
+  "created_at": "2020-11-03T19:13:44.016003-05:00",
+  "updated_at": "2020-11-03T19:13:44.016024-05:00"
+  },
+  {
+  "iso3_code": "SLE",
+  "iso2_code": "",
+  "short_name": "Sierra Leona",
+  "official_name": "la República de Sierra Leona",
+  "created_at": "2020-11-03T19:13:44.022820-05:00",
+  "updated_at": "2020-11-03T19:13:44.022842-05:00"
+  },
+  {
+  "iso3_code": "SGP",
+  "iso2_code": "",
+  "short_name": "Singapur",
+  "official_name": "la República de Singapur",
+  "created_at": "2020-11-03T19:13:44.029390-05:00",
+  "updated_at": "2020-11-03T19:13:44.029412-05:00"
+  },
+  {
+  "iso3_code": "SOM",
+  "iso2_code": "",
+  "short_name": "Somalia",
+  "official_name": "la República Federal de Somalia",
+  "created_at": "2020-11-03T19:13:44.036256-05:00",
+  "updated_at": "2020-11-03T19:13:44.036278-05:00"
+  },
+  {
+  "iso3_code": "LKA",
+  "iso2_code": "",
+  "short_name": "Sri Lanka",
+  "official_name": "la República Socialista Democrática de Sri Lanka",
+  "created_at": "2020-11-03T19:13:44.043964-05:00",
+  "updated_at": "2020-11-03T19:13:44.043986-05:00"
+  },
+  {
+  "iso3_code": "ZAF",
+  "iso2_code": "",
+  "short_name": "Sudáfrica",
+  "official_name": "la República de Sudáfrica",
+  "created_at": "2020-11-03T19:13:44.050476-05:00",
+  "updated_at": "2020-11-03T19:13:44.050498-05:00"
+  },
+  {
+  "iso3_code": "SDN",
+  "iso2_code": "",
+  "short_name": "Sudán",
+  "official_name": "la República del Sudán",
+  "created_at": "2020-11-03T19:13:44.057380-05:00",
+  "updated_at": "2020-11-03T19:13:44.057402-05:00"
+  },
+  {
+  "iso3_code": "SSD",
+  "iso2_code": "",
+  "short_name": "Sudán del Sur",
+  "official_name": "la República de Sudán del Sur",
+  "created_at": "2020-11-03T19:13:44.063410-05:00",
+  "updated_at": "2020-11-03T19:13:44.063432-05:00"
+  },
+  {
+  "iso3_code": "SWE",
+  "iso2_code": "",
+  "short_name": "Suecia",
+  "official_name": "el Reino de Suecia",
+  "created_at": "2020-11-03T19:13:44.070756-05:00",
+  "updated_at": "2020-11-03T19:13:44.070778-05:00"
+  },
+  {
+  "iso3_code": "CHE",
+  "iso2_code": "",
+  "short_name": "Suiza",
+  "official_name": "la Confederación Suiza",
+  "created_at": "2020-11-03T19:13:44.076888-05:00",
+  "updated_at": "2020-11-03T19:13:44.076909-05:00"
+  },
+  {
+  "iso3_code": "SUR",
+  "iso2_code": "",
+  "short_name": "Suriname",
+  "official_name": "la República de Suriname",
+  "created_at": "2020-11-03T19:13:44.083817-05:00",
+  "updated_at": "2020-11-03T19:13:44.083840-05:00"
+  },
+  {
+  "iso3_code": "THA",
+  "iso2_code": "",
+  "short_name": "Tailandia",
+  "official_name": "el Reino de Tailandia",
+  "created_at": "2020-11-03T19:13:44.090181-05:00",
+  "updated_at": "2020-11-03T19:13:44.090203-05:00"
+  },
+  {
+  "iso3_code": "TJK",
+  "iso2_code": "",
+  "short_name": "Tayikistán",
+  "official_name": "la República de Tayikistán",
+  "created_at": "2020-11-03T19:13:44.096490-05:00",
+  "updated_at": "2020-11-03T19:13:44.096511-05:00"
+  },
+  {
+  "iso3_code": "TLS",
+  "iso2_code": "",
+  "short_name": "Timor-Leste",
+  "official_name": "la República Democrática de Timor-Leste",
+  "created_at": "2020-11-03T19:13:44.102615-05:00",
+  "updated_at": "2020-11-03T19:13:44.102637-05:00"
+  },
+  {
+  "iso3_code": "TGO",
+  "iso2_code": "",
+  "short_name": "Togo",
+  "official_name": "la República Togolesa",
+  "created_at": "2020-11-03T19:13:44.108790-05:00",
+  "updated_at": "2020-11-03T19:13:44.108812-05:00"
+  },
+  {
+  "iso3_code": "TKL",
+  "iso2_code": "",
+  "short_name": "Tokelau",
+  "official_name": "Tokelau",
+  "created_at": "2020-11-03T19:13:44.115261-05:00",
+  "updated_at": "2020-11-03T19:13:44.115284-05:00"
+  },
+  {
+  "iso3_code": "TON",
+  "iso2_code": "",
+  "short_name": "Tonga",
+  "official_name": "el Reino de Tonga",
+  "created_at": "2020-11-03T19:13:44.121673-05:00",
+  "updated_at": "2020-11-03T19:13:44.121695-05:00"
+  },
+  {
+  "iso3_code": "TTO",
+  "iso2_code": "",
+  "short_name": "Trinidad y Tabago",
+  "official_name": "la República de Trinidad y Tabago",
+  "created_at": "2020-11-03T19:13:44.127824-05:00",
+  "updated_at": "2020-11-03T19:13:44.127846-05:00"
+  },
+  {
+  "iso3_code": "TUN",
+  "iso2_code": "",
+  "short_name": "Túnez",
+  "official_name": "la República de Túnez",
+  "created_at": "2020-11-03T19:13:44.152517-05:00",
+  "updated_at": "2020-11-03T19:13:44.152540-05:00"
+  },
+  {
+  "iso3_code": "TKM",
+  "iso2_code": "",
+  "short_name": "Turkmenistán",
+  "official_name": "Turkmenistán",
+  "created_at": "2020-11-03T19:13:44.134080-05:00",
+  "updated_at": "2020-11-03T19:13:44.134104-05:00"
+  },
+  {
+  "iso3_code": "TUR",
+  "iso2_code": "",
+  "short_name": "Turquía",
+  "official_name": "la República de Turquía",
+  "created_at": "2020-11-03T19:13:44.140322-05:00",
+  "updated_at": "2020-11-03T19:13:44.140346-05:00"
+  },
+  {
+  "iso3_code": "TUV",
+  "iso2_code": "",
+  "short_name": "Tuvalu",
+  "official_name": "Tuvalu",
+  "created_at": "2020-11-03T19:13:44.146599-05:00",
+  "updated_at": "2020-11-03T19:13:44.146624-05:00"
+  },
+  {
+  "iso3_code": "UKR",
+  "iso2_code": "",
+  "short_name": "Ucrania",
+  "official_name": "Ucrania",
+  "created_at": "2020-11-03T19:13:44.159472-05:00",
+  "updated_at": "2020-11-03T19:13:44.159496-05:00"
+  },
+  {
+  "iso3_code": "UGA",
+  "iso2_code": "",
+  "short_name": "Uganda",
+  "official_name": "la República de Uganda",
+  "created_at": "2020-11-03T19:13:44.165637-05:00",
+  "updated_at": "2020-11-03T19:13:44.165660-05:00"
+  },
+  {
+  "iso3_code": "URY",
+  "iso2_code": "UY",
+  "short_name": "Uruguay",
+  "official_name": "la República Oriental del Uruguay",
+  "created_at": "2020-11-03T19:13:44.171818-05:00",
+  "updated_at": "2022-03-16T11:12:51.980220-05:00"
+  },
+  {
+  "iso3_code": "UZB",
+  "iso2_code": "",
+  "short_name": "Uzbekistán",
+  "official_name": "la República de Uzbekistán",
+  "created_at": "2020-11-03T19:13:44.178119-05:00",
+  "updated_at": "2020-11-03T19:13:44.178142-05:00"
+  },
+  {
+  "iso3_code": "VUT",
+  "iso2_code": "",
+  "short_name": "Vanuatu",
+  "official_name": "la República de Vanuatu",
+  "created_at": "2020-11-03T19:13:44.184285-05:00",
+  "updated_at": "2020-11-03T19:13:44.184308-05:00"
+  },
+  {
+  "iso3_code": "VEN",
+  "iso2_code": "VE",
+  "short_name": "Venezuela",
+  "official_name": "la República Bolivariana de Venezuela",
+  "created_at": "2020-11-03T19:13:44.191423-05:00",
+  "updated_at": "2022-03-16T11:13:32.357879-05:00"
+  },
+  {
+  "iso3_code": "VNM",
+  "iso2_code": "",
+  "short_name": "Viet Nam",
+  "official_name": "la República Socialista de Viet Nam",
+  "created_at": "2020-11-03T19:13:44.197899-05:00",
+  "updated_at": "2020-11-03T19:13:44.197921-05:00"
+  },
+  {
+  "iso3_code": "YEM",
+  "iso2_code": "",
+  "short_name": "Yemen",
+  "official_name": "la República del Yemen",
+  "created_at": "2020-11-03T19:13:44.204310-05:00",
+  "updated_at": "2020-11-03T19:13:44.204332-05:00"
+  },
+  {
+  "iso3_code": "ZMB",
+  "iso2_code": "",
+  "short_name": "Zambia",
+  "official_name": "la República de Zambia",
+  "created_at": "2020-11-03T19:13:44.211299-05:00",
+  "updated_at": "2020-11-03T19:13:44.211321-05:00"
+  },
+  {
+  "iso3_code": "ZWE",
+  "iso2_code": "",
+  "short_name": "Zimbabwe",
+  "official_name": "la República de Zimbabwe",
+  "created_at": "2020-11-03T19:13:44.218502-05:00",
+  "updated_at": "2020-11-03T19:13:44.218525-05:00"
+  }
   ]
-}
+  }
