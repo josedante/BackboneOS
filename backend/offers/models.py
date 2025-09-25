@@ -62,8 +62,11 @@ class ProductOffering(BaseUUIDModelWithActiveStatus):
     def discount_percentage(self):
         """Calcula el porcentaje de descuento respecto al precio base del producto"""
         if self.product and self.product.base_price and self.product.base_price > 0:
-            discount = ((self.product.base_price - self.price) / self.product.base_price) * 100
-            return round(discount, 2)
+            from decimal import Decimal
+            base_price = Decimal(str(self.product.base_price))
+            offering_price = Decimal(str(self.price))
+            discount = ((base_price - offering_price) / base_price) * 100
+            return round(float(discount), 2)
         return 0
     
     @property
