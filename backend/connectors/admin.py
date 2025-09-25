@@ -100,6 +100,64 @@ class TouchpointMappingRuleAdmin(admin.ModelAdmin):
         cache.delete_many(cache.keys('touchpoint_mapping:*'))
         
         messages.success(request, f"Mapping rule {'updated' if change else 'created'} successfully!")
+    
+    # Custom admin actions
+    actions = ['activate_rules', 'deactivate_rules', 'duplicate_rules', 'clear_cache']
+    
+    def activate_rules(self, request, queryset):
+        """Activate selected mapping rules."""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} mapping rule(s) activated successfully.')
+    activate_rules.short_description = "Activate selected rules"
+    
+    def deactivate_rules(self, request, queryset):
+        """Deactivate selected mapping rules."""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} mapping rule(s) deactivated successfully.')
+    deactivate_rules.short_description = "Deactivate selected rules"
+    
+    def duplicate_rules(self, request, queryset):
+        """Duplicate selected mapping rules with modified identifiers."""
+        duplicated_count = 0
+        for rule in queryset:
+            try:
+                # Create a copy with modified identifier and event code to avoid unique constraint
+                new_rule = TouchpointMappingRule.objects.create(
+                    connector_type=rule.connector_type,
+                    source_identifier=f"{rule.source_identifier}_copy",
+                    event_code=f"{rule.event_code}_copy",  # Also modify event code to avoid unique constraint
+                    touchpoint_code=rule.touchpoint_code,
+                    touchpoint_label=f"{rule.touchpoint_label} (Copy)",
+                    channel_code=rule.channel_code,
+                    medium_code=rule.medium_code,
+                    touchpoint_type_code=rule.touchpoint_type_code,
+                    priority=rule.priority,
+                    metadata=rule.metadata,
+                    is_active=False  # Start as inactive
+                )
+                duplicated_count += 1
+            except Exception as e:
+                # If duplication fails, continue with next rule
+                self.message_user(request, f'Failed to duplicate rule {rule.id}: {str(e)}', level='WARNING')
+                continue
+        
+        self.message_user(request, f'{duplicated_count} mapping rule(s) duplicated successfully.')
+    duplicate_rules.short_description = "Duplicate selected rules"
+    
+    def clear_cache(self, request, queryset):
+        """Clear cache for selected mapping rules."""
+        from django.core.cache import cache
+        
+        # Clear general cache
+        cache.delete_many(cache.keys('touchpoint_mapping:*'))
+        
+        # Clear specific rule caches
+        for rule in queryset:
+            cache_key = f'touchpoint_mapping:{rule.connector_type}:{rule.source_identifier}'
+            cache.delete(cache_key)
+        
+        self.message_user(request, f'Cache cleared for {queryset.count()} mapping rule(s).')
+    clear_cache.short_description = "Clear cache for selected rules"
 
 
 @admin.register(TouchpointResolutionEvent)

@@ -310,14 +310,70 @@ class AdminWorkflowIntegrationTest(TestCase):
             )
             rules.append(rule)
         
-        # Test bulk operations (simplified - just verify the rules exist)
-        response = self.client.get('/admin/connectors/touchpointmappingrule/')
-        self.assertEqual(response.status_code, 200)
+        # Test bulk deactivation using the custom admin action
+        response = self.client.post('/admin/connectors/touchpointmappingrule/', {
+            'action': 'deactivate_rules',
+            '_selected_action': [str(rule.id) for rule in rules]
+        })
+        self.assertEqual(response.status_code, 302)
         
-        # Verify all rules are still active (since bulk deactivation isn't implemented)
+        # Verify all rules were deactivated
+        for rule in rules:
+            rule.refresh_from_db()
+            self.assertFalse(rule.is_active)
+        
+        # Test bulk activation using the custom admin action
+        response = self.client.post('/admin/connectors/touchpointmappingrule/', {
+            'action': 'activate_rules',
+            '_selected_action': [str(rule.id) for rule in rules]
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify all rules were activated
         for rule in rules:
             rule.refresh_from_db()
             self.assertTrue(rule.is_active)
+        
+        # Test bulk duplication using the custom admin action
+        response = self.client.post('/admin/connectors/touchpointmappingrule/', {
+            'action': 'duplicate_rules',
+            '_selected_action': [str(rule.id) for rule in rules[:2]]  # Duplicate first 2 rules
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify rules were duplicated
+        self.assertEqual(TouchpointMappingRule.objects.count(), 5)  # 3 original + 2 duplicated
+        
+        # Check that duplicated rules have modified identifiers and event codes
+        duplicated_rules = TouchpointMappingRule.objects.filter(
+            source_identifier__endswith='_copy',
+            event_code__endswith='_copy'
+        )
+        self.assertEqual(duplicated_rules.count(), 2)
+        
+        # Verify duplicated rules are inactive by default
+        for rule in duplicated_rules:
+            self.assertFalse(rule.is_active)
+        
+        # Test bulk cache clearing using the custom admin action
+        from django.core.cache import cache
+        
+        # Set some cache data
+        cache.set('touchpoint_mapping:web:bulk-test-1.com', 'cached_data_1', 300)
+        cache.set('touchpoint_mapping:web:bulk-test-2.com', 'cached_data_2', 300)
+        self.assertIsNotNone(cache.get('touchpoint_mapping:web:bulk-test-1.com'))
+        self.assertIsNotNone(cache.get('touchpoint_mapping:web:bulk-test-2.com'))
+        
+        # Test cache clearing action
+        response = self.client.post('/admin/connectors/touchpointmappingrule/', {
+            'action': 'clear_cache',
+            '_selected_action': [str(rule.id) for rule in rules[:2]]  # Clear cache for first 2 rules
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify cache was cleared
+        self.assertIsNone(cache.get('touchpoint_mapping:web:bulk-test-1.com'))
+        self.assertIsNone(cache.get('touchpoint_mapping:web:bulk-test-2.com'))
 
 
 class CustomAdminViewsIntegrationTest(TestCase):
