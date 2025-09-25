@@ -89,6 +89,110 @@ class Campaign(BaseUUIDModelWithActiveStatus):
         from django.utils import timezone
         today = timezone.now().date()
         return self.start_date <= today <= (self.end_date or today)
+    
+    def get_product_performance_analytics(self):
+        """Analytics detallados de rendimiento por producto"""
+        from django.db.models import Count, Sum, Avg, Q
+        
+        # Analytics por producto directo
+        product_analytics = self.target_products.annotate(
+            interactions_count=Count(
+                'touchpoints__interactions',
+                filter=Q(touchpoints__interactions__is_active=True)
+            ),
+            conversions_count=Count(
+                'touchpoints__interactions__action__code',
+                filter=Q(
+                    touchpoints__interactions__is_active=True,
+                    touchpoints__interactions__action__code__in=['purchase', 'signup', 'download']
+                )
+            ),
+            revenue_generated=Sum(
+                'offerings__price',
+                filter=Q(offerings__campaign_offerings__campaign=self)
+            )
+        ).values(
+            'id', 'name', 'code', 'interactions_count', 
+            'conversions_count', 'revenue_generated'
+        )
+        
+        # Analytics por categoría
+        category_analytics = self.target_categories.annotate(
+            products_count=Count('product', filter=Q(product__is_active=True)),
+            interactions_count=Count(
+                'product__touchpoints__interactions',
+                filter=Q(product__touchpoints__interactions__is_active=True)
+            )
+        ).values(
+            'id', 'name', 'code', 'products_count', 'interactions_count'
+        )
+        
+        # Analytics de ofertas
+        offer_analytics = self.target_offers.annotate(
+            interactions_count=Count(
+                'product__touchpoints__interactions',
+                filter=Q(product__touchpoints__interactions__is_active=True)
+            ),
+            total_revenue=Sum('price')
+        ).values(
+            'id', 'name', 'product__name', 'price', 
+            'interactions_count', 'total_revenue'
+        )
+        
+        return {
+            'by_product': list(product_analytics),
+            'by_category': list(category_analytics),
+            'by_offer': list(offer_analytics),
+            'summary': {
+                'total_products': self.target_products.count(),
+                'total_categories': self.target_categories.count(),
+                'total_offerings': self.target_offers.count(),
+                'total_potential_revenue': sum(
+                    offering.price for offering in self.target_offers.all()
+                )
+            }
+        }
+    
+    def get_bundle_analytics(self):
+        """Analytics específicos para productos bundle"""
+        from django.db.models import Count, Q
+        
+        bundle_products = self.target_products.filter(
+            included_products__isnull=False
+        ).annotate(
+            bundle_size=Count('included_products'),
+            bundle_interactions=Count(
+                'included_products__touchpoints__interactions',
+                filter=Q(included_products__touchpoints__interactions__is_active=True)
+            )
+        ).values(
+            'id', 'name', 'bundle_size', 'bundle_interactions'
+        )
+        
+        return {
+            'bundle_products': list(bundle_products),
+            'total_bundles': len(bundle_products),
+            'avg_bundle_size': sum(b['bundle_size'] for b in bundle_products) / len(bundle_products) if bundle_products else 0
+        }
+    
+    def get_target_summary(self):
+        """Resumen de productos, categorías y ofertas objetivo"""
+        return {
+            'products': {
+                'total': self.target_products.count(),
+                'bundles': self.target_products.filter(included_products__isnull=False).count(),
+                'individual': self.target_products.filter(included_products__isnull=True).count()
+            },
+            'categories': {
+                'total': self.target_categories.count(),
+                'with_products': self.target_categories.filter(product__isnull=False).count()
+            },
+            'offers': {
+                'total': self.target_offers.count(),
+                'active': self.target_offers.filter(is_active=True).count(),
+                'total_revenue': sum(offering.price for offering in self.target_offers.all())
+            }
+        }
 
 
 class CampaignTouchpoint(models.Model):

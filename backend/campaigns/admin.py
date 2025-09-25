@@ -5,8 +5,8 @@ from .models import Campaign, CampaignTouchpoint
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     list_display = ['name', 'code', 'content_type', 'funnel_stage', 'start_date', 'end_date', 'budget', 'is_active', 'is_active_now', 'division', 'team']
-    list_filter = ['is_active', 'content_type', 'funnel_stage', 'start_date', 'end_date', 'division', 'team', 'related_industries']
-    search_fields = ['name', 'code', 'description']
+    list_filter = ['is_active', 'content_type', 'funnel_stage', 'start_date', 'end_date', 'division', 'team', 'related_industries', 'target_products', 'target_categories', 'target_offers']
+    search_fields = ['name', 'code', 'description', 'target_products__name', 'target_categories__name', 'target_offers__name']
     readonly_fields = ['created_at', 'updated_at', 'is_active_now']
     
     fieldsets = (
@@ -22,6 +22,10 @@ class CampaignAdmin(admin.ModelAdmin):
         ('Canales', {
             'fields': ('channels',)
         }),
+        ('Product Targeting', {
+            'fields': ('target_products', 'target_categories', 'target_offers'),
+            'classes': ('collapse',)
+        }),
         ('Segmentación Semántica', {
             'fields': ('related_industries', 'related_functions', 'target_segments', 'descriptors', 'tags'),
             'classes': ('collapse',)
@@ -36,10 +40,10 @@ class CampaignAdmin(admin.ModelAdmin):
         })
     )
     
-    filter_horizontal = ['channels', 'related_industries', 'related_functions', 'target_segments', 'descriptors', 'tags']
+    filter_horizontal = ['channels', 'related_industries', 'related_functions', 'target_segments', 'descriptors', 'tags', 'target_products', 'target_categories', 'target_offers']
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('division', 'team', 'parent')
+        return super().get_queryset(request).select_related('division', 'team', 'parent').prefetch_related('target_products', 'target_categories', 'target_offers')
 
 
 @admin.register(CampaignTouchpoint)

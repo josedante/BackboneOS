@@ -426,6 +426,45 @@ class CampaignViewSet(viewsets.ModelViewSet):
         
         serializer = CampaignAnalyticsSerializer(analytics_data)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def product_analytics(self, request, pk=None):
+        """Analytics detallados de productos"""
+        campaign = self.get_object()
+        analytics = campaign.get_product_performance_analytics()
+        return Response(analytics)
+    
+    @action(detail=True, methods=['get'])
+    def bundle_analytics(self, request, pk=None):
+        """Analytics de productos bundle"""
+        campaign = self.get_object()
+        analytics = campaign.get_bundle_analytics()
+        return Response(analytics)
+    
+    @action(detail=True, methods=['get'])
+    def target_summary(self, request, pk=None):
+        """Resumen de productos, categorías y ofertas objetivo"""
+        campaign = self.get_object()
+        summary = campaign.get_target_summary()
+        return Response(summary)
+    
+    @action(detail=True, methods=['get'])
+    def compatible_offerings(self, request, pk=None):
+        """Obtener ofertas compatibles con la campaña"""
+        campaign = self.get_object()
+        
+        # Find offerings that match campaign criteria
+        from offers.models import ProductOffering
+        compatible_offerings = ProductOffering.objects.filter(
+            is_active=True,
+            product__in=campaign.target_products.all()
+        ).exclude(
+            id__in=campaign.target_offers.values_list('id', flat=True)
+        )
+        
+        from offers.serializers import ProductOfferingChoiceSerializer
+        serializer = ProductOfferingChoiceSerializer(compatible_offerings, many=True)
+        return Response(serializer.data)
 
 
 class CampaignTouchpointFilter(django_filters.FilterSet):

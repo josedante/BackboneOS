@@ -8,6 +8,8 @@ from world.serializers import (
 )
 from interactions.serializers import ChannelChoiceSerializer, TouchpointChoiceSerializer
 from our_institution.serializers import DivisionSerializer, TeamSerializer
+from products.serializers import ProductListSerializer, ProductCategorySerializer
+from offers.serializers import ProductOfferingChoiceSerializer
 
 
 class CampaignListSerializer(serializers.ModelSerializer):
@@ -27,6 +29,11 @@ class CampaignListSerializer(serializers.ModelSerializer):
     subcampaigns_count = serializers.SerializerMethodField()
     segments_count = serializers.SerializerMethodField()
     
+    # NEW: Product integration counters
+    products_count = serializers.SerializerMethodField()
+    categories_count = serializers.SerializerMethodField()
+    offers_count = serializers.SerializerMethodField()
+    
     class Meta:
         model = Campaign
         fields = [
@@ -34,7 +41,8 @@ class CampaignListSerializer(serializers.ModelSerializer):
             'budget', 'budget_display', 'duration_display', 'content_type', 'funnel_stage',
             'division_name', 'team_name', 'parent_name', 'is_active', 'is_active_now',
             'channels_count', 'touchpoints_count', 'subcampaigns_count', 
-            'segments_count', 'created_at', 'updated_at'
+            'segments_count', 'products_count', 'categories_count', 'offers_count',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
@@ -64,6 +72,15 @@ class CampaignListSerializer(serializers.ModelSerializer):
     
     def get_segments_count(self, obj):
         return obj.target_segments.count()
+    
+    def get_products_count(self, obj):
+        return obj.target_products.count()
+    
+    def get_categories_count(self, obj):
+        return obj.target_categories.count()
+    
+    def get_offers_count(self, obj):
+        return obj.target_offers.count()
 
 
 class CampaignDetailSerializer(serializers.ModelSerializer):
@@ -84,6 +101,11 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
     # Subcampañas y touchpoints
     subcampaigns = serializers.SerializerMethodField()
     touchpoints = serializers.SerializerMethodField()
+    
+    # NEW: Product integration
+    target_products = ProductListSerializer(many=True, read_only=True)
+    target_categories = ProductCategorySerializer(many=True, read_only=True)
+    target_offers = ProductOfferingChoiceSerializer(many=True, read_only=True)
     
     # Propiedades calculadas
     is_active_now = serializers.ReadOnlyField()
@@ -114,6 +136,17 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         child=serializers.CharField(), write_only=True, required=False
     )
     
+    # NEW: Product integration write-only fields
+    target_products_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False
+    )
+    target_categories_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False
+    )
+    target_offers_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False
+    )
+    
     class Meta:
         model = Campaign
         fields = [
@@ -123,8 +156,9 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
             'channels', 'channels_ids', 'related_industries', 'related_industries_ids',
             'related_functions', 'related_functions_ids', 'target_segments', 
             'target_segments_ids', 'descriptors', 'descriptors_ids', 'tags', 'tags_ids',
-            'subcampaigns', 'touchpoints', 'metadata', 'is_active', 'is_active_now',
-            'created_at', 'updated_at'
+            'target_products', 'target_products_ids', 'target_categories', 'target_categories_ids',
+            'target_offers', 'target_offers_ids', 'subcampaigns', 'touchpoints', 
+            'metadata', 'is_active', 'is_active_now', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
@@ -195,6 +229,11 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         descriptors_ids = validated_data.pop('descriptors_ids', [])
         tags_ids = validated_data.pop('tags_ids', [])
         
+        # NEW: Product integration IDs
+        target_products_ids = validated_data.pop('target_products_ids', [])
+        target_categories_ids = validated_data.pop('target_categories_ids', [])
+        target_offers_ids = validated_data.pop('target_offers_ids', [])
+        
         # Asignar IDs de FK
         if 'division_id' in validated_data:
             validated_data['division_id'] = validated_data.pop('division_id')
@@ -220,6 +259,14 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         if tags_ids:
             campaign.tags.set(tags_ids)
         
+        # NEW: Set product integration relationships
+        if target_products_ids:
+            campaign.target_products.set(target_products_ids)
+        if target_categories_ids:
+            campaign.target_categories.set(target_categories_ids)
+        if target_offers_ids:
+            campaign.target_offers.set(target_offers_ids)
+        
         return campaign
     
     def update(self, instance, validated_data):
@@ -230,6 +277,11 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         target_segments_ids = validated_data.pop('target_segments_ids', None)
         descriptors_ids = validated_data.pop('descriptors_ids', None)
         tags_ids = validated_data.pop('tags_ids', None)
+        
+        # NEW: Product integration IDs
+        target_products_ids = validated_data.pop('target_products_ids', None)
+        target_categories_ids = validated_data.pop('target_categories_ids', None)
+        target_offers_ids = validated_data.pop('target_offers_ids', None)
         
         # Asignar IDs de FK
         if 'division_id' in validated_data:
@@ -258,6 +310,14 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         if tags_ids is not None:
             instance.tags.set(tags_ids)
         
+        # NEW: Update product integration relationships
+        if target_products_ids is not None:
+            instance.target_products.set(target_products_ids)
+        if target_categories_ids is not None:
+            instance.target_categories.set(target_categories_ids)
+        if target_offers_ids is not None:
+            instance.target_offers.set(target_offers_ids)
+        
         return instance
 
 
@@ -270,7 +330,8 @@ class CampaignCreateUpdateSerializer(serializers.ModelSerializer):
             'name', 'code', 'description', 'start_date', 'end_date',
             'budget', 'content_type', 'funnel_stage', 'division', 'team', 'parent', 'channels',
             'related_industries', 'related_functions', 'target_segments',
-            'descriptors', 'tags', 'metadata', 'is_active'
+            'descriptors', 'tags', 'target_products', 'target_categories', 'target_offers',
+            'metadata', 'is_active'
         ]
     
     def validate_code(self, value):
