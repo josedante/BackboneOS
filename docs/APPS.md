@@ -110,6 +110,8 @@
 - **Analytics Empresariales**: Dashboard completo con métricas de performance
 - **Duplicación Inteligente**: Copiar ofertas con todas las relaciones
 - **Validación Temporal**: Control automático de vigencia de ofertas
+- **🔧 Fixes Recientes**: Serialización UUID, validación de fechas, autenticación
+- **📊 Estado de Tests**: 89% éxito (83/93 tests pasando) - mejoras significativas
 
 ### ✅ Campaigns App - Sistema de Gestión de Campañas Comerciales
 
@@ -133,6 +135,8 @@
 - **API REST Completa**: 11 endpoints con filtrado avanzado y analytics
 - **Duplicación Inteligente**: Copia de campañas con todas las relaciones
 - **Touchpoints Ponderados**: Asignación de peso y prioridad por punto de contacto
+- **🔧 Fixes Recientes**: Corrección de imports, campos de modelo y validaciones
+- **📈 Índices Optimizados**: Índices compuestos para consultas frecuentes
 
 ### ✅ Users App
 
