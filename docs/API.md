@@ -107,6 +107,10 @@ DELETE /api/users/{id}/        # Eliminar usuario
 # Endpoints especializados de campañas
 /api/campaigns/campaigns/active_now/      # Campañas activamente vigentes
 /api/campaigns/campaigns/scheduled/       # Campañas programadas (futuras)
+/api/campaigns/campaigns/{id}/product_analytics/    # Analytics de productos
+/api/campaigns/campaigns/{id}/bundle_analytics/     # Analytics de bundles
+/api/campaigns/campaigns/{id}/target_summary/       # Resumen de targeting
+/api/campaigns/campaigns/{id}/compatible_offerings/ # Ofertas compatibles
 /api/campaigns/campaigns/finished/        # Campañas ya finalizadas
 /api/campaigns/campaigns/by_division/     # Campañas agrupadas por división
 /api/campaigns/campaigns/by_team/         # Campañas agrupadas por equipo

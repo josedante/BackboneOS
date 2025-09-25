@@ -20,6 +20,7 @@ Este sistema actúa como el **centro de comercialización** que transforma produ
 | Canales disponibles     | `interactions.Channel` | M2M: `channels`                  | Dónde se puede vender  |
 | Sedes de disponibilidad | `our_institution.Seat` | M2M: `seats`                     | Ubicaciones permitidas |
 | Segmentación semántica  | `world.*`              | M2M: industrias, funciones, etc. | A quién se dirige      |
+| Campañas objetivo       | `campaigns.Campaign`   | M2M: `target_offers`             | Campañas que usan esta oferta |
 
 ### Campo Semántico Empresarial
 
@@ -310,11 +311,43 @@ Separar `ProductOffering` en su propia app permite:
 - ✅ **Analytics específicos** de performance comercial
 - ✅ **Flexibilidad temporal** (ofertas que nacen y mueren)
 
+## 🎯 Product Integration Enhancements
+
+### ✅ Integración con Campañas
+
+La app `offers` ahora está **completamente integrada** con el sistema de campañas:
+
+- **Relación directa**: Las campañas pueden targetear ofertas específicas via `target_offers`
+- **Analytics compartidos**: Métricas de performance de ofertas en campañas
+- **Compatibilidad automática**: API para encontrar ofertas compatibles con productos objetivo
+- **Bundles soportados**: Las ofertas pueden apuntar a productos bundle via `product.included_products`
+
+### 🔗 Arquitectura de Relaciones
+
+```python
+# ProductOffering → Product (ForeignKey)
+class ProductOffering(BaseUUIDModelWithActiveStatus):
+    product = models.ForeignKey('products.Product', ...)
+    
+# Campaign → ProductOffering (ManyToMany)
+class Campaign(BaseUUIDModelWithActiveStatus):
+    target_offers = models.ManyToManyField('offers.ProductOffering', ...)
+    target_products = models.ManyToManyField('products.Product', ...)
+    target_categories = models.ManyToManyField('products.ProductCategory', ...)
+```
+
+### 📊 Analytics Integrados
+
+- **Performance por oferta**: Métricas de conversión y revenue por oferta en campañas
+- **Análisis de bundles**: Estadísticas específicas para productos bundle
+- **Resumen de targeting**: Conteos y totales de productos, categorías y ofertas objetivo
+- **Ofertas compatibles**: API para encontrar ofertas que coincidan con productos objetivo
+
 ## 🔮 Extensiones Futuras
 
 La app `offers` está diseñada para extenderse con:
 
-- [ ] **Integración con campañas** (`campaigns` app)
+- [x] **Integración con campañas** (`campaigns` app) ✅ **IMPLEMENTADO**
 - [ ] **Soporte para bundles dinámicos** y upsells
 - [ ] **Motor de reglas de elegibilidad** y precios personalizados
 - [ ] **A/B testing** de ofertas
@@ -382,6 +415,8 @@ La API sigue las convenciones REST estándar con filtros avanzados, búsquedas s
 8. **✅ Datos de prueba** realistas
 9. **✅ Documentación completa**
 10. **✅ Optimizaciones de performance**
+11. **✅ Product Integration Enhancements** con campañas
+12. **✅ Relación ForeignKey** optimizada con productos
 
 ### 🎯 Estado Actual: LISTO PARA PRODUCCIÓN
 

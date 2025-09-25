@@ -40,6 +40,7 @@ class Campaign(BaseUUIDModelWithActiveStatus):
             ("affinity", "Afinidad"),
             ("category", "Categoría"),
             ("product", "Producto"),
+            ("offer", "Oferta"),
             ("brand", "Marca"),
         ],
         blank=True,
@@ -61,6 +62,11 @@ class Campaign(BaseUUIDModelWithActiveStatus):
         default="any",
         help_text="Etapa del embudo de ventas para la cual está diseñada esta campaña"
     )
+
+    # Product Integration Enhancements
+    target_products = models.ManyToManyField('products.Product', blank=True)
+    target_offers = models.ManyToManyField('offers.ProductOffering', blank=True)
+    target_categories = models.ManyToManyField('products.ProductCategory', blank=True)
 
     # Organización
     division = models.ForeignKey('our_institution.Division', null=True, blank=True, on_delete=models.SET_NULL)
@@ -92,12 +98,14 @@ class Campaign(BaseUUIDModelWithActiveStatus):
 - **Presupuesto**: `budget` con precisión decimal
 - **Tipo de contenido**: `content_type` (clasificación comunicacional opcional)
 - **Etapa del embudo**: `funnel_stage` (see, think, do, care, any)
+- **🎯 Product Integration**: `target_products`, `target_offers`, `target_categories` (ManyToMany)
 - **Organización**: `division`, `team` (ForeignKey opcionales)
 - **Segmentación semántica**: múltiples relaciones M2M con entidades de `world`
 - **Canales**: `channels` (ManyToMany con `interactions.Channel`)
 - **Jerarquía**: `parent` para modelar subcampañas
 - **Metadatos**: `metadata` JSON para flexibilidad futura
 - **Propiedades útiles**: `is_active_now` (calculada en tiempo real)
+- **📊 Analytics avanzados**: Métodos para performance de productos, bundles y targeting
 
 #### Índices optimizados:
 
@@ -154,6 +162,7 @@ Este campo permite analizar y segmentar las campañas según su propósito comun
 | `affinity` | Contenido que apela a emociones, valores o identidad.    |
 | `category` | Contenido que representa una línea temática amplia.      |
 | `product`  | Contenido enfocado en un producto o servicio específico. |
+| `offer`    | Contenido enfocado en una oferta comercial específica.    |
 | `brand`    | Contenido orientado al posicionamiento institucional.    |
 
 > El campo es opcional y puede dejarse vacío para campañas funcionales, legales o no clasificables.
@@ -163,6 +172,7 @@ Este campo permite analizar y segmentar las campañas según su propósito comun
 - Una página como `/mba` tendría `content_type="product"`.
 - Una página como `/ranking-y-reputacion` podría clasificarse como `"affinity"`.
 - `/maestrias` sería `"category"`.
+- `/ofertas-especiales` sería `"offer"`.
 - `/nosotros` se alinea con `"brand"`.
 
 Este campo enriquece el análisis editorial y estratégico del customer journey digital.
@@ -205,12 +215,74 @@ Este campo facilita la gestión estratégica del funnel de marketing y ventas.
 
 ---
 
+## 🎯 Product Integration Enhancements
+
+### ✅ Nuevos Campos de Targeting
+
+La app `campaigns` ahora incluye **integración directa** con productos y ofertas:
+
+```python
+# Campos de targeting directo
+target_products = models.ManyToManyField('products.Product', blank=True)
+target_offers = models.ManyToManyField('offers.ProductOffering', blank=True)
+target_categories = models.ManyToManyField('products.ProductCategory', blank=True)
+```
+
+### 📊 Métodos de Analytics Avanzados
+
+#### `get_product_performance_analytics()`
+Analytics detallados de rendimiento por producto:
+- **Interacciones por producto**: Conteo de touchpoints activos
+- **Conversiones**: Acciones de compra, registro, descarga
+- **Revenue generado**: Suma de precios de ofertas vinculadas
+- **Analytics por categoría**: Productos agrupados por categoría
+- **Analytics de ofertas**: Performance y revenue por oferta
+
+#### `get_bundle_analytics()`
+Analytics específicos para productos bundle:
+- **Productos bundle**: Identificación y tamaño de bundles
+- **Interacciones de bundle**: Métricas de productos incluidos
+- **Estadísticas de bundle**: Tamaño promedio y distribución
+
+#### `get_target_summary()`
+Resumen completo de targeting:
+- **Productos**: Total, bundles, individuales
+- **Categorías**: Total, con productos
+- **Ofertas**: Total, activas, revenue total
+
+### 🔗 API Endpoints de Product Analytics
+
+```bash
+# Analytics de productos
+GET /api/campaigns/campaigns/{id}/product_analytics/
+
+# Analytics de bundles
+GET /api/campaigns/campaigns/{id}/bundle_analytics/
+
+# Resumen de targeting
+GET /api/campaigns/campaigns/{id}/target_summary/
+
+# Ofertas compatibles
+GET /api/campaigns/campaigns/{id}/compatible_offerings/
+```
+
+### 🎯 Casos de Uso
+
+1. **Campañas por Producto**: Targetear productos específicos con analytics detallados
+2. **Campañas por Categoría**: Promocionar líneas de productos completas
+3. **Campañas por Oferta**: Promocionar ofertas comerciales específicas
+4. **Analytics Integrados**: Métricas de performance unificadas
+5. **Bundles Inteligentes**: Soporte completo para productos bundle
+
+---
+
 ## 🌐 Relaciones con otras Apps
 
 | App               | Relación                            | Propósito                               |
 | ----------------- | ----------------------------------- | --------------------------------------- |
 | `interactions`    | Channel, Touchpoint                 | Puntos de ejecución de la campaña       |
-| `products`        | (implícito a través de touchpoints) | Producto objeto de promoción o análisis |
+| `products`        | Product, ProductCategory (M2M)      | Productos y categorías objetivo        |
+| `offers`          | ProductOffering (M2M)               | Ofertas comerciales objetivo            |
 | `our_institution` | Division, Team                      | Organización responsable de la campaña  |
 | `world`           | Industry, Function, Segment, etc.   | Segmentación semántica                  |
 
@@ -237,6 +309,10 @@ Este campo facilita la gestión estratégica del funnel de marketing y ventas.
 - `GET /api/campaigns/campaigns/{id}/touchpoints/` - Touchpoints de una campaña
 - `POST /api/campaigns/campaigns/{id}/duplicate/` - Duplicar campaña
 - `GET /api/campaigns/campaigns/analytics/` - Analytics completo
+- `GET /api/campaigns/campaigns/{id}/product_analytics/` - Analytics de productos
+- `GET /api/campaigns/campaigns/{id}/bundle_analytics/` - Analytics de bundles
+- `GET /api/campaigns/campaigns/{id}/target_summary/` - Resumen de targeting
+- `GET /api/campaigns/campaigns/{id}/compatible_offerings/` - Ofertas compatibles
 
 ### Relaciones Campaña-Touchpoint (`/api/campaigns/campaign-touchpoints/`)
 
@@ -265,6 +341,7 @@ Este campo facilita la gestión estratégica del funnel de marketing y ventas.
 - **Estado**: `is_active`, `is_active_now`, `has_end_date`
 - **Organización**: `division`, `team`, `parent`
 - **Relaciones**: `has_subcampaigns`, `has_touchpoints`
+- **🎯 Product Integration**: `target_products`, `target_offers`, `target_categories`
 - **Semántica**: `channels`, `related_industries`, `related_functions`, `target_segments`
 
 ### Filtros de Campaign-Touchpoint
@@ -611,6 +688,9 @@ La app está pensada para:
 - Suite de tests completa con tests para `content_type`
 - Analytics y reportes
 - Documentación técnica
+- **🎯 Product Integration Enhancements** con productos, ofertas y categorías
+- **📊 Analytics avanzados** para performance de productos y bundles
+- **🔗 API endpoints** para analytics de productos y ofertas compatibles
 
 ### 🎯 Calidad del Código
 
