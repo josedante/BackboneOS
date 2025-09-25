@@ -1,0 +1,18 @@
+---
+description: Backend Django application running within Docker Compose environment
+globs:
+  - "backend/**"
+alwaysApply: true
+---
+
+# Backend Development Context
+
+The backend of this project runs within a Docker Compose environment. When providing code suggestions or debugging help:
+
+- Consider that the application runs in a containerized environment
+- Database connections and external services are configured through Docker Compose (see `docker-compose.yml`)
+- File paths should be relative to the container's working directory
+- Environment variables are managed through Docker Compose configuration
+- The Django application is accessible through the Docker network
+- Hot reloading and development tools work within the container context
+- Service definitions and network configuration can be found in the `docker-compose.yml` file
