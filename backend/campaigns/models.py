@@ -2,6 +2,7 @@ from django.db import models
 from backend.models import BaseUUIDModelWithActiveStatus
 
 
+
 class Campaign(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50, unique=True)
@@ -17,12 +18,17 @@ class Campaign(BaseUUIDModelWithActiveStatus):
             ("affinity", "Afinidad"),
             ("category", "Categoría"),
             ("product", "Producto"),
+            ("offer", "Oferta"),
             ("brand", "Marca"),
         ],
         blank=True,
         null=True,
         verbose_name="Tipo de contenido comunicacional"
     )
+
+    target_products = models.ManyToManyField('products.Product', blank=True)
+    target_offers = models.ManyToManyField('offers.ProductOffering', blank=True)
+    target_categories = models.ManyToManyField('products.ProductCategory', blank=True)
     
     # Etapa del embudo de ventas
     SEE = 'see'

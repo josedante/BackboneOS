@@ -5,17 +5,17 @@ from .models import ProductOffering
 @admin.register(ProductOffering)
 class ProductOfferingAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'code', 'product', 'price_display', 'currency_code',
+        'name', 'code', 'price_display', 'currency_code',
         'is_currently_valid', 'is_active', 'valid_from', 'valid_until'
     ]
     
     list_filter = [
         'is_active', 'currency_code', 'auto_renew', 'valid_from', 'valid_until',
-        'product__category', 'channels', 'target_segments'
+        'channels', 'target_segments'
     ]
     
     search_fields = [
-        'name', 'code', 'description', 'product__name', 'product__code'
+        'name', 'code', 'description'
     ]
     
     readonly_fields = ['id', 'created_at', 'updated_at', 'is_currently_valid', 'price_display']
@@ -25,7 +25,7 @@ class ProductOfferingAdmin(admin.ModelAdmin):
             'fields': ('name', 'code', 'description', 'is_active')
         }),
         ('Producto y Pricing', {
-            'fields': ('product', 'price', 'currency_code', 'price_display')
+            'fields': ('products', 'price', 'currency_code', 'price_display')
         }),
         ('Vigencia', {
             'fields': ('valid_from', 'valid_until', 'is_currently_valid')
@@ -61,10 +61,8 @@ class ProductOfferingAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimizar consultas del admin"""
-        return super().get_queryset(request).select_related(
-            'product', 'product__category'
-        ).prefetch_related(
-            'channels', 'target_segments', 'related_industries'
+        return super().get_queryset(request).prefetch_related(
+            'products', 'channels', 'target_segments', 'related_industries'
         )
     
     def activate_offerings(self, request, queryset):
@@ -88,7 +86,6 @@ class ProductOfferingAdmin(admin.ModelAdmin):
                 name=f"{offering.name} (Copia)",
                 code=f"{offering.code}_copy_{offering.id}",
                 description=offering.description,
-                product=offering.product,
                 price=offering.price,
                 currency_code=offering.currency_code,
                 auto_renew=offering.auto_renew,
@@ -97,6 +94,9 @@ class ProductOfferingAdmin(admin.ModelAdmin):
                 metadata=offering.metadata,
                 is_active=False
             )
+            
+            # Copiar relaciones M2M de productos
+            new_offering.products.set(offering.products.all())
             
             # Copiar relaciones M2M
             new_offering.channels.set(offering.channels.all())

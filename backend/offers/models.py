@@ -8,11 +8,11 @@ class ProductOffering(BaseUUIDModelWithActiveStatus):
     code = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
 
-    product = models.ForeignKey(
+    products = models.ManyToManyField(
         'products.Product',
-        on_delete=models.PROTECT,
         related_name='offerings',
-        help_text="Producto ofrecido en esta oferta comercial"
+        blank=True,
+        help_text="Productos ofrecidos en esta oferta comercial"
     )
 
     price = models.DecimalField(max_digits=12, decimal_places=2)

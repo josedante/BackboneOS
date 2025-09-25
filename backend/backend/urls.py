@@ -67,8 +67,8 @@ urlpatterns = [
     path('api/entities/', include('entities.urls')),
     path('api/interactions/', include('interactions.urls')),
     path('api/our-institution/', include('our_institution.urls')),
-    # path('api/campaigns/', include('campaigns.urls')),
-    # path('api/offers/', include('offers.urls')),
+    path('api/campaigns/', include('campaigns.urls')),
+    path('api/offers/', include('offers.urls')),
     # path('api/websites/', include('websites.urls')),
     path('api/users/', UserViewSet.as_view({'get': 'list'}), name='user-list'),
 ]

@@ -138,7 +138,7 @@ class Product(BaseUUIDModelWithActiveStatus):
         'self',
         symmetrical=False,
         blank=True,
-        related_name='included_in_products',
+        related_name='bundled_in',
         help_text="Otros productos incluidos conceptualmente dentro de este"
     )
 
