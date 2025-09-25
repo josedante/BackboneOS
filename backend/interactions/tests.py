@@ -1429,7 +1429,7 @@ class ChannelAPITests(InteractionsAPITestCase):
         self.channel = Channel.objects.create(
             name='Website',
             code='WEB',
-            medium=self.medium
+            source_type='owned'
         )
         self.list_url = reverse('channel-list')
         self.detail_url = reverse('channel-detail', kwargs={'pk': self.channel.pk})
@@ -1445,7 +1445,7 @@ class ChannelAPITests(InteractionsAPITestCase):
         data = {
             'name': 'Mobile App',
             'code': 'MOBILE',
-            'medium': self.medium.id
+            'source_type': 'owned'
         }
         response = self.client.post(self.list_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1755,7 +1755,7 @@ class InteractionAPITests(InteractionsAPITestCase):
         self.channel = Channel.objects.create(
             name='Website',
             code='WEBSITE',
-            medium=self.medium
+            source_type='owned'
         )
         
         self.agent = Agent.objects.create(
@@ -2003,7 +2003,7 @@ class InteractionsIntegrationTests(InteractionsAPITestCase):
         """Test integración de endpoints de analytics"""
         # Crear algunos datos de prueba
         medium = Medium.objects.create(name='Test Medium', code='TEST_MED')
-        channel = Channel.objects.create(name='Test Channel', code='TEST_CH', medium=medium)
+        channel = Channel.objects.create(name='Test Channel', code='TEST_CH', source_type='owned')
         action_type = ActionType.objects.create(name='Test Action Type', code='TEST_AT')
         action = Action.objects.create(name='Test Action', code='TEST_A', action_type=action_type)
         

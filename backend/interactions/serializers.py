@@ -44,10 +44,10 @@ class ChannelSerializer(serializers.ModelSerializer):
     
     def get_interactions_count(self, obj):
         # Count interactions through touchpoints
-        from django.db import models
-        return obj.touchpoints.filter(is_active=True).aggregate(
-            total=models.Count('interaction_set', filter=models.Q(interaction_set__is_active=True))
-        )['total'] or 0
+        total = 0
+        for touchpoint in obj.touchpoints.filter(is_active=True):
+            total += touchpoint.interaction_set.filter(is_active=True).count()
+        return total
     
     def get_touchpoints_count(self, obj):
         return obj.touchpoints.filter(is_active=True).count()

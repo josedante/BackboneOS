@@ -51,11 +51,11 @@ class MediumViewSet(viewsets.ModelViewSet):
 
 class ChannelViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar channels"""
-    queryset = Channel.objects.select_related('medium').all()
+    queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['is_active', 'medium']
+    filterset_fields = ['is_active', 'source_type']
     search_fields = ['name', 'code', 'description']
     ordering_fields = ['name', 'code', 'created_at']
     ordering = ['name']
