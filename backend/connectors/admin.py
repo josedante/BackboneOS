@@ -40,7 +40,7 @@ class TouchpointMappingRuleAdmin(admin.ModelAdmin):
     
     list_display = [
         'connector_type', 'source_identifier', 'event_code', 
-        'touchpoint_code', 'channel_code', 'medium_code', 
+        'touchpoint_code', 'channel_code', 'medium_code', 'touchpoint_type_code',
         'priority', 'is_active', 'created_at'
     ]
     list_filter = [
@@ -49,7 +49,7 @@ class TouchpointMappingRuleAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'event_code', 'touchpoint_code', 'source_identifier',
-        'touchpoint_label', 'channel_code', 'medium_code'
+        'touchpoint_label', 'channel_code', 'medium_code', 'touchpoint_type_code'
     ]
     ordering = ['-priority', 'connector_type', 'event_code']
     
@@ -59,7 +59,7 @@ class TouchpointMappingRuleAdmin(admin.ModelAdmin):
             'description': 'Define which connector and events this rule applies to.'
         }),
         ('Touchpoint Configuration', {
-            'fields': ('touchpoint_code', 'touchpoint_label', 'channel_code', 'medium_code'),
+            'fields': ('touchpoint_code', 'touchpoint_label', 'channel_code', 'medium_code', 'touchpoint_type_code'),
             'description': 'Configure the resulting touchpoint properties.'
         }),
         ('Rule Priority', {

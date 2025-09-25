@@ -10,7 +10,7 @@ interface for all connector types.
 from django.db import transaction
 from typing import Optional, TYPE_CHECKING
 
-from interactions.models import Touchpoint, TouchpointClass, Channel
+from interactions.models import Touchpoint, TouchpointType, Channel, Medium
 from .protocols import TouchpointInferenceProtocol, TouchpointResolverProtocol, TouchpointHint
 from .metrics import track_resolution
 
@@ -108,6 +108,7 @@ class DefaultTouchpointResolver:
             code=rule.touchpoint_code or hint.code,
             channel_code=rule.channel_code or hint.channel_code,
             medium_code=rule.medium_code or hint.medium_code,
+            touchpoint_type_code=rule.touchpoint_type_code or hint.touchpoint_type_code,
             label=rule.touchpoint_label or hint.label,
             metadata={**hint.metadata, **rule.metadata}
         )
@@ -131,9 +132,9 @@ class DefaultTouchpointResolver:
     
     def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
         """
-        Create or get touchpoint from hint.
+        Create or get touchpoint from hint with three-dimensional classification.
         
-        This method handles the creation of Touchpoint, TouchpointClass, and Channel
+        This method handles the creation of Touchpoint, Channel, Medium, and TouchpointType
         objects based on the provided hint.
         
         Args:
@@ -147,19 +148,33 @@ class DefaultTouchpointResolver:
         if hint.channel_code:
             channel, _ = Channel.objects.get_or_create(
                 code=hint.channel_code,
-                defaults={'name': hint.channel_code.title()}
+                defaults={
+                    'name': hint.channel_code.title(),
+                    'description': f"Auto-generated channel for {hint.channel_code}",
+                    'source_type': 'external'  # Default source type
+                }
             )
         
-        # Get or create touchpoint class
-        touchpoint_class = None
-        if hint.code:
-            # Extract class code from touchpoint code (e.g., "web" from "web.page_read")
-            class_code = hint.code.split('.')[0] if '.' in hint.code else hint.code
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
-                code=class_code,
+        # Get or create medium
+        medium = None
+        if hint.medium_code:
+            medium, _ = Medium.objects.get_or_create(
+                code=hint.medium_code,
                 defaults={
-                    'name': class_code.title(),
-                    'description': f"Auto-generated touchpoint class for {class_code}"
+                    'name': hint.medium_code.title(),
+                    'description': f"Auto-generated medium for {hint.medium_code}",
+                    'communication_type': 'asynchronous'  # Default communication type
+                }
+            )
+        
+        # Get or create touchpoint type
+        touchpoint_type = None
+        if hint.touchpoint_type_code:
+            touchpoint_type, _ = TouchpointType.objects.get_or_create(
+                code=hint.touchpoint_type_code,
+                defaults={
+                    'name': hint.touchpoint_type_code.title(),
+                    'description': f"Auto-generated touchpoint type for {hint.touchpoint_type_code}"
                 }
             )
         
@@ -171,7 +186,9 @@ class DefaultTouchpointResolver:
             code=touchpoint_code,
             defaults={
                 'name': touchpoint_name,
-                'touchpoint_class': touchpoint_class,
+                'channel': channel,
+                'medium': medium,
+                'touchpoint_type': touchpoint_type,
                 'description': f"Auto-generated touchpoint for {touchpoint_code}",
                 'is_active': True
             }
@@ -213,7 +230,8 @@ class CachedTouchpointResolver(DefaultTouchpointResolver):
         self.use_cache = use_cache
         self._touchpoint_cache = {}
         self._channel_cache = {}
-        self._touchpoint_class_cache = {}
+        self._medium_cache = {}
+        self._touchpoint_type_cache = {}
     
     def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
         """

@@ -116,6 +116,11 @@ class TouchpointMappingRule(BaseUUIDModelWithActiveStatus):
         blank=True,
         help_text="Medium code override (e.g., 'organic', 'paid', 'referral')"
     )
+    touchpoint_type_code = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Touchpoint type code override (e.g., 'landing_page', 'form', 'chat')"
+    )
     
     # Additional metadata
     metadata = models.JSONField(
