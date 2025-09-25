@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 import logging
 import ua_parser.user_agent_parser
 
-from interactions.models import Action, Agent, Interaction, Touchpoint, Channel, TouchpointClass, Medium
+from interactions.models import Action, Agent, Interaction, Touchpoint, Channel, TouchpointType, Medium
 from .models import WebInteraction, Website, WebAgent, WebSession
 from our_institution.models import Division, OurOrganization
 
@@ -1031,7 +1031,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
             channel, medium = self._get_or_create_website_channel_and_medium()
             
             # Get or create touchpoint class
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            touchpoint_class, _ = TouchpointType.objects.get_or_create(
                 code='web.internal_interaction',
                 defaults={'name': 'Internal Web Interaction'}
             )
@@ -1067,7 +1067,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
             touchpoint_class_code = self._get_traffic_touchpoint_class_code(medium.code)
             touchpoint_class_name = self._get_traffic_touchpoint_class_name(touchpoint_class_code)
             
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            touchpoint_class, _ = TouchpointType.objects.get_or_create(
                 code=touchpoint_class_code,
                 defaults={'name': touchpoint_class_name}
             )
@@ -1102,7 +1102,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
             channel, medium = self._get_or_create_website_channel_and_medium()
             
             # Get or create touchpoint class
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            touchpoint_class, _ = TouchpointType.objects.get_or_create(
                 code='web.session_start',
                 defaults={'name': 'Session Start'}
             )
@@ -1284,7 +1284,7 @@ class PageReadEventProcessor(BaseWebEventProcessor):
             channel, medium = self._get_or_create_website_channel_and_medium()
             
             # Get or create touchpoint class
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            touchpoint_class, _ = TouchpointType.objects.get_or_create(
                 code='web.internal_interaction',
                 defaults={'name': 'Internal Web Interaction'}
             )
@@ -1403,7 +1403,7 @@ class ClickEventProcessor(BaseWebEventProcessor):
             channel, medium = self._get_or_create_website_channel_and_medium()
             
             # Get or create touchpoint class
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            touchpoint_class, _ = TouchpointType.objects.get_or_create(
                 code='web.internal_click',
                 defaults={'name': 'Internal Click'}
             )

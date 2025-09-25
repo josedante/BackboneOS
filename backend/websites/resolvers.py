@@ -11,7 +11,7 @@ import re
 
 from connectors.resolvers import DefaultTouchpointResolver
 from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol
-from interactions.models import Touchpoint, TouchpointClass, Channel, Medium
+from interactions.models import Touchpoint, TouchpointType, Channel, Medium
 
 
 class WebTouchpointResolver(DefaultTouchpointResolver):
@@ -716,7 +716,7 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         touchpoint_class_code = self._get_enhanced_touchpoint_class_code(hint)
         touchpoint_class_name = self._get_enhanced_touchpoint_class_name(touchpoint_class_code)
         
-        touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+        touchpoint_class, _ = TouchpointType.objects.get_or_create(
             code=touchpoint_class_code,
             defaults={
                 'name': touchpoint_class_name,

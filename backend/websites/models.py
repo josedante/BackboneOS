@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 # Core relations
-from interactions.models import TouchpointClass, Touchpoint, Channel, Agent
+from interactions.models import TouchpointType, Touchpoint, Channel, Agent
 from products.models import Product  # optional
 from connectors.base import AbstractConnectorInteraction
 from connectors.protocols import TouchpointInferenceProtocol, TouchpointHint
@@ -38,24 +38,24 @@ class Website(BaseUUIDModelWithActiveStatus):
 
 
 # --------------------------
-# TouchpointClass scaffolding
+# TouchpointType scaffolding
 # --------------------------
 def get_or_create_www_channel() -> Channel:
     # Ensure a "WWW" (website) channel exists
     return Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
 
-def get_or_create_tpc(code: str, name: str, channel: Channel) -> TouchpointClass:
-    return TouchpointClass.objects.get_or_create(
+def get_or_create_tpc(code: str, name: str, channel: Channel) -> TouchpointType:
+    return TouchpointType.objects.get_or_create(
         code=code,
-        defaults={"name": name, "channel": channel}
+        defaults={"name": name}
     )[0]
 
-# def seed_touchpoint_classes(apps, schema_editor):
+# def seed_touchpoint_types(apps, schema_editor):
 #     Channel = apps.get_model("interactions", "Channel")
-#     TouchpointClass = apps.get_model("interactions", "TouchpointClass")
+#     TouchpointType = apps.get_model("interactions", "TouchpointType")
 
 #     www = Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
-#     get_or_create = lambda code, name: TouchpointClass.objects.get_or_create(code=code, defaults={"name": name, "channel": www})[0]
+#     get_or_create = lambda code, name: TouchpointType.objects.get_or_create(code=code, defaults={"name": name})[0]
 
 #     get_or_create("WWW_PAGE", "Website Page")
 #     get_or_create("WWW_FORM", "Website Form")
@@ -84,8 +84,8 @@ class WebSurface(BaseUUIDModelWithActiveStatus):
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
     # offering = models.ForeignKey(ProductOffering, null=True, blank=True, on_delete=models.SET_NULL)
 
-    # TouchpointClass linking
-    touchpoint_class = models.ForeignKey(TouchpointClass, on_delete=models.PROTECT, related_name="web_surfaces")
+    # TouchpointType linking
+    touchpoint_class = models.ForeignKey(TouchpointType, on_delete=models.PROTECT, related_name="web_surfaces")
     touchpoint = models.OneToOneField(
         Touchpoint,
         on_delete=models.CASCADE,

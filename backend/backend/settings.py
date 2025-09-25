@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'world',
-    # 'websites',
+    'websites',
     'products',
     'entities',
     'interactions',
