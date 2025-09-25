@@ -1,246 +1,418 @@
 """
-Resolver tests for the websites app.
+Tests for the websites app resolvers.
 
-This module tests the WebTouchpointResolver and CachedWebTouchpointResolver classes.
+This module tests the WebTouchpointResolver and its three-dimensional
+classification logic.
 """
 
 from django.test import TestCase
 from unittest.mock import Mock, patch
-from django.contrib.auth import get_user_model
 
-from our_institution.models import OurOrganization, Division
-from interactions.models import TouchpointClass, Touchpoint, Interaction
-from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol
-from websites.models import Website, WebSurface, WebInteraction, WebForm, WebPage
+from interactions.models import Channel, Medium, TouchpointType, Touchpoint
+from our_institution.models import Division, OurOrganization
+from products.models import Product
+from websites.models import Website, WebInteraction
 from websites.resolvers import WebTouchpointResolver, CachedWebTouchpointResolver
-from websites.mapping_providers import WebMappingProvider, CachedWebMappingProvider
-
-User = get_user_model()
+from connectors.protocols import TouchpointHint
 
 
-class WebTouchpointResolverTest(TestCase):
+class WebTouchpointResolverTestCase(TestCase):
     """Test cases for the WebTouchpointResolver."""
     
     def setUp(self):
         """Set up test data."""
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123'
-        )
-        self.our_organization = OurOrganization.objects.create(
-            name='Test Organization',
-            legal_name='Test Organization Legal',
-            is_active=True
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization"
         )
         self.division = Division.objects.create(
-            organization=self.our_organization,
-            name='Test Division',
-            code='TEST',
-            description='Test division for testing'
+            name="Test Division",
+            code="TEST_DIV",
+            organization=self.organization
         )
         self.website = Website.objects.create(
-            division=self.division,
-            name='Test Website',
-            base_url='https://www.example.com',
+            name="Test Website",
+            base_url="https://test.com",
+            division=self.division
+        )
+        self.resolver = WebTouchpointResolver()
+    
+    def test_connector_type(self):
+        """Test connector type identification."""
+        subject = Mock()
+        connector_type = self.resolver._get_connector_type(subject)
+        self.assertEqual(connector_type, 'web')
+    
+    def test_channel_display_name_mapping(self):
+        """Test channel display name mapping."""
+        # Test known channels
+        self.assertEqual(
+            self.resolver._get_channel_display_name('google'),
+            'Google'
+        )
+        self.assertEqual(
+            self.resolver._get_channel_display_name('facebook'),
+            'Facebook'
+        )
+        self.assertEqual(
+            self.resolver._get_channel_display_name('twitter'),
+            'Twitter'
+        )
+        self.assertEqual(
+            self.resolver._get_channel_display_name('linkedin'),
+            'LinkedIn'
+        )
+        self.assertEqual(
+            self.resolver._get_channel_display_name('email'),
+            'Email'
+        )
+    
+    def test_channel_display_name_domain_patterns(self):
+        """Test channel display name for domain patterns."""
+        # Test .com domains
+        self.assertEqual(
+            self.resolver._get_channel_display_name('alpha.com'),
+            'Alpha.com Website'
         )
         
-        # Create mapping provider
-        self.mapping_provider = WebMappingProvider()
-        self.resolver = WebTouchpointResolver(self.mapping_provider)
+        # Test .edu.pe domains
+        self.assertEqual(
+            self.resolver._get_channel_display_name('esan.edu.pe'),
+            'ESAN University'
+        )
+        
+        # Test .edu domains
+        self.assertEqual(
+            self.resolver._get_channel_display_name('harvard.edu'),
+            'Harvard University'
+        )
     
-    def test_ensure_required_fields_utm_priority(self):
-        """Test that UTM parameters take priority in medium detection."""
-        # Create mock interaction with UTM parameters
-        mock_interaction = Mock()
-        mock_interaction.website = self.website
-        mock_interaction.utm_medium = 'email'
-        mock_interaction.utm_source = 'newsletter'
-        mock_interaction.utm_campaign = 'welcome'
-        mock_interaction.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        mock_interaction.referrer_url = 'https://www.google.com'
-        mock_interaction.session_id = 'test-session'
-        mock_interaction.payload = {}
-        mock_interaction.metadata = {}
-        
-        hint = TouchpointHint(code='web.page_view', label='Page View')
-        enhanced_hint = self.resolver._ensure_required_fields(mock_interaction, hint)
-        
-        self.assertEqual(enhanced_hint.medium_code, 'email')
-        self.assertEqual(enhanced_hint.channel_code, 'email')
+    def test_channel_display_name_fallback(self):
+        """Test channel display name fallback."""
+        # Test unknown channel
+        self.assertEqual(
+            self.resolver._get_channel_display_name('unknown_channel'),
+            'Unknown Channel'
+        )
     
-    def test_ensure_required_fields_referrer_analysis(self):
-        """Test referrer analysis when no UTM parameters."""
-        # Create mock interaction with referrer but no UTM
-        mock_interaction = Mock()
-        mock_interaction.website = self.website
-        mock_interaction.utm_medium = ''
-        mock_interaction.utm_source = ''
-        mock_interaction.utm_campaign = ''
-        mock_interaction.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        mock_interaction.referrer_url = 'https://www.facebook.com/some-post'
-        mock_interaction.session_id = 'test-session'
-        mock_interaction.payload = {}
-        mock_interaction.metadata = {}
-        
-        hint = TouchpointHint(code='web.page_view', label='Page View')
-        enhanced_hint = self.resolver._ensure_required_fields(mock_interaction, hint)
-        
-        self.assertEqual(enhanced_hint.medium_code, 'social')
-        self.assertEqual(enhanced_hint.channel_code, 'facebook')
-    
-    def test_ensure_required_fields_user_agent_analysis(self):
-        """Test user agent analysis for native app detection."""
-        # Create mock interaction with app user agent
-        mock_interaction = Mock()
-        mock_interaction.website = self.website
-        mock_interaction.utm_medium = ''
-        mock_interaction.utm_source = ''
-        mock_interaction.utm_campaign = ''
-        mock_interaction.user_agent = 'SubstackApp/1.0 (iPhone; iOS 15.0)'
-        mock_interaction.referrer_url = None
-        mock_interaction.session_id = 'test-session'
-        mock_interaction.payload = {}
-        mock_interaction.metadata = {}
-        
-        hint = TouchpointHint(code='web.page_view', label='Page View')
-        enhanced_hint = self.resolver._ensure_required_fields(mock_interaction, hint)
-        
-        self.assertEqual(enhanced_hint.medium_code, 'mobile')
-        self.assertEqual(enhanced_hint.channel_code, 'substack')
-    
-    def test_ensure_required_fields_direct_fallback(self):
-        """Test direct traffic fallback when no other indicators."""
-        # Create mock interaction with no external indicators
-        mock_interaction = Mock()
-        mock_interaction.website = self.website
-        mock_interaction.utm_medium = ''
-        mock_interaction.utm_source = ''
-        mock_interaction.utm_campaign = ''
-        mock_interaction.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        mock_interaction.referrer_url = None
-        mock_interaction.session_id = 'test-session'
-        mock_interaction.payload = {}
-        mock_interaction.metadata = {}
-        
-        hint = TouchpointHint(code='web.page_view', label='Page View')
-        enhanced_hint = self.resolver._ensure_required_fields(mock_interaction, hint)
-        
-        self.assertEqual(enhanced_hint.medium_code, 'web_direct')
-        self.assertEqual(enhanced_hint.channel_code, 'example.com')
-    
-    def test_get_website_channel_code(self):
-        """Test website channel code extraction."""
-        mock_interaction = Mock()
-        mock_interaction.website = self.website
-        
-        channel_code = self.resolver._get_website_channel_code(mock_interaction)
-        self.assertEqual(channel_code, 'example.com')
-    
-    def test_extract_domain_from_url(self):
-        """Test domain extraction from URL."""
-        # Test normal URL
-        domain = self.resolver._extract_domain_from_url('https://www.example.com/path')
-        self.assertEqual(domain, 'example.com')
-        
-        # Test URL with www
-        domain = self.resolver._extract_domain_from_url('https://www.test.com')
-        self.assertEqual(domain, 'test.com')
-        
-        # Test localhost
-        domain = self.resolver._extract_domain_from_url('http://localhost:8000')
-        self.assertEqual(domain, 'localhost:8000')
-        
-        # Test invalid URL
-        domain = self.resolver._extract_domain_from_url('invalid-url')
-        self.assertEqual(domain, 'web')
-    
-    def test_get_channel_display_name(self):
-        """Test channel display name generation."""
-        # Test website domain
-        name = self.resolver._get_channel_display_name('example.com')
-        self.assertEqual(name, 'Example Website')
-        
-        # Test known source
-        name = self.resolver._get_channel_display_name('google')
-        self.assertEqual(name, 'Google')
-        
-        # Test unknown source
-        name = self.resolver._get_channel_display_name('unknown-source')
-        self.assertEqual(name, 'Unknown-Source')
-    
-    def test_analyze_user_agent(self):
-        """Test user agent analysis for native app detection."""
-        # Test native app user agent
-        app_channel = self.resolver._extract_app_channel_from_user_agent('SubstackApp/1.0 (iPhone; iOS 15.0)')
-        self.assertEqual(app_channel, 'substack')
-        
-        # Test regular browser user agent
-        app_channel = self.resolver._extract_app_channel_from_user_agent('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
-        self.assertIsNone(app_channel)
-        
-        # Test WebView user agent
-        app_channel = self.resolver._extract_app_channel_from_user_agent('Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148')
-        self.assertIsNone(app_channel)  # Should not detect as app
-    
-    def test_is_external_click_event(self):
-        """Test external click event detection."""
-        # Test internal click event
-        mock_interaction = Mock()
-        mock_interaction.payload = {'event_type': 'internal_click'}
-        mock_interaction.metadata = {}
-        mock_interaction.referrer_url = None
-        mock_interaction.utm_source = ''
-        mock_interaction.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        
-        is_external = self.resolver._is_external_click_event(mock_interaction)
-        self.assertFalse(is_external)
-        
-        # Test external page_view with referrer
-        mock_interaction.payload = {'event_type': 'page_view'}
-        mock_interaction.referrer_url = 'https://www.google.com'
-        
-        with patch.object(self.resolver, '_is_external_referrer', return_value=True):
-            is_external = self.resolver._is_external_click_event(mock_interaction)
-            self.assertTrue(is_external)
-    
-    def test_get_enhanced_touchpoint_class_code(self):
-        """Test enhanced touchpoint class code generation."""
-        # Test click event (should be traffic)
+    def test_determine_channel_from_website_url(self):
+        """Test channel determination from website URL."""
         hint = TouchpointHint(
-            code='web.internal_click',
-            label='Internal Click',
-            medium_code='web_direct'
+            code="test_interaction",
+            metadata={
+                'website_url': 'https://esan.edu.pe/contact',
+                'event_type': 'page_view'
+            }
         )
-        touchpoint_class = self.resolver._get_enhanced_touchpoint_class_code(hint)
-        self.assertEqual(touchpoint_class, 'web.internal_click')
         
-        # Test non-click event (should be interaction)
-        hint = TouchpointHint(
-            code='web.form_submit',
-            label='Form Submit',
-            medium_code='web_direct'
-        )
-        with patch.object(self.resolver, '_is_internal_website_interaction', return_value=True):
-            touchpoint_class = self.resolver._get_enhanced_touchpoint_class_code(hint)
-            self.assertEqual(touchpoint_class, 'web.internal_interaction')
-        
-        # Test external traffic
-        hint = TouchpointHint(
-            code='web.page_view',
-            label='Page View',
-            medium_code='social'
-        )
-        touchpoint_class = self.resolver._get_enhanced_touchpoint_class_code(hint)
-        self.assertEqual(touchpoint_class, 'web.social_traffic')
+        channel_code = self.resolver._determine_channel_from_subject(hint)
+        self.assertEqual(channel_code, 'esan.edu.pe')
     
-    def test_get_enhanced_touchpoint_class_name(self):
-        """Test enhanced touchpoint class name generation."""
-        name = self.resolver._get_enhanced_touchpoint_class_name('web.internal_traffic')
-        self.assertEqual(name, 'Internal Website Traffic')
+    def test_determine_channel_from_current_url(self):
+        """Test channel determination from current URL."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'current_url': 'https://alpha.com/products',
+                'event_type': 'page_view'
+            }
+        )
         
-        name = self.resolver._get_enhanced_touchpoint_class_name('web.social_traffic')
-        self.assertEqual(name, 'Social Media Traffic')
+        channel_code = self.resolver._determine_channel_from_subject(hint)
+        self.assertEqual(channel_code, 'alpha.com')
+    
+    def test_determine_channel_from_page_url(self):
+        """Test channel determination from page URL."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'page_url': 'https://test.com/about',
+                'event_type': 'page_view'
+            }
+        )
         
-        name = self.resolver._get_enhanced_touchpoint_class_name('web.unknown_traffic')
-        self.assertEqual(name, 'Unknown Traffic Source')
+        channel_code = self.resolver._determine_channel_from_subject(hint)
+        self.assertEqual(channel_code, 'test.com')
+    
+    def test_determine_channel_default(self):
+        """Test channel determination default fallback."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'page_view'}
+        )
+        
+        channel_code = self.resolver._determine_channel_from_subject(hint)
+        self.assertEqual(channel_code, 'web')
+    
+    def test_determine_medium_from_utm(self):
+        """Test medium determination from UTM parameters."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'utm_medium': 'social',
+                'event_type': 'page_view'
+            }
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'social')
+    
+    def test_determine_medium_from_google_referrer(self):
+        """Test medium determination from Google referrer."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'referrer_url': 'https://www.google.com/search?q=test',
+                'event_type': 'page_view'
+            }
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'organic')
+    
+    def test_determine_medium_from_facebook_referrer(self):
+        """Test medium determination from Facebook referrer."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'referrer_url': 'https://www.facebook.com/some-post',
+                'event_type': 'page_view'
+            }
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'social')
+    
+    def test_determine_medium_from_email_referrer(self):
+        """Test medium determination from email referrer."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'referrer_url': 'https://mail.google.com/mail/u/0/',
+                'event_type': 'page_view'
+            }
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'email')
+    
+    def test_determine_medium_from_other_referrer(self):
+        """Test medium determination from other referrer."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'referrer_url': 'https://example.com/some-page',
+                'event_type': 'page_view'
+            }
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'referral')
+    
+    def test_determine_medium_default(self):
+        """Test medium determination default fallback."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'page_view'}
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'direct')
+    
+    def test_touchpoint_type_page_view(self):
+        """Test touchpoint type for page view."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'page_view'}
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'web_page')
+    
+    def test_touchpoint_type_form_submit(self):
+        """Test touchpoint type for form submit."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'form_submit'}
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'web_form')
+    
+    def test_touchpoint_type_link_click(self):
+        """Test touchpoint type for link click."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'event_type': 'click',
+                'selector': 'a.cta-link'
+            }
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'link')
+    
+    def test_touchpoint_type_button_click(self):
+        """Test touchpoint type for button click."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'event_type': 'click',
+                'selector': 'button.submit-btn'
+            }
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'button')
+    
+    def test_touchpoint_type_click_default(self):
+        """Test touchpoint type for click without selector."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'click'}
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'link')
+    
+    def test_touchpoint_type_download(self):
+        """Test touchpoint type for download."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'download'}
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'web_download')
+    
+    def test_touchpoint_type_purchase(self):
+        """Test touchpoint type for purchase."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'purchase'}
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'web_purchase')
+    
+    def test_touchpoint_type_default(self):
+        """Test touchpoint type default fallback."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={'event_type': 'unknown_event'}
+        )
+        
+        touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(hint)
+        self.assertEqual(touchpoint_type, 'web_page')
+    
+    def test_complete_touchpoint_creation(self):
+        """Test complete touchpoint creation with three dimensions."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            channel_code="esan.edu.pe",
+            medium_code="organic",
+            metadata={
+                'event_type': 'page_view',
+                'website_url': 'https://esan.edu.pe/contact'
+            }
+        )
+        
+        touchpoint = self.resolver._get_or_create_touchpoint(hint)
+        
+        # Verify three dimensions
+        self.assertEqual(touchpoint.channel.code, 'esan.edu.pe')
+        self.assertEqual(touchpoint.medium.code, 'organic')
+        self.assertEqual(touchpoint.touchpoint_type.code, 'web_page')
+    
+    def test_medium_priority_logic(self):
+        """Test medium determination priority logic."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'utm_medium': 'paid',
+                'referrer_url': 'https://www.google.com/search'
+            }
+        )
+        
+        medium_code = self.resolver._determine_medium_from_subject(hint)
+        self.assertEqual(medium_code, 'paid')  # UTM should win
+    
+    def test_channel_priority_logic(self):
+        """Test channel determination priority logic."""
+        hint = TouchpointHint(
+            code="test_interaction",
+            metadata={
+                'website_url': 'https://esan.edu.pe/contact',
+                'current_url': 'https://alpha.com/products'
+            }
+        )
+        
+        channel_code = self.resolver._determine_channel_from_subject(hint)
+        self.assertEqual(channel_code, 'esan.edu.pe')  # website_url should win
+
+
+class CachedWebTouchpointResolverTestCase(TestCase):
+    """Test cases for the CachedWebTouchpointResolver."""
+    
+    def setUp(self):
+        """Set up test data."""
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization"
+        )
+        self.division = Division.objects.create(
+            name="Test Division",
+            code="TEST_DIV",
+            organization=self.organization
+        )
+        self.website = Website.objects.create(
+            name="Test Website",
+            base_url="https://test.com",
+            division=self.division
+        )
+        self.resolver = CachedWebTouchpointResolver(use_cache=True)
+    
+    def test_cached_resolver_creation(self):
+        """Test cached resolver creation."""
+        self.assertTrue(self.resolver.use_cache)
+        self.assertIsNotNone(self.resolver._external_click_cache)
+        self.assertIsNotNone(self.resolver._external_referrer_cache)
+        self.assertIsNotNone(self.resolver._website_channel_cache)
+    
+    def test_cache_functionality(self):
+        """Test cache functionality."""
+        # Test that cache is used when enabled
+        subject = Mock()
+        subject.website = self.website
+        
+        # First call should populate cache
+        result1 = self.resolver._get_website_channel_code(subject)
+        
+        # Second call should use cache
+        result2 = self.resolver._get_website_channel_code(subject)
+        
+        self.assertEqual(result1, result2)
+        self.assertIn('test.com', result1)
+    
+    def test_cache_disabled(self):
+        """Test cache functionality when disabled."""
+        resolver = CachedWebTouchpointResolver(use_cache=False)
+        self.assertFalse(resolver.use_cache)
+        
+        # Should not use cache
+        subject = Mock()
+        subject.website = self.website
+        
+        result = resolver._get_website_channel_code(subject)
+        self.assertIn('test.com', result)
+    
+    def test_cache_key_creation(self):
+        """Test cache key creation."""
+        subject = Mock()
+        subject.website = self.website
+        subject.session_id = "test_session"
+        subject.visitor_cookie = "test_cookie"
+        
+        cache_key = self.resolver._create_subject_cache_key(subject)
+        self.assertIsInstance(cache_key, str)
+        self.assertIn('test.com', cache_key)
+        self.assertIn('test_session', cache_key)
+        self.assertIn('test_cookie', cache_key)
