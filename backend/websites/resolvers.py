@@ -691,26 +691,43 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         Returns:
             Touchpoint: The created or existing touchpoint
         """
-        # Get or create source channel
+        # Get or create channel (WHERE the interaction happened)
         channel = None
         if hint.channel_code:
             channel_name = self._get_channel_display_name(hint.channel_code)
-            
-            # Get or create medium if specified
-            medium = None
-            if hint.medium_code:
-                medium, _ = Medium.objects.get_or_create(
-                    code=hint.medium_code,
-                    defaults={'name': hint.medium_code.title()}
-                )
-            
             channel, created = Channel.objects.get_or_create(
                 code=hint.channel_code,
                 defaults={
-                    'name': channel_name,
-                    'medium': medium
+                    'name': channel_name
                 }
             )
+        else:
+            # Determine channel from the subject if not provided
+            channel_code = self._determine_channel_from_subject(hint)
+            if channel_code:
+                channel_name = self._get_channel_display_name(channel_code)
+                channel, created = Channel.objects.get_or_create(
+                    code=channel_code,
+                    defaults={
+                        'name': channel_name
+                    }
+                )
+        
+        # Get or create medium (HOW it communicates)
+        medium = None
+        if hint.medium_code:
+            medium, _ = Medium.objects.get_or_create(
+                code=hint.medium_code,
+                defaults={'name': hint.medium_code.title()}
+            )
+        else:
+            # Determine medium from the subject if not provided
+            medium_code = self._determine_medium_from_subject(hint)
+            if medium_code:
+                medium, _ = Medium.objects.get_or_create(
+                    code=medium_code,
+                    defaults={'name': medium_code.title()}
+                )
         
         # Get or create enhanced touchpoint class
         touchpoint_class_code = self._get_enhanced_touchpoint_class_code(hint)
@@ -732,8 +749,9 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             code=touchpoint_code,
             defaults={
                 'name': touchpoint_name,
-                'touchpoint_class': touchpoint_class,
+                'touchpoint_type': touchpoint_class,
                 'channel': channel,
+                'medium': medium,
                 'description': f"Web touchpoint for {touchpoint_code}",
                 'is_active': True
             }
@@ -741,108 +759,145 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         
         return touchpoint
     
-    def _get_enhanced_touchpoint_class_code(self, hint: TouchpointHint) -> str:
+    def _determine_channel_from_subject(self, hint: TouchpointHint) -> str:
         """
-        Get enhanced touchpoint class code based on medium for ML feature extraction.
+        Determine the channel (WHERE the interaction happened) from the hint.
         
-        This method creates meaningful TouchpointClass categories based on the
-        traffic medium (derived from UTM or other information), avoiding duplication
-        with Interaction.action field.
-        
-        Key distinction:
-        - All clicks (internal/external) → "traffic"
-        - All non-click events → "interaction"
+        Channel represents the location/context where the interaction occurred,
+        not just the traffic source. For web interactions, this is typically
+        the website domain where the interaction took place.
         
         Args:
             hint: The touchpoint hint
             
         Returns:
-            str: The enhanced touchpoint class code
+            str: The channel code
         """
-        # First check if this is a click event (should be traffic)
-        is_click_event = False
-        if hint.code:
-            if 'click' in hint.code.lower():
-                is_click_event = True
-        if hint.metadata:
-            event_type = hint.metadata.get('event_type', '')
-            if 'click' in event_type.lower():
-                is_click_event = True
+        # Check if there's a website URL in metadata (where the interaction happened)
+        if hint.metadata and 'website_url' in hint.metadata:
+            website_url = hint.metadata['website_url']
+            if website_url:
+                # Extract domain from website URL
+                from urllib.parse import urlparse
+                parsed = urlparse(website_url)
+                domain = parsed.netloc
+                if domain:
+                    # Normalize domain
+                    return domain.replace('www.', '').lower()
         
-        # Extract medium for classification
-        medium = hint.medium_code or 'unknown'
+        # Check if there's a current URL in metadata
+        if hint.metadata and 'current_url' in hint.metadata:
+            current_url = hint.metadata['current_url']
+            if current_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(current_url)
+                domain = parsed.netloc
+                if domain:
+                    return domain.replace('www.', '').lower()
         
-        # If it's a click event, it should be traffic regardless of medium
-        if is_click_event:
-            # Click events should have their own medium classification
-            # Check if it's an internal click (same domain) or external click
-            if self._is_internal_click_event(hint):
-                return 'web.internal_click'  # Internal clicks are their own thing
-            else:
-                # External clicks should be classified by their source
-                if medium == 'social':
-                    return 'web.social_traffic'
-                elif medium == 'organic':
-                    return 'web.organic_traffic'
-                elif medium == 'paid':
-                    return 'web.paid_traffic'
-                elif medium == 'email':
-                    return 'web.email_traffic'
-                elif medium == 'referral':
-                    return 'web.referral_traffic'
-                elif medium == 'mobile':
-                    return 'web.mobile_traffic'
-                elif medium == 'app':
-                    return 'web.app_traffic'
-                elif medium == 'display':
-                    return 'web.display_traffic'
-                elif medium == 'video':
-                    return 'web.video_traffic'
-                elif medium == 'affiliate':
-                    return 'web.affiliate_traffic'
-                elif medium == 'content':
-                    return 'web.content_traffic'
+        # Check if there's a page URL in metadata
+        if hint.metadata and 'page_url' in hint.metadata:
+            page_url = hint.metadata['page_url']
+            if page_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(page_url)
+                domain = parsed.netloc
+                if domain:
+                    return domain.replace('www.', '').lower()
+        
+        # Default to web channel for web interactions
+        return 'web'
+    
+    def _determine_medium_from_subject(self, hint: TouchpointHint) -> str:
+        """
+        Determine the medium (HOW it communicates) from the hint.
+        
+        Args:
+            hint: The touchpoint hint
+            
+        Returns:
+            str: The medium code
+        """
+        # Check UTM medium first
+        if hint.metadata and 'utm_medium' in hint.metadata:
+            utm_medium = hint.metadata['utm_medium']
+            if utm_medium:
+                return utm_medium.lower()
+        
+        # Check referrer for medium inference
+        if hint.metadata and 'referrer_url' in hint.metadata:
+            referrer_url = hint.metadata['referrer_url']
+            if referrer_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(referrer_url)
+                domain = parsed.netloc.lower()
+                
+                # Map common domains to mediums
+                if 'google' in domain:
+                    return 'organic'
+                elif any(social in domain for social in ['facebook', 'twitter', 'linkedin', 'instagram']):
+                    return 'social'
+                elif 'mail' in domain or 'email' in domain:
+                    return 'email'
                 else:
-                    return 'web.unknown_traffic'
+                    return 'referral'
         
-        # For non-click events, use medium-based classification
-        if medium == 'social':
-            return 'web.social_traffic'
-        elif medium == 'organic':
-            return 'web.organic_traffic'
-        elif medium == 'paid':
-            return 'web.paid_traffic'
-        elif medium == 'email':
-            return 'web.email_traffic'
-        elif medium == 'referral':
-            return 'web.referral_traffic'
-        elif medium == 'web_page':
-            # Page-based interactions - check if it's a click or page read
-            if self._is_click_event(hint):
-                return 'web.internal_click'
-            else:
-                return 'web.internal_interaction'
-        elif medium == 'web_direct':
-            # Check if this is truly direct traffic or internal website interaction
-            if self._is_internal_website_interaction(hint):
-                return 'web.internal_interaction'
-            else:
-                return 'web.direct_traffic'
-        elif medium == 'mobile':
-            return 'web.mobile_traffic'
-        elif medium == 'app':
-            return 'web.app_traffic'
-        elif medium == 'display':
-            return 'web.display_traffic'
-        elif medium == 'video':
-            return 'web.video_traffic'
-        elif medium == 'affiliate':
-            return 'web.affiliate_traffic'
-        elif medium == 'content':
-            return 'web.content_traffic'
+        # Default to direct
+        return 'direct'
+    
+    def _get_enhanced_touchpoint_class_code(self, hint: TouchpointHint) -> str:
+        """
+        Get touchpoint type code based on the functional type of interaction.
+        
+        In the new three-dimensional system:
+        - Channel: WHERE the interaction happened (esan.edu.pe, alpha.com, mobile_app)
+        - Medium: HOW it communicates (social, organic, paid, email)
+        - TouchpointType: WHAT type of touchpoint (web_page, web_form, link, button)
+        
+        This method determines the functional type, not the traffic source.
+        
+        Args:
+            hint: The touchpoint hint
+            
+        Returns:
+            str: The touchpoint type code
+        """
+        # Determine the functional type of interaction (TouchpointType)
+        # This is about WHAT type of touchpoint, not WHERE it came from or HOW
+        
+        # Check event type from hint
+        event_type = hint.metadata.get('event_type', '') if hint.metadata else ''
+        code = hint.code or ''
+        
+        # Map to web-specific touchpoint types (avoiding overlap with action field)
+        if 'page_view' in event_type.lower() or 'page_view' in code.lower():
+            return 'web_page'
+        elif 'form_submit' in event_type.lower() or 'form_submit' in code.lower():
+            return 'web_form'
+        elif 'click' in event_type.lower() or 'click' in code.lower():
+            # Determine if it's a link or button based on selector
+            if hint.metadata and 'selector' in hint.metadata:
+                selector = hint.metadata['selector']
+                if 'a' in selector.lower() or 'link' in selector.lower():
+                    return 'link'
+                elif 'button' in selector.lower() or 'btn' in selector.lower():
+                    return 'button'
+            return 'link'  # Default to link for clicks
+        elif 'download' in event_type.lower() or 'download' in code.lower():
+            return 'web_download'
+        elif 'purchase' in event_type.lower() or 'purchase' in code.lower():
+            return 'web_purchase'
+        elif 'signup' in event_type.lower() or 'signup' in code.lower():
+            return 'web_signup'
+        elif 'login' in event_type.lower() or 'login' in code.lower():
+            return 'web_login'
+        elif 'session_start' in event_type.lower() or 'session_start' in code.lower():
+            return 'web_session_start'
+        elif 'session_end' in event_type.lower() or 'session_end' in code.lower():
+            return 'web_session_end'
         else:
-            # Fallback to generic web traffic
-            return 'web.unknown_traffic'
+            # Default to web_page for web interactions
+            return 'web_page'
     
     def _is_internal_website_interaction(self, hint: TouchpointHint) -> bool:
         """

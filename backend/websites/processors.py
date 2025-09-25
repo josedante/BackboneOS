@@ -1047,7 +1047,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
                     'description': description,
                     'url': url,
                     'channel': channel,
-                    'touchpoint_class': touchpoint_class
+                    'touchpoint_type': touchpoint_class
                 }
             )
             
@@ -1085,7 +1085,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
                     'description': f"User came from {referrer}",
                     'url': referrer,
                     'channel': channel,
-                    'touchpoint_class': touchpoint_class
+                    'touchpoint_type': touchpoint_class
                 }
             )
             
@@ -1118,7 +1118,7 @@ class PageViewEventProcessor(BaseWebEventProcessor):
                     'description': f"User started a new session on {self.website.base_url}",
                     'url': self.website.base_url,
                     'channel': channel,
-                    'touchpoint_class': touchpoint_class
+                    'touchpoint_type': touchpoint_class
                 }
             )
             
@@ -1300,7 +1300,7 @@ class PageReadEventProcessor(BaseWebEventProcessor):
                     'description': description,
                     'url': url,
                     'channel': channel,
-                    'touchpoint_class': touchpoint_class
+                    'touchpoint_type': touchpoint_class
                 }
             )
             
@@ -1432,7 +1432,7 @@ class ClickEventProcessor(BaseWebEventProcessor):
                     'description': description,
                     'url': self.event_data.get('full_url', ''),
                     'channel': channel,
-                    'touchpoint_class': touchpoint_class
+                    'touchpoint_type': touchpoint_class
                 }
             )
             

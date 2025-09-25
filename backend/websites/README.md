@@ -14,14 +14,55 @@ Esta app actúa como **conector especializado** para el canal digital `WWW`, int
 
 ## 🎉 Estado: IMPLEMENTACIÓN COMPLETADA
 
-### ✅ Sistema de Resolución de Touchpoints
+### ✅ Sistema de Resolución de Touchpoints con Clasificación Tridimensional
 - **Resolución automática**: Touchpoints creados automáticamente al guardar `WebInteraction`
+- **Clasificación tridimensional**: Channel (WHERE), Medium (HOW), TouchpointType (WHAT)
 - **Canales específicos por sitio**: Códigos de canal basados en dominio (ej: `alpha.com`, `esan.edu.pe`)
 - **Análisis de tráfico mejorado**: UTM, referrer, y análisis de user agent
-- **Diferenciación de canales**: Distinción entre canal de captura vs. canal de origen
-- **Clasificación semántica**: TouchpointClass basado en medio de tráfico
+- **Tipos de touchpoint web-específicos**: `web_page`, `web_form`, `link`, `button` (sin solapamiento con action)
 - **Detección de apps nativas**: Análisis de user agent para tráfico de apps móviles
 - **Cobertura de pruebas**: 28 tests pasando con cobertura completa
+
+---
+
+## 🎯 Sistema de Clasificación Tridimensional
+
+La app `websites` implementa un sistema de clasificación tridimensional que separa claramente las diferentes dimensiones de una interacción web:
+
+### **Channel (WHERE) - Dónde ocurrió la interacción**
+- **Propósito**: Identifica el contexto/lugar donde ocurrió la interacción
+- **Ejemplos**: `esan.edu.pe`, `alpha.com`, `mobile_app`
+- **Lógica**: Se determina desde la URL del sitio web donde ocurrió la interacción
+- **No es**: El origen del tráfico (eso es responsabilidad del medium)
+
+### **Medium (HOW) - Cómo se comunica**
+- **Propósito**: Identifica el método de comunicación
+- **Ejemplos**: `organic`, `social`, `paid`, `email`, `referral`, `direct`
+- **Lógica**: Se determina desde parámetros UTM, análisis de referrer, o defaults
+- **Análisis**: UTM medium tiene prioridad, luego inferencia desde referrer
+
+### **TouchpointType (WHAT) - Qué tipo de touchpoint**
+- **Propósito**: Identifica el tipo funcional de touchpoint (web-específico)
+- **Ejemplos**: `web_page`, `web_form`, `link`, `button`, `web_download`
+- **Lógica**: Se determina desde el tipo de evento, con clasificación inteligente de clicks
+- **Sin solapamiento**: No se solapa con el campo `action` de `interactions.Interaction`
+
+### **Ejemplo de Clasificación Completa:**
+```
+Interacción: "Envío de formulario de contacto en ESAN"
+- Channel: "esan.edu.pe" (WHERE: ocurrió en el sitio de ESAN)
+- Medium: "organic" (HOW: llegó desde búsqueda orgánica)
+- TouchpointType: "web_form" (WHAT: envío de formulario web)
+```
+
+### **Beneficios del Sistema Tridimensional:**
+- **Análisis granular**: Cada dimensión puede analizarse independientemente
+- **ML/IA mejorado**: Mejor extracción de features para modelos predictivos
+- **Reporting flexible**: Agrupaciones y filtros por cualquier dimensión
+- **Sin solapamiento**: Separación clara de responsabilidades
+- **Escalabilidad**: Fácil extensión para nuevos tipos de interacciones
+
+> 📖 **Documentación Técnica Detallada**: Ver [THREE_DIMENSIONAL_CLASSIFICATION.md](./THREE_DIMENSIONAL_CLASSIFICATION.md) para implementación técnica completa, ejemplos de código, y guía de migración.
 
 ---
 
@@ -30,11 +71,13 @@ Esta app actúa como **conector especializado** para el canal digital `WWW`, int
 ### **WebTouchpointResolver**
 Resolvedor especializado que extiende el framework genérico con lógica específica para web:
 
-- **Análisis UTM**: Prioriza parámetros UTM para determinar medio de tráfico
-- **Análisis de referrer**: Detecta tráfico orgánico, social, y de referencia
+- **Clasificación tridimensional**: Implementa Channel (WHERE), Medium (HOW), TouchpointType (WHAT)
+- **Análisis UTM**: Prioriza parámetros UTM para determinar medium de comunicación
+- **Análisis de referrer**: Detecta tráfico orgánico, social, y de referencia para medium
 - **Análisis de user agent**: Identifica tráfico de apps nativas y WebViews
-- **Canales específicos por sitio**: Usa el dominio del sitio web como código de canal
-- **Clasificación semántica**: TouchpointClass basado en medio (ej: `web.social_traffic`)
+- **Canales específicos por sitio**: Usa el dominio del sitio web como código de canal (WHERE)
+- **Tipos web-específicos**: TouchpointType basado en funcionalidad web (`web_page`, `web_form`, `link`, `button`)
+- **Clasificación inteligente de clicks**: Distingue entre `link` y `button` basado en selector
 
 ### **WebMappingProvider**
 Proveedor de reglas de mapeo específico para web:
@@ -150,17 +193,48 @@ Esto asegura que:
    - `action` según evento (`page_read`, `form_submit`)
    - `agent` (ej. navegador identificado)
 
-### **Nuevo Flujo con Touchpoint Resolution**
+### **Nuevo Flujo con Clasificación Tridimensional**
 1. Se crea un `WebInteraction` con datos de navegador, UTM, referrer, etc.
 2. `WebInteraction.save()` → `_ensure_touchpoint()` se ejecuta automáticamente
 3. `infer_touchpoint_hint()` analiza el contexto y crea un hint especializado
-4. `WebTouchpointResolver.resolve()` aplica reglas y crea el touchpoint:
-   - **Análisis UTM**: Determina medio de tráfico (organic, paid, social, etc.)
-   - **Análisis de referrer**: Detecta origen del tráfico
-   - **Análisis de user agent**: Identifica apps nativas vs. navegadores
-   - **Canal específico**: Usa dominio del sitio web como código de canal
-   - **TouchpointClass semántico**: Basado en medio de tráfico
-5. Touchpoint se asigna automáticamente a la interacción
+4. `WebTouchpointResolver.resolve()` aplica reglas y crea el touchpoint con clasificación tridimensional:
+   - **Channel (WHERE)**: Determina desde URL del sitio web donde ocurrió la interacción
+   - **Medium (HOW)**: Análisis UTM y referrer para determinar método de comunicación
+   - **TouchpointType (WHAT)**: Tipo funcional web-específico (`web_page`, `web_form`, `link`, `button`)
+   - **Clasificación inteligente**: Distingue entre `link` y `button` basado en selector
+5. Touchpoint se asigna automáticamente a la interacción con las tres dimensiones
+
+---
+
+## 🔄 Cambios Recientes y Migración
+
+### **Actualización del Sistema de Clasificación (Enero 2025)**
+
+La app `websites` ha sido actualizada para implementar el nuevo sistema de clasificación tridimensional del core `interactions`:
+
+#### **Cambios en el Modelo de Datos:**
+- **Medium movido**: De `Channel` a `Touchpoint` para mejor separación de responsabilidades
+- **TouchpointClass → TouchpointType**: Renombrado para mayor claridad
+- **Relaciones actualizadas**: Touchpoint ahora tiene `channel`, `medium`, y `touchpoint_type`
+
+#### **Cambios en la Lógica de Clasificación:**
+- **Channel**: Ahora representa WHERE ocurrió la interacción (sitio web), no el origen del tráfico
+- **Medium**: Representa HOW se comunica (organic, social, paid, etc.)
+- **TouchpointType**: Tipos web-específicos que no se solapan con el campo `action`
+
+#### **Tipos de TouchpointType Actualizados:**
+```python
+# Antes (se solapaba con action)
+'page_view', 'form_submit', 'click', 'download'
+
+# Ahora (web-específico, sin solapamiento)
+'web_page', 'web_form', 'link', 'button', 'web_download'
+```
+
+#### **Migración Automática:**
+- Las migraciones existentes han sido actualizadas
+- El sistema es compatible con datos existentes
+- No se requiere intervención manual
 
 ---
 
@@ -230,6 +304,7 @@ websites/
 ├── urls.py                # Rutas API REST
 ├── tests.py               # 28 tests unitarios y de integración
 ├── README.md              # Esta documentación
+├── THREE_DIMENSIONAL_CLASSIFICATION.md  # Documentación técnica detallada
 └── migrations/            # Migraciones iniciales
 ```
 
