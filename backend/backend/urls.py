@@ -60,8 +60,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('health/', health_check, name='health_check'),
     path('', root_view, name='root'),
-    # path('users/', include('users.urls')),
-    # path('api/auth/', include('users.urls')),  # Add auth endpoints at /api/auth/
+    path('users/', include('users.urls')),
+    path('api/auth/', include('users.urls')),  # Add auth endpoints at /api/auth/
     path('api/world/', include('world.urls')),
     path('api/products/', include('products.urls')),
     path('api/entities/', include('entities.urls')),
@@ -70,7 +70,7 @@ urlpatterns = [
     # path('api/campaigns/', include('campaigns.urls')),
     # path('api/offers/', include('offers.urls')),
     # path('api/websites/', include('websites.urls')),
-    # path('api/users/', UserViewSet.as_view({'get': 'list'}), name='user-list'),
+    path('api/users/', UserViewSet.as_view({'get': 'list'}), name='user-list'),
 ]
 
 # Serve static files in development

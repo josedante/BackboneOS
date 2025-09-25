@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'our_institution',
     # 'offers',
     # 'campaigns',
-    # 'connectors',
+    'connectors',
     # 'sales',
 ]
 
