@@ -8,7 +8,7 @@ integration with the three-dimensional classification system.
 from django.test import TestCase
 from unittest.mock import Mock, patch
 
-from interactions.models import Channel, Medium, TouchpointType, Touchpoint, Agent, Action
+from interactions.models import Channel, Medium, TouchpointType, Touchpoint, Agent, Action, Interaction
 from our_institution.models import Division, OurOrganization
 from products.models import Product
 from websites.models import Website, WebInteraction
@@ -50,10 +50,17 @@ class WebTouchpointAdapterTestCase(TestCase):
             name="Page View",
             code="page_view"
         )
+        
+        # Create test interaction (required for WebInteraction)
+        self.interaction = Interaction.objects.create(
+            action=self.action,
+            agent=self.agent
+        )
     
     def test_infer_web_touchpoint_hint_page_view(self):
         """Test touchpoint hint inference for page view."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -78,6 +85,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_infer_web_touchpoint_hint_form_submit(self):
         """Test touchpoint hint inference for form submit."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -99,6 +107,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_infer_web_touchpoint_hint_click(self):
         """Test touchpoint hint inference for click."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -118,6 +127,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_infer_web_touchpoint_hint_download(self):
         """Test touchpoint hint inference for download."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -136,6 +146,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_infer_web_touchpoint_hint_purchase(self):
         """Test touchpoint hint inference for purchase."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -156,6 +167,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_determine_event_type_from_payload(self):
         """Test event type determination from payload."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={'event_type': 'page_view'}
         )
@@ -166,6 +178,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_determine_event_type_from_element(self):
         """Test event type determination from element."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             element="button.submit-btn"
         )
@@ -207,6 +220,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_create_touchpoint_label_page_view(self):
         """Test touchpoint label creation for page view."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={'event_type': 'page_view'}
         )
@@ -217,6 +231,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_create_touchpoint_label_form_submit(self):
         """Test touchpoint label creation for form submit."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={
                 'event_type': 'form_submit',
@@ -231,6 +246,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_create_touchpoint_label_click(self):
         """Test touchpoint label creation for click."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             element="button.submit-btn",
             payload={'event_type': 'click'}
@@ -243,6 +259,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_analyze_utm_medium_from_utm_medium(self):
         """Test UTM medium analysis from utm_medium field."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             utm_medium="social"
         )
@@ -253,6 +270,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_analyze_utm_medium_from_payload(self):
         """Test UTM medium analysis from payload."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={'utm_medium': 'organic'}
         )
@@ -263,6 +281,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_analyze_utm_medium_from_referrer(self):
         """Test UTM medium analysis from referrer."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             referrer_url="https://www.google.com/search"
         )
@@ -273,6 +292,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_analyze_utm_medium_from_facebook_referrer(self):
         """Test UTM medium analysis from Facebook referrer."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             referrer_url="https://www.facebook.com/some-post"
         )
@@ -292,6 +312,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_build_metadata_basic(self):
         """Test basic metadata building."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -315,6 +336,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_build_metadata_with_referrer(self):
         """Test metadata building with referrer."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             referrer_url="https://www.google.com/search",
             payload={'event_type': 'page_view'}
@@ -327,6 +349,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_build_metadata_with_element(self):
         """Test metadata building with element."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             element="button.submit-btn",
             payload={'event_type': 'click'}
@@ -339,6 +362,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_build_metadata_with_payload(self):
         """Test metadata building with payload data."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={
                 'event_type': 'form_submit',
@@ -356,6 +380,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_build_metadata_with_website_url(self):
         """Test metadata building with website URL."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={
                 'event_type': 'page_view',
@@ -372,6 +397,7 @@ class WebTouchpointAdapterTestCase(TestCase):
     def test_infer_web_touchpoint_hint_complete_flow(self):
         """Test complete touchpoint hint inference flow."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",

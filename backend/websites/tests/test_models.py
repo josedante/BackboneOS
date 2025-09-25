@@ -13,7 +13,7 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from interactions.models import Channel, Medium, TouchpointType, Touchpoint, Agent, Action
+from interactions.models import Channel, Medium, TouchpointType, Touchpoint, Agent, Action, Interaction
 from our_institution.models import Division, OurOrganization
 from products.models import Product
 from websites.models import Website, WebSurface, WebInteraction, WebSession, UrlRoutingRule
@@ -273,6 +273,12 @@ class WebInteractionModelTestCase(TestCase):
             name="Page View",
             code="page_view"
         )
+        
+        # Create test interaction (required for WebInteraction)
+        self.interaction = Interaction.objects.create(
+            action=self.action,
+            agent=self.agent
+        )
         self.touchpoint_type = TouchpointType.objects.create(
             name="Web Page",
             code="web_page"
@@ -285,6 +291,7 @@ class WebInteractionModelTestCase(TestCase):
     def test_web_interaction_creation(self):
         """Test basic web interaction creation."""
         interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -334,6 +341,7 @@ class WebInteractionModelTestCase(TestCase):
     def test_web_interaction_utm_attribution(self):
         """Test UTM attribution fields."""
         interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             utm_source="facebook",
             utm_medium="social",

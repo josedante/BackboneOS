@@ -44,12 +44,19 @@ class WebsitesIntegrationTestCase(TestCase):
             name="Page View",
             code="page_view"
         )
+        
+        # Create test interaction (required for WebInteraction)
+        self.interaction = Interaction.objects.create(
+            action=self.action,
+            agent=self.agent
+        )
         self.resolver = WebTouchpointResolver()
     
     def test_complete_web_interaction_flow(self):
         """Test complete web interaction flow with three-dimensional classification."""
         # Create WebInteraction
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -89,6 +96,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_form_submit_flow(self):
         """Test form submit interaction flow."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -113,6 +121,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_click_interaction_flow(self):
         """Test click interaction flow with smart classification."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -135,6 +144,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_link_click_interaction_flow(self):
         """Test link click interaction flow."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -157,6 +167,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_download_interaction_flow(self):
         """Test download interaction flow."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -181,6 +192,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_purchase_interaction_flow(self):
         """Test purchase interaction flow."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
@@ -206,6 +218,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_utm_priority_logic(self):
         """Test UTM parameter priority logic."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             utm_medium="paid",
             referrer_url="https://www.google.com/search",
@@ -224,6 +237,7 @@ class WebsitesIntegrationTestCase(TestCase):
     def test_channel_priority_logic(self):
         """Test channel determination priority logic."""
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={
                 'event_type': 'page_view',
@@ -408,6 +422,7 @@ class WebsitesIntegrationTestCase(TestCase):
         
         # Create web interaction
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={
                 'event_type': 'page_view',
@@ -427,6 +442,7 @@ class WebsitesIntegrationTestCase(TestCase):
         """Test error handling in the integration flow."""
         # Test with invalid data
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             payload={'event_type': 'invalid_event'}
         )

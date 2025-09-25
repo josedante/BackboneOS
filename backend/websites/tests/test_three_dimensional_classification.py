@@ -11,7 +11,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from unittest.mock import Mock, patch
 
-from interactions.models import Channel, Medium, TouchpointType, Touchpoint, Agent, Action
+from interactions.models import Channel, Medium, TouchpointType, Touchpoint, Agent, Action, Interaction
 from our_institution.models import Division, OurOrganization
 from products.models import Product
 from websites.models import Website, WebInteraction, WebSurface
@@ -60,6 +60,12 @@ class ThreeDimensionalClassificationTestCase(TestCase):
         self.action = Action.objects.create(
             name="Page View",
             code="page_view"
+        )
+        
+        # Create test interaction (required for WebInteraction)
+        self.interaction = Interaction.objects.create(
+            action=self.action,
+            agent=self.agent
         )
         
         # Create test channels
@@ -428,6 +434,7 @@ class ThreeDimensionalIntegrationTestCase(ThreeDimensionalClassificationTestCase
         """Test touchpoint resolution from WebInteraction."""
         # Create WebInteraction
         web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
             website=self.website,
             session_id="test_session_123",
             visitor_cookie="test_cookie_456",
