@@ -16,6 +16,8 @@ class ProductOfferingListSerializer(serializers.ModelSerializer):
     product_code = serializers.CharField(source='product.code', read_only=True)
     price_display = serializers.CharField(read_only=True)
     is_currently_valid = serializers.BooleanField(read_only=True)
+    discount_percentage = serializers.FloatField(read_only=True)
+    is_discounted = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = ProductOffering
@@ -23,7 +25,7 @@ class ProductOfferingListSerializer(serializers.ModelSerializer):
             'id', 'name', 'code', 'description', 'product', 'product_name', 'product_code',
             'price', 'currency_code', 'price_display', 'valid_from', 'valid_until',
             'auto_renew', 'duration_days', 'landing_url', 'is_currently_valid',
-            'is_active', 'created_at', 'updated_at'
+            'discount_percentage', 'is_discounted', 'is_active', 'created_at', 'updated_at'
         ]
 
 
@@ -32,6 +34,8 @@ class ProductOfferingDetailSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
     price_display = serializers.CharField(read_only=True)
     is_currently_valid = serializers.BooleanField(read_only=True)
+    discount_percentage = serializers.FloatField(read_only=True)
+    is_discounted = serializers.BooleanField(read_only=True)
     
     # Relaciones semánticas disponibles
     channels = ChannelChoiceSerializer(many=True, read_only=True)

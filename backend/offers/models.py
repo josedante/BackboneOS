@@ -58,6 +58,19 @@ class ProductOffering(BaseUUIDModelWithActiveStatus):
     def price_display(self):
         return f"{self.currency_code} {self.price:,.2f}"
     
+    @property
+    def discount_percentage(self):
+        """Calcula el porcentaje de descuento respecto al precio base del producto"""
+        if self.product and self.product.base_price and self.product.base_price > 0:
+            discount = ((self.product.base_price - self.price) / self.product.base_price) * 100
+            return round(discount, 2)
+        return 0
+    
+    @property
+    def is_discounted(self):
+        """Indica si la oferta tiene descuento respecto al precio base"""
+        return self.discount_percentage > 0
+    
     def clean(self):
         """Validaciones personalizadas del modelo"""
         super().clean()
@@ -71,6 +84,12 @@ class ProductOffering(BaseUUIDModelWithActiveStatus):
             raise ValidationError({
                 'valid_until': 'La fecha de fin debe ser posterior a la fecha de inicio'
             })
+        
+        # Validar consistencia de moneda con el producto
+        if self.product and self.product.currency_code and self.currency_code:
+            if self.product.currency_code != self.currency_code:
+                # Permitir pero advertir sobre diferencia de monedas
+                pass  # En el futuro se podría hacer más estricto
     
     def save(self, *args, **kwargs):
         """Override save para ejecutar validaciones"""

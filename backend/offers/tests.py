@@ -94,6 +94,29 @@ class ProductOfferingModelTest(TestCase):
         self.offering.valid_until = None
         self.offering.save()
         self.assertTrue(self.offering.is_currently_valid)
+    
+    def test_discount_percentage_calculation(self):
+        """Test cálculo de porcentaje de descuento"""
+        # El producto base cuesta 1000.00, la oferta 850.00
+        expected_discount = ((1000.00 - 850.00) / 1000.00) * 100
+        self.assertEqual(self.offering.discount_percentage, expected_discount)
+        self.assertTrue(self.offering.is_discounted)
+    
+    def test_no_discount_when_price_higher(self):
+        """Test que no hay descuento cuando el precio es mayor al base"""
+        self.offering.price = Decimal('1200.00')
+        self.offering.save()
+        self.assertEqual(self.offering.discount_percentage, 0)
+        self.assertFalse(self.offering.is_discounted)
+    
+    def test_discount_with_zero_base_price(self):
+        """Test manejo de descuento con precio base cero"""
+        self.product.base_price = Decimal('0.00')
+        self.product.save()
+        self.offering.price = Decimal('100.00')
+        self.offering.save()
+        self.assertEqual(self.offering.discount_percentage, 0)
+        self.assertFalse(self.offering.is_discounted)
 
 
 # ============================
@@ -183,6 +206,9 @@ class ProductOfferingViewSetTests(OfferAPITestCase):
         self.assertIn('results', response.data)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['name'], 'Oferta CRM Premium')
+        # Verificar nuevos campos de descuento
+        self.assertIn('discount_percentage', response.data['results'][0])
+        self.assertIn('is_discounted', response.data['results'][0])
     
     def test_offering_detail(self):
         """Test detalle de oferta"""
@@ -194,6 +220,9 @@ class ProductOfferingViewSetTests(OfferAPITestCase):
         self.assertEqual(response.data['name'], 'Oferta CRM Premium')
         self.assertEqual(response.data['code'], 'CRM_PREM_001')
         self.assertEqual(float(response.data['price']), 850.00)
+        # Verificar nuevos campos de descuento
+        self.assertIn('discount_percentage', response.data)
+        self.assertIn('is_discounted', response.data)
     
     def test_offering_create(self):
         """Test creación de oferta"""

@@ -5,7 +5,7 @@ from .models import ProductOffering
 @admin.register(ProductOffering)
 class ProductOfferingAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'code', 'price_display', 'currency_code',
+        'name', 'code', 'price_display', 'discount_percentage', 'currency_code',
         'is_currently_valid', 'is_active', 'valid_from', 'valid_until'
     ]
     
@@ -18,14 +18,14 @@ class ProductOfferingAdmin(admin.ModelAdmin):
         'name', 'code', 'description'
     ]
     
-    readonly_fields = ['id', 'created_at', 'updated_at', 'is_currently_valid', 'price_display']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'is_currently_valid', 'price_display', 'discount_percentage', 'is_discounted']
     
     fieldsets = (
         ('Información Básica', {
             'fields': ('name', 'code', 'description', 'is_active')
         }),
         ('Producto y Pricing', {
-            'fields': ('products', 'price', 'currency_code', 'price_display')
+            'fields': ('product', 'price', 'currency_code', 'price_display', 'discount_percentage', 'is_discounted')
         }),
         ('Vigencia', {
             'fields': ('valid_from', 'valid_until', 'is_currently_valid')
@@ -62,7 +62,7 @@ class ProductOfferingAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimizar consultas del admin"""
         return super().get_queryset(request).prefetch_related(
-            'products', 'channels', 'target_segments', 'related_industries'
+            'product', 'channels', 'target_segments', 'related_industries'
         )
     
     def activate_offerings(self, request, queryset):
@@ -95,8 +95,9 @@ class ProductOfferingAdmin(admin.ModelAdmin):
                 is_active=False
             )
             
-            # Copiar relaciones M2M de productos
-            new_offering.products.set(offering.products.all())
+            # Copiar relación FK de producto
+            new_offering.product = offering.product
+            new_offering.save()
             
             # Copiar relaciones M2M
             new_offering.channels.set(offering.channels.all())
