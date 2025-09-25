@@ -31,6 +31,9 @@ from .settings import *
 # Override DEBUG for tests
 DEBUG = True
 
+# Allow testserver for Django test client
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='testserver,localhost,127.0.0.1,test-backend,test-runner').split(',')
+
 # Disable migrations for faster test execution
 class DisableMigrations:
     def __contains__(self, item):

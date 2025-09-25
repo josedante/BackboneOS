@@ -54,7 +54,7 @@ class MetricsCollectionIntegrationTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',
@@ -204,7 +204,7 @@ class AlertingSystemIntegrationTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',
@@ -340,7 +340,7 @@ class SystemHealthIntegrationTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',
@@ -432,7 +432,7 @@ class CacheMetricsIntegrationTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',
@@ -518,7 +518,7 @@ class DataRetentionIntegrationTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',
@@ -621,7 +621,7 @@ class MonitoringSystemEndToEndTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',

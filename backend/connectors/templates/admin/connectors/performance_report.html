@@ -1,0 +1,297 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}Performance Report{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .performance-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .performance-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .performance-header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-value {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .success-rate {
+        color: #28a745;
+    }
+    
+    .error-rate {
+        color: #dc3545;
+    }
+    
+    .performance-table {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .performance-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .performance-table th {
+        background: #f8f9fa;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #e1e5e9;
+    }
+    
+    .performance-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .performance-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .chart-container {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .chart-title {
+        font-size: 1.2em;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #2c3e50;
+    }
+    
+    .hourly-bar {
+        display: flex;
+        align-items: end;
+        height: 200px;
+        margin-bottom: 20px;
+    }
+    
+    .hourly-bar-item {
+        flex: 1;
+        margin: 0 2px;
+        background: linear-gradient(to top, #28a745, #20c997);
+        border-radius: 4px 4px 0 0;
+        position: relative;
+        min-height: 20px;
+    }
+    
+    .hourly-bar-item:hover {
+        background: linear-gradient(to top, #1e7e34, #1a9b8a);
+    }
+    
+    .hourly-label {
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.8em;
+        color: #6c757d;
+    }
+    
+    .error-breakdown {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .error-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #e1e5e9;
+    }
+    
+    .error-item:last-child {
+        border-bottom: none;
+    }
+    
+    .error-type {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .error-count {
+        background: #dc3545;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.9em;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="performance-container">
+    <div class="performance-header">
+        <h1>📊 Performance Report</h1>
+        <p>System performance metrics and trends for the last {{ time_range }} hours</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_events|floatformat:0 }}</div>
+            <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value success-rate">{{ success_rate|floatformat:1 }}%</div>
+            <div class="stat-label">Success Rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ successful_events|floatformat:0 }}</div>
+            <div class="stat-label">Successful Events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value error-rate">{{ failed_events|floatformat:0 }}</div>
+            <div class="stat-label">Failed Events</div>
+        </div>
+    </div>
+    
+    <div class="performance-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Average Resolution Time</strong></td>
+                    <td>{{ perf_stats.avg_time|floatformat:2 }} ms</td>
+                    <td>Average time to resolve touchpoints</td>
+                </tr>
+                <tr>
+                    <td><strong>Fastest Resolution</strong></td>
+                    <td>{{ perf_stats.min_time|floatformat:2 }} ms</td>
+                    <td>Fastest touchpoint resolution</td>
+                </tr>
+                <tr>
+                    <td><strong>Slowest Resolution</strong></td>
+                    <td>{{ perf_stats.max_time|floatformat:2 }} ms</td>
+                    <td>Slowest touchpoint resolution</td>
+                </tr>
+                <tr>
+                    <td><strong>Cache Hit Rate</strong></td>
+                    <td>{{ cache_hit_rate|floatformat:1 }}%</td>
+                    <td>Percentage of requests served from cache</td>
+                </tr>
+                <tr>
+                    <td><strong>Cache Hits</strong></td>
+                    <td>{{ cache_hits|floatformat:0 }}</td>
+                    <td>Number of cache hits</td>
+                </tr>
+                <tr>
+                    <td><strong>Cache Misses</strong></td>
+                    <td>{{ cache_misses|floatformat:0 }}</td>
+                    <td>Number of cache misses</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="chart-container">
+        <div class="chart-title">📈 Hourly Performance Trends</div>
+        <div class="hourly-bar">
+            {% for stat in hourly_stats %}
+            <div class="hourly-bar-item" style="height: {{ stat.success_rate }}%;" title="Hour {{ stat.hour }}: {{ stat.total }} events, {{ stat.success_rate|floatformat:1 }}% success">
+                <div class="hourly-label">{{ stat.hour }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {% if error_breakdown %}
+    <div class="error-breakdown">
+        <div class="chart-title">🚨 Error Breakdown</div>
+        {% for error in error_breakdown %}
+        <div class="error-item">
+            <span class="error-type">{{ error.error_type|default:"Unknown Error" }}</span>
+            <span class="error-count">{{ error.count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to hourly bars
+    const hourlyBars = document.querySelectorAll('.hourly-bar-item');
+    hourlyBars.forEach(function(bar) {
+        bar.addEventListener('mouseenter', function() {
+            this.style.transform = 'scaleY(1.1)';
+            this.style.transformOrigin = 'bottom';
+        });
+        bar.addEventListener('mouseleave', function() {
+            this.style.transform = 'scaleY(1)';
+        });
+    });
+    
+    // Add click tracking for performance metrics
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(function(card) {
+        card.addEventListener('click', function() {
+            console.log('Performance metric clicked:', this.querySelector('.stat-label').textContent);
+        });
+    });
+});
+</script>
+{% endblock %}
