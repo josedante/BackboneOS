@@ -5,26 +5,26 @@ from django.utils.safestring import mark_safe
 from django.db.models import Count, Avg
 from .models import (
     Agent, Medium, Channel, ActionType, Action, 
-    TouchpointClass, Touchpoint, Interaction
+    TouchpointType, Touchpoint, Interaction
 )
 
 
 @admin.register(Medium)
 class MediumAdmin(admin.ModelAdmin):
-    list_display = ['name', 'code', 'is_active', 'channels_count']
-    list_filter = ['is_active']
+    list_display = ['name', 'code', 'communication_type', 'is_active', 'touchpoints_count']
+    list_filter = ['is_active', 'communication_type']
     search_fields = ['name', 'code', 'description']
     ordering = ['name']
     
-    def channels_count(self, obj):
-        return obj.channels.count()
-    channels_count.short_description = 'Canales'
+    def touchpoints_count(self, obj):
+        return obj.touchpoints.count()
+    touchpoints_count.short_description = 'Touchpoints'
 
 
 @admin.register(Channel)
 class ChannelAdmin(admin.ModelAdmin):
-    list_display = ['name', 'code', 'medium', 'is_active', 'interactions_count', 'touchpoints_count']
-    list_filter = ['is_active', 'medium']
+    list_display = ['name', 'code', 'source_type', 'is_active', 'interactions_count', 'touchpoints_count']
+    list_filter = ['is_active', 'source_type']
     search_fields = ['name', 'code', 'description']
     ordering = ['name']
     
@@ -95,8 +95,8 @@ class AgentAdmin(admin.ModelAdmin):
     interactions_count.short_description = 'Interacciones'
 
 
-@admin.register(TouchpointClass)
-class TouchpointClassAdmin(admin.ModelAdmin):
+@admin.register(TouchpointType)
+class TouchpointTypeAdmin(admin.ModelAdmin):
     list_display = ['name', 'code', 'is_active', 'touchpoints_count']
     list_filter = ['is_active']
     search_fields = ['name', 'code', 'description']
@@ -110,16 +110,16 @@ class TouchpointClassAdmin(admin.ModelAdmin):
 @admin.register(Touchpoint)
 class TouchpointAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'touchpoint_class', 'channel', 'content_type', 'product', 
+        'name', 'touchpoint_type', 'channel', 'medium', 'content_type', 'product', 
         'assigned_staff', 'is_active', 'interactions_count'
     ]
     list_filter = [
-        'is_active', 'content_type', 'touchpoint_class', 'channel',
+        'is_active', 'content_type', 'touchpoint_type', 'channel', 'medium',
         'related_industries', 'related_functions'
     ]
     search_fields = ['name', 'code', 'description', 'url']
     autocomplete_fields = [
-        'touchpoint_class', 'channel', 'assigned_staff', 'product',
+        'touchpoint_type', 'channel', 'medium', 'assigned_staff', 'product',
         'related_industries', 'related_functions', 'related_skills', 'related_descriptors'
     ]
     filter_horizontal = ['related_industries', 'related_functions', 'related_skills', 'related_descriptors']
@@ -127,7 +127,7 @@ class TouchpointAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('name', 'code', 'touchpoint_class', 'channel', 'description', 'is_active')
+            'fields': ('name', 'code', 'touchpoint_type', 'channel', 'medium', 'description', 'is_active')
         }),
         ('Configuración de Negocio', {
             'fields': ('content_type', 'product', 'assigned_staff')
