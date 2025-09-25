@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from .models import ProductOffering
 from products.models import Product, ProductCategory, Division
+from our_institution.models import OurOrganization
 from world.models import Industry, FunctionOrResponsibility
 from interactions.models import Channel, Medium
 
@@ -17,8 +18,15 @@ class ProductOfferingModelTest(TestCase):
     
     def setUp(self):
         """Configurar datos de prueba"""
+        # Crear organización
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal",
+            email="test@example.com"
+        )
         # Crear división
         self.division = Division.objects.create(
+            organization=self.organization,
             name="Tecnología",
             code="TECH",
             description="División de tecnología"
@@ -69,6 +77,7 @@ class ProductOfferingModelTest(TestCase):
     
     def test_is_currently_valid_false_expired(self):
         """Test validez actual - expirada"""
+        self.offering.valid_from = date.today() - timedelta(days=10)
         self.offering.valid_until = date.today() - timedelta(days=1)
         self.offering.save()
         self.assertFalse(self.offering.is_currently_valid)
@@ -111,7 +120,14 @@ class OfferAPITestCase(APITestCase):
         )
         
         # Datos base
+        # Crear organización
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal",
+            email="test@example.com"
+        )
         self.division = Division.objects.create(
+            organization=self.organization,
             name="Tecnología",
             code="TECH",
             description="División de tecnología"
@@ -396,7 +412,7 @@ class ProductOfferingEndpointsTests(OfferAPITestCase):
         """Test endpoint de ofertas por canal"""
         # Crear medium y channel
         medium = Medium.objects.create(name="Digital", code="DIG")
-        channel = Channel.objects.create(name="Web", code="WEB", medium=medium)
+        channel = Channel.objects.create(name="Web", code="WEB")
         
         # Asociar canal a la oferta
         self.offering.channels.add(channel)
@@ -853,8 +869,8 @@ class OfferFilteringAdvancedTests(OfferAPITestCase):
         
         # Crear medium y channels
         self.medium = Medium.objects.create(name="Digital", code="DIG")
-        self.channel1 = Channel.objects.create(name="Web", code="WEB", medium=self.medium)
-        self.channel2 = Channel.objects.create(name="Email", code="EMAIL", medium=self.medium)
+        self.channel1 = Channel.objects.create(name="Web", code="WEB")
+        self.channel2 = Channel.objects.create(name="Email", code="EMAIL")
         
         # Crear industry
         self.industry = Industry.objects.create(name="Technology", code="TECH")
@@ -1142,7 +1158,7 @@ class OfferIntegrationTests(OfferAPITestCase):
         """Test integración con canales de interacción"""
         # Crear medium y channel
         medium = Medium.objects.create(name="Digital", code="DIG")
-        channel = Channel.objects.create(name="Website", code="WEB", medium=medium)
+        channel = Channel.objects.create(name="Website", code="WEB")
         
         # Asociar canal a oferta
         self.offering.channels.add(channel)

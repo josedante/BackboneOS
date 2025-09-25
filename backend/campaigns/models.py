@@ -101,51 +101,74 @@ class Campaign(BaseUUIDModelWithActiveStatus):
     def get_product_performance_analytics(self):
         """Analytics detallados de rendimiento por producto"""
         from django.db.models import Count, Sum, Avg, Q
+        from interactions.models import Interaction
         
-        # Analytics por producto directo
-        product_analytics = self.target_products.annotate(
-            interactions_count=Count(
-                'touchpoints__interactions',
-                filter=Q(touchpoints__interactions__is_active=True)
-            ),
-            conversions_count=Count(
-                'touchpoints__interactions__action__code',
-                filter=Q(
-                    touchpoints__interactions__is_active=True,
-                    touchpoints__interactions__action__code__in=['purchase', 'signup', 'download']
-                )
-            ),
-            revenue_generated=Sum(
-                'offerings__price',
-                filter=Q(offerings__campaign_offerings__campaign=self)
-            )
-        ).values(
-            'id', 'name', 'code', 'interactions_count', 
-            'conversions_count', 'revenue_generated'
-        )
+        # Analytics por producto directo - simplified for now
+        product_analytics = []
+        for product in self.target_products.all():
+            # Count interactions through touchpoints
+            interactions_count = Interaction.objects.filter(
+                touchpoint__product=product,
+                is_active=True
+            ).count()
+            
+            # Count conversions
+            conversions_count = Interaction.objects.filter(
+                touchpoint__product=product,
+                is_active=True,
+                action__code__in=['purchase', 'signup', 'download']
+            ).count()
+            
+            # Calculate revenue from offerings
+            revenue_generated = sum(
+                offering.price for offering in product.productofferings.filter(is_active=True)
+            ) if hasattr(product, 'productofferings') else 0
+            
+            product_analytics.append({
+                'id': product.id,
+                'name': product.name,
+                'code': product.code,
+                'interactions_count': interactions_count,
+                'conversions_count': conversions_count,
+                'revenue_generated': revenue_generated
+            })
         
-        # Analytics por categoría
-        category_analytics = self.target_categories.annotate(
-            products_count=Count('product', filter=Q(product__is_active=True)),
-            interactions_count=Count(
-                'product__touchpoints__interactions',
-                filter=Q(product__touchpoints__interactions__is_active=True)
-            )
-        ).values(
-            'id', 'name', 'code', 'products_count', 'interactions_count'
-        )
+        # Analytics por categoría - simplified for now
+        category_analytics = []
+        for category in self.target_categories.all():
+            products_count = category.product_set.filter(is_active=True).count()
+            
+            # Count interactions for all products in this category
+            interactions_count = Interaction.objects.filter(
+                touchpoint__product__category=category,
+                is_active=True
+            ).count()
+            
+            category_analytics.append({
+                'id': category.id,
+                'name': category.name,
+                'code': category.code,
+                'products_count': products_count,
+                'interactions_count': interactions_count
+            })
         
-        # Analytics de ofertas
-        offer_analytics = self.target_offers.annotate(
-            interactions_count=Count(
-                'product__touchpoints__interactions',
-                filter=Q(product__touchpoints__interactions__is_active=True)
-            ),
-            total_revenue=Sum('price')
-        ).values(
-            'id', 'name', 'product__name', 'price', 
-            'interactions_count', 'total_revenue'
-        )
+        # Analytics de ofertas - simplified for now
+        offer_analytics = []
+        for offer in self.target_offers.all():
+            # Count interactions for the product associated with this offer
+            interactions_count = Interaction.objects.filter(
+                touchpoint__product=offer.product,
+                is_active=True
+            ).count() if offer.product else 0
+            
+            offer_analytics.append({
+                'id': offer.id,
+                'name': offer.name,
+                'product__name': offer.product.name if offer.product else 'N/A',
+                'price': float(offer.price),
+                'interactions_count': interactions_count,
+                'total_revenue': float(offer.price)
+            })
         
         return {
             'by_product': list(product_analytics),
@@ -164,18 +187,25 @@ class Campaign(BaseUUIDModelWithActiveStatus):
     def get_bundle_analytics(self):
         """Analytics específicos para productos bundle"""
         from django.db.models import Count, Q
+        from interactions.models import Interaction
         
-        bundle_products = self.target_products.filter(
-            included_products__isnull=False
-        ).annotate(
-            bundle_size=Count('included_products'),
-            bundle_interactions=Count(
-                'included_products__touchpoints__interactions',
-                filter=Q(included_products__touchpoints__interactions__is_active=True)
-            )
-        ).values(
-            'id', 'name', 'bundle_size', 'bundle_interactions'
-        )
+        # Find bundle products (products with included_products)
+        bundle_products = []
+        for product in self.target_products.filter(included_products__isnull=False).distinct():
+            bundle_size = product.included_products.count()
+            
+            # Count interactions for all included products
+            bundle_interactions = Interaction.objects.filter(
+                touchpoint__product__in=product.included_products.all(),
+                is_active=True
+            ).count()
+            
+            bundle_products.append({
+                'id': product.id,
+                'name': product.name,
+                'bundle_size': bundle_size,
+                'bundle_interactions': bundle_interactions
+            })
         
         return {
             'bundle_products': list(bundle_products),
@@ -185,6 +215,12 @@ class Campaign(BaseUUIDModelWithActiveStatus):
     
     def get_target_summary(self):
         """Resumen de productos, categorías y ofertas objetivo"""
+        # Count categories with products manually
+        categories_with_products = 0
+        for category in self.target_categories.all():
+            if category.product_set.exists():
+                categories_with_products += 1
+        
         return {
             'products': {
                 'total': self.target_products.count(),
@@ -193,7 +229,7 @@ class Campaign(BaseUUIDModelWithActiveStatus):
             },
             'categories': {
                 'total': self.target_categories.count(),
-                'with_products': self.target_categories.filter(product__isnull=False).count()
+                'with_products': categories_with_products
             },
             'offers': {
                 'total': self.target_offers.count(),

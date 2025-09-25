@@ -359,6 +359,84 @@ class CampaignCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El presupuesto no puede ser negativo.")
         
         return data
+    
+    def create(self, validated_data):
+        """Crear campaña con relaciones ManyToMany"""
+        # Extraer relaciones ManyToMany
+        target_products = validated_data.pop('target_products', [])
+        target_categories = validated_data.pop('target_categories', [])
+        target_offers = validated_data.pop('target_offers', [])
+        channels = validated_data.pop('channels', [])
+        related_industries = validated_data.pop('related_industries', [])
+        related_functions = validated_data.pop('related_functions', [])
+        target_segments = validated_data.pop('target_segments', [])
+        descriptors = validated_data.pop('descriptors', [])
+        tags = validated_data.pop('tags', [])
+        
+        # Crear campaña
+        campaign = Campaign.objects.create(**validated_data)
+        
+        # Asignar relaciones ManyToMany
+        if target_products:
+            campaign.target_products.set(target_products)
+        if target_categories:
+            campaign.target_categories.set(target_categories)
+        if target_offers:
+            campaign.target_offers.set(target_offers)
+        if channels:
+            campaign.channels.set(channels)
+        if related_industries:
+            campaign.related_industries.set(related_industries)
+        if related_functions:
+            campaign.related_functions.set(related_functions)
+        if target_segments:
+            campaign.target_segments.set(target_segments)
+        if descriptors:
+            campaign.descriptors.set(descriptors)
+        if tags:
+            campaign.tags.set(tags)
+        
+        return campaign
+    
+    def update(self, instance, validated_data):
+        """Actualizar campaña con relaciones ManyToMany"""
+        # Extraer relaciones ManyToMany
+        target_products = validated_data.pop('target_products', None)
+        target_categories = validated_data.pop('target_categories', None)
+        target_offers = validated_data.pop('target_offers', None)
+        channels = validated_data.pop('channels', None)
+        related_industries = validated_data.pop('related_industries', None)
+        related_functions = validated_data.pop('related_functions', None)
+        target_segments = validated_data.pop('target_segments', None)
+        descriptors = validated_data.pop('descriptors', None)
+        tags = validated_data.pop('tags', None)
+        
+        # Actualizar campos normales
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Actualizar relaciones ManyToMany si se proporcionaron
+        if target_products is not None:
+            instance.target_products.set(target_products)
+        if target_categories is not None:
+            instance.target_categories.set(target_categories)
+        if target_offers is not None:
+            instance.target_offers.set(target_offers)
+        if channels is not None:
+            instance.channels.set(channels)
+        if related_industries is not None:
+            instance.related_industries.set(related_industries)
+        if related_functions is not None:
+            instance.related_functions.set(related_functions)
+        if target_segments is not None:
+            instance.target_segments.set(target_segments)
+        if descriptors is not None:
+            instance.descriptors.set(descriptors)
+        if tags is not None:
+            instance.tags.set(tags)
+        
+        return instance
 
 
 class CampaignChoiceSerializer(serializers.ModelSerializer):

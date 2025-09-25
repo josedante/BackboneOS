@@ -9,8 +9,10 @@ from decimal import Decimal
 
 from .models import Campaign, CampaignTouchpoint
 from our_institution.models import OurOrganization, Division, Team
-from interactions.models import Medium, Channel, TouchpointClass, Touchpoint
+from interactions.models import Medium, Channel, TouchpointType, Touchpoint
 from world.models import Industry, FunctionOrResponsibility, MarketSegment, Tag
+from products.models import Product, ProductCategory
+from offers.models import ProductOffering
 
 
 class CampaignModelTests(TestCase):
@@ -189,17 +191,16 @@ class CampaignTouchpointModelTests(TestCase):
         )
         self.channel = Channel.objects.create(
             name="Website",
-            code="WEB",
-            medium=self.medium
+            code="WEB"
         )
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name="Landing Page",
             code="LANDING"
         )
         self.touchpoint = Touchpoint.objects.create(
             name="Homepage",
             code="HOMEPAGE",
-            touchpoint_class=self.touchpoint_class
+            touchpoint_type=self.touchpoint_type
         )
 
     def test_campaign_touchpoint_creation(self):
@@ -503,17 +504,16 @@ class CampaignTouchpointAPITests(APITestCase):
         )
         self.channel = Channel.objects.create(
             name="Website",
-            code="WEB",
-            medium=self.medium
+            code="WEB"
         )
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name="Landing Page",
             code="LANDING"
         )
         self.touchpoint = Touchpoint.objects.create(
             name="Homepage",
             code="HOMEPAGE",
-            touchpoint_class=self.touchpoint_class
+            touchpoint_type=self.touchpoint_type
         )
         
         self.client.force_authenticate(user=self.user)
@@ -599,3 +599,419 @@ class CampaignSerializerTests(TestCase):
         self.assertIn('display_name', data)
         self.assertIn(campaign.name, data['display_name'])
         self.assertIn(campaign.code, data['display_name'])
+
+
+class CampaignProductIntegrationTests(TestCase):
+    """Tests para Product Integration Enhancements en Campaigns"""
+
+    def setUp(self):
+        # Crear organización y división
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization"
+        )
+        self.division = Division.objects.create(
+            name="Test Division",
+            code="TEST_DIV",
+            organization=self.organization
+        )
+        
+        # Crear categoría de producto
+        self.product_category = ProductCategory.objects.create(
+            name="Software",
+            code="SW",
+            division=self.division
+        )
+        
+        # Crear productos
+        self.product1 = Product.objects.create(
+            name="CRM System",
+            code="CRM001",
+            description="Customer Relationship Management",
+            category=self.product_category,
+            base_price=Decimal('1000.00'),
+            currency_code="USD"
+        )
+        
+        self.product2 = Product.objects.create(
+            name="ERP System", 
+            code="ERP001",
+            description="Enterprise Resource Planning",
+            category=self.product_category,
+            base_price=Decimal('2000.00'),
+            currency_code="USD"
+        )
+        
+        # Crear ofertas
+        self.offering1 = ProductOffering.objects.create(
+            name="CRM Premium",
+            code="CRM_PREM",
+            description="Premium CRM offering",
+            product=self.product1,
+            price=Decimal('850.00'),
+            currency_code="USD"
+        )
+        
+        self.offering2 = ProductOffering.objects.create(
+            name="ERP Standard",
+            code="ERP_STD",
+            description="Standard ERP offering", 
+            product=self.product2,
+            price=Decimal('1800.00'),
+            currency_code="USD"
+        )
+        
+        # Crear campaña
+        self.campaign = Campaign.objects.create(
+            name="Product Integration Test Campaign",
+            code="PROD_INT_TEST",
+            description="Test campaign for product integration",
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=30),
+            budget=Decimal('50000.00'),
+            content_type="product",
+            funnel_stage="think",
+            division=self.division
+        )
+
+    def test_campaign_target_products_relationship(self):
+        """Test relación ManyToMany con productos"""
+        # Agregar productos a la campaña
+        self.campaign.target_products.add(self.product1, self.product2)
+        
+        # Verificar que los productos están asociados
+        self.assertEqual(self.campaign.target_products.count(), 2)
+        self.assertIn(self.product1, self.campaign.target_products.all())
+        self.assertIn(self.product2, self.campaign.target_products.all())
+        
+        # Verificar relación inversa
+        campaigns_with_product1 = Campaign.objects.filter(target_products=self.product1)
+        self.assertIn(self.campaign, campaigns_with_product1)
+
+    def test_campaign_target_offers_relationship(self):
+        """Test relación ManyToMany con ofertas"""
+        # Agregar ofertas a la campaña
+        self.campaign.target_offers.add(self.offering1, self.offering2)
+        
+        # Verificar que las ofertas están asociadas
+        self.assertEqual(self.campaign.target_offers.count(), 2)
+        self.assertIn(self.offering1, self.campaign.target_offers.all())
+        self.assertIn(self.offering2, self.campaign.target_offers.all())
+        
+        # Verificar relación inversa
+        campaigns_with_offering1 = Campaign.objects.filter(target_offers=self.offering1)
+        self.assertIn(self.campaign, campaigns_with_offering1)
+
+    def test_campaign_target_categories_relationship(self):
+        """Test relación ManyToMany con categorías"""
+        # Agregar categoría a la campaña
+        self.campaign.target_categories.add(self.product_category)
+        
+        # Verificar que la categoría está asociada
+        self.assertEqual(self.campaign.target_categories.count(), 1)
+        self.assertIn(self.product_category, self.campaign.target_categories.all())
+        
+        # Verificar relación inversa
+        campaigns_with_category = Campaign.objects.filter(target_categories=self.product_category)
+        self.assertIn(self.campaign, campaigns_with_category)
+
+    def test_get_product_performance_analytics(self):
+        """Test método get_product_performance_analytics"""
+        # Configurar datos de prueba
+        self.campaign.target_products.add(self.product1, self.product2)
+        self.campaign.target_categories.add(self.product_category)
+        self.campaign.target_offers.add(self.offering1, self.offering2)
+        
+        # Ejecutar analytics
+        analytics = self.campaign.get_product_performance_analytics()
+        
+        # Verificar estructura de respuesta
+        self.assertIn('by_product', analytics)
+        self.assertIn('by_category', analytics)
+        self.assertIn('by_offer', analytics)
+        self.assertIn('summary', analytics)
+        
+        # Verificar summary
+        summary = analytics['summary']
+        self.assertEqual(summary['total_products'], 2)
+        self.assertEqual(summary['total_categories'], 1)
+        self.assertEqual(summary['total_offerings'], 2)
+        self.assertEqual(summary['total_potential_revenue'], 2650.00)  # 850 + 1800
+
+    def test_get_bundle_analytics(self):
+        """Test método get_bundle_analytics"""
+        # Crear producto bundle
+        bundle_product = Product.objects.create(
+            name="Software Bundle",
+            code="BUNDLE001",
+            description="Bundle of software products",
+            category=self.product_category,
+            base_price=Decimal('3000.00'),
+            currency_code="USD"
+        )
+        
+        # Agregar productos incluidos al bundle
+        bundle_product.included_products.add(self.product1, self.product2)
+        
+        # Agregar bundle a la campaña
+        self.campaign.target_products.add(bundle_product)
+        
+        # Ejecutar analytics de bundle
+        bundle_analytics = self.campaign.get_bundle_analytics()
+        
+        # Verificar estructura
+        self.assertIn('bundle_products', bundle_analytics)
+        self.assertIn('total_bundles', bundle_analytics)
+        self.assertIn('avg_bundle_size', bundle_analytics)
+        
+        # Verificar datos
+        self.assertEqual(bundle_analytics['total_bundles'], 1)
+        self.assertEqual(bundle_analytics['avg_bundle_size'], 2.0)  # 2 productos incluidos
+
+    def test_get_target_summary(self):
+        """Test método get_target_summary"""
+        # Configurar datos
+        self.campaign.target_products.add(self.product1, self.product2)
+        self.campaign.target_categories.add(self.product_category)
+        self.campaign.target_offers.add(self.offering1, self.offering2)
+        
+        # Ejecutar summary
+        summary = self.campaign.get_target_summary()
+        
+        # Verificar estructura
+        self.assertIn('products', summary)
+        self.assertIn('categories', summary)
+        self.assertIn('offers', summary)
+        
+        # Verificar datos de productos
+        products_data = summary['products']
+        self.assertEqual(products_data['total'], 2)
+        self.assertEqual(products_data['bundles'], 0)  # No bundles en este test
+        self.assertEqual(products_data['individual'], 2)
+        
+        # Verificar datos de categorías
+        categories_data = summary['categories']
+        self.assertEqual(categories_data['total'], 1)
+        self.assertEqual(categories_data['with_products'], 1)
+        
+        # Verificar datos de ofertas
+        offers_data = summary['offers']
+        self.assertEqual(offers_data['total'], 2)
+        self.assertEqual(offers_data['active'], 2)  # Ambas ofertas están activas por defecto
+        self.assertEqual(offers_data['total_revenue'], 2650.00)
+
+    def test_campaign_with_mixed_targeting(self):
+        """Test campaña con targeting mixto (productos, categorías y ofertas)"""
+        # Configurar targeting mixto
+        self.campaign.target_products.add(self.product1)  # Solo producto 1
+        self.campaign.target_categories.add(self.product_category)  # Toda la categoría
+        self.campaign.target_offers.add(self.offering2)  # Solo oferta 2
+        
+        # Verificar que todos los tipos de targeting funcionan
+        self.assertEqual(self.campaign.target_products.count(), 1)
+        self.assertEqual(self.campaign.target_categories.count(), 1)
+        self.assertEqual(self.campaign.target_offers.count(), 1)
+        
+        # Verificar que se pueden combinar
+        all_targeted_products = set()
+        all_targeted_products.update(self.campaign.target_products.all())
+        
+        # Productos de la categoría objetivo
+        category_products = Product.objects.filter(category__in=self.campaign.target_categories.all())
+        all_targeted_products.update(category_products)
+        
+        # Productos de las ofertas objetivo
+        offer_products = Product.objects.filter(offerings__in=self.campaign.target_offers.all())
+        all_targeted_products.update(offer_products)
+        
+        # Debería incluir producto1 (directo), producto2 (categoría), y producto2 (oferta)
+        self.assertIn(self.product1, all_targeted_products)
+        self.assertIn(self.product2, all_targeted_products)
+
+    def test_campaign_content_type_offer(self):
+        """Test content_type 'offer' para campañas de ofertas"""
+        offer_campaign = Campaign.objects.create(
+            name="Offer Campaign",
+            code="OFFER_CAMP",
+            start_date=date.today(),
+            content_type="offer",
+            division=self.division
+        )
+        
+        # Agregar ofertas
+        offer_campaign.target_offers.add(self.offering1, self.offering2)
+        
+        # Verificar que funciona correctamente
+        self.assertEqual(offer_campaign.content_type, "offer")
+        self.assertEqual(offer_campaign.target_offers.count(), 2)
+        
+        # Verificar que se puede filtrar por content_type
+        offer_campaigns = Campaign.objects.filter(content_type="offer")
+        self.assertIn(offer_campaign, offer_campaigns)
+
+    def test_campaign_analytics_with_empty_targeting(self):
+        """Test analytics con campaña sin targeting"""
+        empty_campaign = Campaign.objects.create(
+            name="Empty Campaign",
+            code="EMPTY_CAMP",
+            start_date=date.today(),
+            division=self.division
+        )
+        
+        # Analytics deberían funcionar sin errores
+        analytics = empty_campaign.get_product_performance_analytics()
+        self.assertEqual(analytics['summary']['total_products'], 0)
+        self.assertEqual(analytics['summary']['total_categories'], 0)
+        self.assertEqual(analytics['summary']['total_offerings'], 0)
+        
+        bundle_analytics = empty_campaign.get_bundle_analytics()
+        self.assertEqual(bundle_analytics['total_bundles'], 0)
+        
+        summary = empty_campaign.get_target_summary()
+        self.assertEqual(summary['products']['total'], 0)
+        self.assertEqual(summary['categories']['total'], 0)
+        self.assertEqual(summary['offers']['total'], 0)
+
+
+class CampaignProductIntegrationAPITests(APITestCase):
+    """Tests de API para Product Integration Enhancements"""
+
+    def setUp(self):
+        # Crear usuario
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        
+        # Crear datos de prueba
+        self.organization = OurOrganization.objects.create(name="Test Org")
+        self.division = Division.objects.create(
+            name="Test Division",
+            code="TEST_DIV",
+            organization=self.organization
+        )
+        
+        self.product_category = ProductCategory.objects.create(
+            name="Software",
+            code="SW",
+            division=self.division
+        )
+        
+        self.product = Product.objects.create(
+            name="Test Product",
+            code="TEST_PROD",
+            category=self.product_category,
+            base_price=Decimal('1000.00'),
+            currency_code="USD"
+        )
+        
+        self.offering = ProductOffering.objects.create(
+            name="Test Offering",
+            code="TEST_OFFER",
+            product=self.product,
+            price=Decimal('850.00'),
+            currency_code="USD"
+        )
+        
+        self.campaign = Campaign.objects.create(
+            name="API Test Campaign",
+            code="API_TEST",
+            start_date=date.today(),
+            division=self.division
+        )
+        
+        self.client.force_authenticate(user=self.user)
+
+    def test_campaign_product_analytics_endpoint(self):
+        """Test endpoint de analytics de productos"""
+        # Configurar datos
+        self.campaign.target_products.add(self.product)
+        self.campaign.target_offers.add(self.offering)
+        
+        url = reverse('campaigns:campaign-product-analytics', kwargs={'pk': self.campaign.pk})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('by_product', response.data)
+        self.assertIn('by_category', response.data)
+        self.assertIn('by_offer', response.data)
+        self.assertIn('summary', response.data)
+
+    def test_campaign_bundle_analytics_endpoint(self):
+        """Test endpoint de analytics de bundles"""
+        url = reverse('campaigns:campaign-bundle-analytics', kwargs={'pk': self.campaign.pk})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('bundle_products', response.data)
+        self.assertIn('total_bundles', response.data)
+        self.assertIn('avg_bundle_size', response.data)
+
+    def test_campaign_target_summary_endpoint(self):
+        """Test endpoint de resumen de targeting"""
+        url = reverse('campaigns:campaign-target-summary', kwargs={'pk': self.campaign.pk})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('products', response.data)
+        self.assertIn('categories', response.data)
+        self.assertIn('offers', response.data)
+
+    def test_campaign_compatible_offerings_endpoint(self):
+        """Test endpoint de ofertas compatibles"""
+        # Configurar datos
+        self.campaign.target_products.add(self.product)
+        
+        url = reverse('campaigns:campaign-compatible-offerings', kwargs={'pk': self.campaign.pk})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Debería incluir la oferta compatible
+        self.assertGreater(len(response.data), 0)
+
+    def test_campaign_creation_with_product_integration(self):
+        """Test creación de campaña con Product Integration"""
+        url = reverse('campaigns:campaign-list')
+        data = {
+            'name': 'Product Integration Campaign',
+            'code': 'PROD_INT_API',
+            'start_date': str(date.today()),
+            'content_type': 'product',
+            'target_products': [str(self.product.pk)],
+            'target_offers': [str(self.offering.pk)],
+            'target_categories': [str(self.product_category.pk)],
+            'division': str(self.division.pk)
+        }
+        
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Verificar que se creó la campaña
+        campaign = Campaign.objects.get(code='PROD_INT_API')
+        self.assertEqual(campaign.target_products.count(), 1)
+        self.assertEqual(campaign.target_offers.count(), 1)
+        self.assertEqual(campaign.target_categories.count(), 1)
+
+    def test_campaign_filtering_by_product_integration(self):
+        """Test filtrado por campos de Product Integration"""
+        # Crear campaña con targeting específico
+        self.campaign.target_products.add(self.product)
+        self.campaign.target_offers.add(self.offering)
+        self.campaign.target_categories.add(self.product_category)
+        
+        url = reverse('campaigns:campaign-list')
+        
+        # Filtrar por producto
+        response = self.client.get(url, {'target_products': self.product.pk})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por oferta
+        response = self.client.get(url, {'target_offers': self.offering.pk})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        
+        # Filtrar por categoría
+        response = self.client.get(url, {'target_categories': self.product_category.pk})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)

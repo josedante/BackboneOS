@@ -7,6 +7,7 @@ from rest_framework import status
 
 from .models import ProductOffering
 from products.models import Product, ProductCategory, Division
+from our_institution.models import OurOrganization
 from world.models import Industry, FunctionOrResponsibility
 from interactions.models import Channel, Medium
 
@@ -16,8 +17,15 @@ class ProductOfferingModelTest(TestCase):
     
     def setUp(self):
         """Configurar datos de prueba"""
+        # Crear organización
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal",
+            email="test@example.com"
+        )
         # Crear división
         self.division = Division.objects.create(
+            organization=self.organization,
             name="Tecnología",
             code="TECH",
             description="División de tecnología"
@@ -91,8 +99,15 @@ class ProductOfferingAPITest(APITestCase):
     
     def setUp(self):
         """Configurar datos de prueba"""
+        # Crear organización
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal",
+            email="test@example.com"
+        )
         # Crear división y categoría
         self.division = Division.objects.create(
+            organization=self.organization,
             name="Servicios",
             code="SERV"
         )
@@ -297,7 +312,17 @@ class ProductOfferingValidationTest(TestCase):
     
     def setUp(self):
         """Configurar datos de prueba"""
-        self.division = Division.objects.create(name="Test", code="TEST")
+        # Crear organización
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal",
+            email="test@example.com"
+        )
+        self.division = Division.objects.create(
+            organization=self.organization,
+            name="Test", 
+            code="TEST"
+        )
         self.category = ProductCategory.objects.create(
             name="Test Cat", code="TESTCAT", division=self.division
         )
@@ -362,7 +387,14 @@ class OfferAPITestCase(APITestCase):
         )
         
         # Datos base
+        # Crear organización
+        self.organization = OurOrganization.objects.create(
+            name="Test Organization",
+            legal_name="Test Organization Legal",
+            email="test@example.com"
+        )
         self.division = Division.objects.create(
+            organization=self.organization,
             name="Tecnología",
             code="TECH",
             description="División de tecnología"
