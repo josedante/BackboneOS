@@ -35,7 +35,7 @@ class MetricsCollectionIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -185,7 +185,7 @@ class AlertingSystemIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -321,7 +321,7 @@ class SystemHealthIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -413,7 +413,7 @@ class CacheMetricsIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -499,7 +499,7 @@ class DataRetentionIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -602,7 +602,7 @@ class MonitoringSystemEndToEndTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
