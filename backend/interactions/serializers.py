@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import (
     Agent, Medium, Channel, ActionType, Action,
-    TouchpointClass, Touchpoint, Interaction
+    TouchpointType, Touchpoint, Interaction
 )
 
 
@@ -14,14 +14,14 @@ class UserChoiceSerializer(serializers.ModelSerializer):
 
 
 class MediumSerializer(serializers.ModelSerializer):
-    channels_count = serializers.SerializerMethodField()
+    touchpoints_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Medium
-        fields = ['id', 'name', 'code', 'description', 'is_active', 'channels_count']
+        fields = ['id', 'name', 'code', 'description', 'communication_type', 'is_active', 'touchpoints_count']
     
-    def get_channels_count(self, obj):
-        return obj.channels.filter(is_active=True).count()
+    def get_touchpoints_count(self, obj):
+        return obj.touchpoints.filter(is_active=True).count()
 
 
 class MediumChoiceSerializer(serializers.ModelSerializer):
@@ -32,18 +32,13 @@ class MediumChoiceSerializer(serializers.ModelSerializer):
 
 
 class ChannelSerializer(serializers.ModelSerializer):
-    medium = MediumChoiceSerializer(read_only=True)
-    medium_id = serializers.PrimaryKeyRelatedField(
-        queryset=Medium.objects.filter(is_active=True),
-        source='medium', write_only=True, required=False
-    )
     interactions_count = serializers.SerializerMethodField()
     touchpoints_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Channel
         fields = [
-            'id', 'name', 'code', 'description', 'medium', 'medium_id',
+            'id', 'name', 'code', 'description', 'source_type',
             'is_active', 'interactions_count', 'touchpoints_count'
         ]
     
@@ -170,28 +165,29 @@ class AgentChoiceSerializer(serializers.ModelSerializer):
         return f"{icon} {obj.name}"
 
 
-class TouchpointClassSerializer(serializers.ModelSerializer):
+class TouchpointTypeSerializer(serializers.ModelSerializer):
     touchpoints_count = serializers.SerializerMethodField()
     
     class Meta:
-        model = TouchpointClass
+        model = TouchpointType
         fields = ['id', 'name', 'code', 'description', 'is_active', 'touchpoints_count']
     
     def get_touchpoints_count(self, obj):
         return obj.touchpoints.filter(is_active=True).count()
 
 
-class TouchpointClassChoiceSerializer(serializers.ModelSerializer):
+class TouchpointTypeChoiceSerializer(serializers.ModelSerializer):
     """Serializer simple para choices"""
     class Meta:
-        model = TouchpointClass
+        model = TouchpointType
         fields = ['id', 'name', 'code']
 
 
 class TouchpointListSerializer(serializers.ModelSerializer):
     """Serializer optimizado para listados"""
-    touchpoint_class = TouchpointClassChoiceSerializer(read_only=True)
+    touchpoint_type = TouchpointTypeChoiceSerializer(read_only=True)
     channel = ChannelChoiceSerializer(read_only=True)
+    medium = MediumChoiceSerializer(read_only=True)
     assigned_staff_display = serializers.SerializerMethodField()
     product_display = serializers.SerializerMethodField()
     interactions_count = serializers.SerializerMethodField()
@@ -200,7 +196,7 @@ class TouchpointListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Touchpoint
         fields = [
-            'id', 'name', 'code', 'touchpoint_class', 'channel', 'content_type',
+            'id', 'name', 'code', 'touchpoint_type', 'channel', 'medium', 'content_type',
             'assigned_staff_display', 'product_display', 'interactions_count',
             'semantic_tags', 'is_active'
         ]
@@ -229,8 +225,9 @@ class TouchpointListSerializer(serializers.ModelSerializer):
 
 class TouchpointDetailSerializer(serializers.ModelSerializer):
     """Serializer completo para detalles"""
-    touchpoint_class = TouchpointClassChoiceSerializer(read_only=True)
+    touchpoint_type = TouchpointTypeChoiceSerializer(read_only=True)
     channel = ChannelChoiceSerializer(read_only=True)
+    medium = MediumChoiceSerializer(read_only=True)
     assigned_staff = UserChoiceSerializer(read_only=True)
     
     # Relaciones semánticas
@@ -247,7 +244,7 @@ class TouchpointDetailSerializer(serializers.ModelSerializer):
         model = Touchpoint
         fields = [
             'id', 'name', 'code', 'description', 'url', 'external_id',
-            'touchpoint_class', 'channel', 'content_type', 'product', 'assigned_staff',
+            'touchpoint_type', 'channel', 'medium', 'content_type', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'interactions_count', 'recent_interactions', 'is_active',
             'created_at', 'updated_at'
@@ -266,7 +263,7 @@ class TouchpointCreateUpdateSerializer(serializers.ModelSerializer):
         model = Touchpoint
         fields = [
             'id', 'name', 'code', 'description', 'url', 'external_id',
-            'touchpoint_class', 'channel', 'content_type', 'product', 'assigned_staff',
+            'touchpoint_type', 'channel', 'medium', 'content_type', 'product', 'assigned_staff',
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'is_active'
         ]

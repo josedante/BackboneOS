@@ -16,7 +16,7 @@ def get_permission_classes():
 
 from .models import (
     Agent, Medium, Channel, ActionType, Action,
-    TouchpointClass, Touchpoint, Interaction
+    TouchpointType, Touchpoint, Interaction
 )
 from .serializers import (
     MediumSerializer, MediumChoiceSerializer,
@@ -24,7 +24,7 @@ from .serializers import (
     ActionTypeSerializer, ActionTypeChoiceSerializer,
     ActionSerializer, ActionChoiceSerializer,
     AgentSerializer, AgentChoiceSerializer,
-    TouchpointClassSerializer, TouchpointClassChoiceSerializer,
+    TouchpointTypeSerializer, TouchpointTypeChoiceSerializer,
     TouchpointListSerializer, TouchpointDetailSerializer, TouchpointCreateUpdateSerializer, TouchpointChoiceSerializer,
     InteractionListSerializer, InteractionDetailSerializer, InteractionCreateUpdateSerializer
 )
@@ -214,10 +214,10 @@ class AgentViewSet(viewsets.ModelViewSet):
             }
         })
     
-class TouchpointClassViewSet(viewsets.ModelViewSet):
-    """ViewSet para gestionar touchpoint classes"""
-    queryset = TouchpointClass.objects.all()
-    serializer_class = TouchpointClassSerializer
+class TouchpointTypeViewSet(viewsets.ModelViewSet):
+    """ViewSet para gestionar touchpoint types"""
+    queryset = TouchpointType.objects.all()
+    serializer_class = TouchpointTypeSerializer
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active']
@@ -229,22 +229,22 @@ class TouchpointClassViewSet(viewsets.ModelViewSet):
     def choices(self, request):
         """Endpoint para obtener choices simples"""
         queryset = self.get_queryset().filter(is_active=True)
-        serializer = TouchpointClassChoiceSerializer(queryset, many=True)
+        serializer = TouchpointTypeChoiceSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
 class TouchpointViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar touchpoints"""
     queryset = Touchpoint.objects.select_related(
-        'touchpoint_class', 'assigned_staff', 'product', 'channel'
+        'touchpoint_type', 'assigned_staff', 'product', 'channel', 'medium'
     ).prefetch_related(
         'related_industries', 'related_functions', 'related_skills', 'related_descriptors'
     ).all()
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
-        'is_active', 'content_type', 'touchpoint_class', 'assigned_staff',
-        'related_industries', 'related_functions', 'channel'
+        'is_active', 'content_type', 'touchpoint_type', 'assigned_staff',
+        'related_industries', 'related_functions', 'channel', 'medium'
     ]
     search_fields = ['name', 'code', 'description', 'url']
     ordering_fields = ['name', 'created_at']
@@ -305,9 +305,9 @@ class TouchpointViewSet(viewsets.ModelViewSet):
         # Estadísticas básicas
         total_touchpoints = self.get_queryset().filter(is_active=True).count()
         
-        # Distribución por clase de touchpoint
-        touchpoints_by_class = self.get_queryset().filter(is_active=True).select_related('touchpoint_class').values(
-            'touchpoint_class__name'
+        # Distribución por tipo de touchpoint
+        touchpoints_by_type = self.get_queryset().filter(is_active=True).select_related('touchpoint_type').values(
+            'touchpoint_type__name'
         ).annotate(
             count=Count('id'),
             interactions_count=Count('interaction', filter=Q(interaction__is_active=True))
@@ -324,18 +324,17 @@ class TouchpointViewSet(viewsets.ModelViewSet):
             top_touchpoints_data.append({
                 'id': str(touchpoint.id),
                 'name': touchpoint.name,
-                'touchpoint_class': touchpoint.touchpoint_class.name if touchpoint.touchpoint_class else None,
+                'touchpoint_type': touchpoint.touchpoint_type.name if touchpoint.touchpoint_type else None,
                 'interactions_count': touchpoint.interactions_count
             })
         
         return Response({
             'total_touchpoints': total_touchpoints,
-            'touchpoints_by_stage': list(touchpoints_by_stage),
-            'touchpoints_by_class': list(touchpoints_by_class),
+            'touchpoints_by_type': list(touchpoints_by_type),
             'top_touchpoints': top_touchpoints_data,
             'summary': {
                 'active_touchpoints': total_touchpoints,
-                'total_interactions': sum(item['interactions_count'] for item in touchpoints_by_stage)
+                'total_interactions': sum(item['interactions_count'] for item in touchpoints_by_type)
             }
         })
 
