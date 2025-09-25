@@ -27,7 +27,7 @@ from connectors.monitoring_models import (
 from connectors.metrics import track_resolution, ResolutionTracker
 from connectors.alerting import alert_manager
 from connectors.retention_policies import TouchpointRetentionPolicies
-from interactions.models import Interaction, Touchpoint, TouchpointClass, Channel, Medium
+from interactions.models import Interaction, Touchpoint, TouchpointType, Channel, Medium
 
 
 class MetricsCollectionIntegrationTest(TestCase):

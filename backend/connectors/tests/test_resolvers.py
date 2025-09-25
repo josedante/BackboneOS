@@ -12,7 +12,7 @@ from django.db import transaction
 
 from connectors.resolvers import DefaultTouchpointResolver, CachedTouchpointResolver
 from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol
-from interactions.models import Touchpoint, TouchpointClass, Channel
+from interactions.models import Touchpoint, TouchpointType, Channel, Medium
 
 
 class MockConnector(TouchpointInferenceProtocol):
@@ -43,6 +43,7 @@ class MockMappingRule:
         self.touchpoint_label = kwargs.get('touchpoint_label')
         self.channel_code = kwargs.get('channel_code')
         self.medium_code = kwargs.get('medium_code')
+        self.touchpoint_type_code = kwargs.get('touchpoint_type_code')
         self.metadata = kwargs.get('metadata', {})
 
 
@@ -64,6 +65,7 @@ class TestDefaultTouchpointResolver(TestCase):
             code="web.page_read",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             label="Web Page View"
         )
         connector = MockConnector(hint)
@@ -77,10 +79,13 @@ class TestDefaultTouchpointResolver(TestCase):
         assert touchpoint.name == "Web Page View"
         assert touchpoint.is_active is True
         
-        # Verify touchpoint class was created
-        assert touchpoint.touchpoint_class is not None
-        assert touchpoint.touchpoint_class.code == "web"
-        assert touchpoint.touchpoint_class.name == "Web"
+        # Verify three-dimensional classification was created
+        assert touchpoint.channel is not None
+        assert touchpoint.channel.code == "web"
+        assert touchpoint.medium is not None
+        assert touchpoint.medium.code == "organic"
+        assert touchpoint.touchpoint_type is not None
+        assert touchpoint.touchpoint_type.code == "landing_page"
     
     def test_resolve_with_mapping_rule(self):
         """Test touchpoint resolution with mapping rule."""
@@ -88,6 +93,7 @@ class TestDefaultTouchpointResolver(TestCase):
             code="web.form_submit",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="form",
             label="Web Form Submit"
         )
         
@@ -95,7 +101,8 @@ class TestDefaultTouchpointResolver(TestCase):
             touchpoint_code="web.lead_form",
             touchpoint_label="Lead Form",
             channel_code="web",
-            medium_code="paid"
+            medium_code="paid",
+            touchpoint_type_code="lead_form"
         )
         
         self.mapping_provider.mapping_rule = mapping_rule
@@ -114,6 +121,7 @@ class TestDefaultTouchpointResolver(TestCase):
             code="web.page_read",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             label="Web Page View"
         )
         connector = MockConnector(hint)
@@ -146,6 +154,7 @@ class TestDefaultTouchpointResolver(TestCase):
         hint = TouchpointHint(
             code="generic.interaction",
             medium_code="organic",
+            touchpoint_type_code="generic",
             label="Generic Interaction"
         )
         connector = MockConnector(hint)
@@ -155,8 +164,8 @@ class TestDefaultTouchpointResolver(TestCase):
         
         # Should create touchpoint without channel
         assert touchpoint.code == "generic.interaction"
-        assert touchpoint.touchpoint_class is not None
-        assert touchpoint.touchpoint_class.code == "generic"
+        assert touchpoint.touchpoint_type is not None
+        assert touchpoint.touchpoint_type.code == "generic"
     
     def test_apply_mapping_rule(self):
         """Test mapping rule application."""
@@ -226,6 +235,7 @@ class TestDefaultTouchpointResolver(TestCase):
             code="web.page_read",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             label="Web Page View"
         )
         
@@ -238,32 +248,36 @@ class TestDefaultTouchpointResolver(TestCase):
         assert touchpoint.name == "Web Page View"
         assert touchpoint.is_active is True
         
-        # Verify touchpoint class was created
-        assert touchpoint.touchpoint_class is not None
-        assert touchpoint.touchpoint_class.code == "web"
-        assert touchpoint.touchpoint_class.name == "Web"
+        # Verify three-dimensional classification was created
+        assert touchpoint.channel is not None
+        assert touchpoint.channel.code == "web"
+        assert touchpoint.medium is not None
+        assert touchpoint.medium.code == "organic"
+        assert touchpoint.touchpoint_type is not None
+        assert touchpoint.touchpoint_type.code == "landing_page"
     
-    def test_get_or_create_touchpoint_with_existing_class(self):
-        """Test touchpoint creation with existing touchpoint class."""
-        # Create a touchpoint class first
-        touchpoint_class = TouchpointClass.objects.create(
-            code="web",
-            name="Web",
-            description="Web touchpoints"
+    def test_get_or_create_touchpoint_with_existing_type(self):
+        """Test touchpoint creation with existing touchpoint type."""
+        # Create a touchpoint type first
+        touchpoint_type = TouchpointType.objects.create(
+            code="landing_page",
+            name="Landing Page",
+            description="Landing page touchpoints"
         )
         
         hint = TouchpointHint(
             code="web.page_read",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             label="Web Page View"
         )
         
         with transaction.atomic():
             touchpoint = self.resolver._get_or_create_touchpoint(hint)
         
-        # Verify touchpoint was created with existing class
-        assert touchpoint.touchpoint_class == touchpoint_class
+        # Verify touchpoint was created with existing type
+        assert touchpoint.touchpoint_type == touchpoint_type
 
 
 class TestCachedTouchpointResolver(TestCase):
@@ -280,7 +294,7 @@ class TestCachedTouchpointResolver(TestCase):
         assert self.resolver.cache_timeout == 3600
         assert hasattr(self.resolver, '_touchpoint_cache')
         assert hasattr(self.resolver, '_channel_cache')
-        assert hasattr(self.resolver, '_touchpoint_class_cache')
+        assert hasattr(self.resolver, '_touchpoint_type_cache')
     
     def test_resolve_with_caching(self):
         """Test touchpoint resolution with caching."""
@@ -288,6 +302,7 @@ class TestCachedTouchpointResolver(TestCase):
             code="web.page_read",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             label="Web Page View"
         )
         connector = MockConnector(hint)

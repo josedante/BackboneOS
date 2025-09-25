@@ -29,7 +29,7 @@ from connectors.resolvers import DefaultTouchpointResolver
 from connectors.mapping_providers import DatabaseMappingProvider
 from connectors.metrics import track_resolution
 from connectors.alerting import alert_manager
-from interactions.models import Interaction, Touchpoint, TouchpointClass, Channel, Medium
+from interactions.models import Interaction, Touchpoint, TouchpointType, Channel, Medium
 from websites.models import WebInteraction
 from websites.resolvers import WebTouchpointResolver
 from websites.mapping_providers import WebMappingProvider
@@ -41,11 +41,11 @@ class CompleteResolutionWorkflowTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        # Create touchpoint class
-        self.touchpoint_class = TouchpointClass.objects.create(
-            code='web.page_view',
-            name='Web Page View',
-            description='A web page view interaction'
+        # Create touchpoint type
+        self.touchpoint_type = TouchpointType.objects.create(
+            code='landing_page',
+            name='Landing Page',
+            description='A landing page interaction'
         )
         
         # Create channel and medium
@@ -63,8 +63,9 @@ class CompleteResolutionWorkflowTest(TestCase):
         
         # Create touchpoint
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
+            medium=self.medium,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'
@@ -98,6 +99,7 @@ class CompleteResolutionWorkflowTest(TestCase):
             touchpoint_label='Page View',
             channel_code='organic',
             medium_code='referral',
+            touchpoint_type_code='landing_page',
             priority=100,
             is_active=True
         )
@@ -305,11 +307,11 @@ class SystemIntegrationTest(TransactionTestCase):
     
     def setUp(self):
         """Set up test data."""
-        # Create touchpoint class
-        self.touchpoint_class = TouchpointClass.objects.create(
-            code='web.page_view',
-            name='Web Page View',
-            description='A web page view interaction'
+        # Create touchpoint type
+        self.touchpoint_type = TouchpointType.objects.create(
+            code='landing_page',
+            name='Landing Page',
+            description='A landing page interaction'
         )
         
         # Create channel and medium
@@ -327,8 +329,9 @@ class SystemIntegrationTest(TransactionTestCase):
         
         # Create touchpoint
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
+            medium=self.medium,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'
@@ -343,6 +346,7 @@ class SystemIntegrationTest(TransactionTestCase):
             touchpoint_label='Page View',
             channel_code='organic',
             medium_code='referral',
+            touchpoint_type_code='landing_page',
             priority=100,
             is_active=True
         )
@@ -411,11 +415,11 @@ class PerformanceIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        # Create touchpoint class
-        self.touchpoint_class = TouchpointClass.objects.create(
-            code='web.page_view',
-            name='Web Page View',
-            description='A web page view interaction'
+        # Create touchpoint type
+        self.touchpoint_type = TouchpointType.objects.create(
+            code='landing_page',
+            name='Landing Page',
+            description='A landing page interaction'
         )
         
         # Create channel and medium
@@ -433,8 +437,9 @@ class PerformanceIntegrationTest(TestCase):
         
         # Create touchpoint
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
+            medium=self.medium,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'
@@ -449,6 +454,7 @@ class PerformanceIntegrationTest(TestCase):
             touchpoint_label='Page View',
             channel_code='organic',
             medium_code='referral',
+            touchpoint_type_code='landing_page',
             priority=100,
             is_active=True
         )
@@ -573,11 +579,11 @@ class ErrorRecoveryIntegrationTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        # Create touchpoint class
-        self.touchpoint_class = TouchpointClass.objects.create(
-            code='web.page_view',
-            name='Web Page View',
-            description='A web page view interaction'
+        # Create touchpoint type
+        self.touchpoint_type = TouchpointType.objects.create(
+            code='landing_page',
+            name='Landing Page',
+            description='A landing page interaction'
         )
         
         # Create channel and medium
@@ -595,8 +601,9 @@ class ErrorRecoveryIntegrationTest(TestCase):
         
         # Create touchpoint
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
+            medium=self.medium,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'
@@ -611,6 +618,7 @@ class ErrorRecoveryIntegrationTest(TestCase):
             touchpoint_label='Page View',
             channel_code='organic',
             medium_code='referral',
+            touchpoint_type_code='landing_page',
             priority=100,
             is_active=True
         )

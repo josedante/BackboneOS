@@ -28,7 +28,7 @@ from connectors.monitoring_models import (
     TouchpointSystemHealth,
     TouchpointCacheMetrics
 )
-from interactions.models import Interaction, Touchpoint, TouchpointClass, Channel, Medium
+from interactions.models import Interaction, Touchpoint, TouchpointType, Channel, Medium
 from websites.models import WebInteraction
 
 

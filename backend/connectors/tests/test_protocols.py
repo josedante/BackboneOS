@@ -22,6 +22,7 @@ class TestTouchpointHint:
             code="web.page_read",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             label="Web Page View",
             metadata={"url": "/test", "session_id": "abc123"}
         )
@@ -29,6 +30,7 @@ class TestTouchpointHint:
         assert hint.code == "web.page_read"
         assert hint.channel_code == "web"
         assert hint.medium_code == "organic"
+        assert hint.touchpoint_type_code == "landing_page"
         assert hint.label == "Web Page View"
         assert hint.metadata == {"url": "/test", "session_id": "abc123"}
     
@@ -39,6 +41,7 @@ class TestTouchpointHint:
         assert hint.code is None
         assert hint.channel_code is None
         assert hint.medium_code is None
+        assert hint.touchpoint_type_code is None
         assert hint.label is None
         assert hint.metadata == {}  # Should be empty dict, not None
     

@@ -161,11 +161,12 @@ class TouchpointMappingRule(BaseUUIDModelWithActiveStatus):
             self.touchpoint_label,
             self.channel_code,
             self.medium_code,
+            self.touchpoint_type_code,
             self.metadata
         ]):
             raise ValidationError(
                 "At least one override field (touchpoint_code, touchpoint_label, "
-                "channel_code, medium_code, or metadata) must be provided."
+                "channel_code, medium_code, touchpoint_type_code, or metadata) must be provided."
             )
 
 

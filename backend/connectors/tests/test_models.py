@@ -25,6 +25,7 @@ class TestTouchpointMappingRule(TestCase):
             touchpoint_label="Example Page",
             channel_code="web",
             medium_code="organic",
+            touchpoint_type_code="landing_page",
             priority=200
         )
         
@@ -35,6 +36,7 @@ class TestTouchpointMappingRule(TestCase):
         assert rule.touchpoint_label == "Example Page"
         assert rule.channel_code == "web"
         assert rule.medium_code == "organic"
+        assert rule.touchpoint_type_code == "landing_page"
         assert rule.priority == 200
         assert rule.is_active is True
         assert rule.metadata == {}
@@ -54,6 +56,7 @@ class TestTouchpointMappingRule(TestCase):
         assert rule.touchpoint_label == ""
         assert rule.channel_code == ""
         assert rule.medium_code == ""
+        assert rule.touchpoint_type_code == ""
         assert rule.priority == 100  # Default value
         assert rule.is_active is True
         assert rule.metadata == {}
@@ -194,6 +197,17 @@ class TestTouchpointMappingRule(TestCase):
             connector_type="web",
             event_code="web.page_read",
             medium_code="organic"
+        )
+        
+        # Should not raise any exceptions
+        rule.clean()
+    
+    def test_model_clean_validation_with_touchpoint_type_code(self):
+        """Test clean validation with touchpoint_type_code."""
+        rule = TouchpointMappingRule(
+            connector_type="web",
+            event_code="web.page_read",
+            touchpoint_type_code="landing_page"
         )
         
         # Should not raise any exceptions
