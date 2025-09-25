@@ -797,6 +797,7 @@ class OfferBusinessLogicTests(OfferAPITestCase):
                 product=self.product,
                 price=Decimal('-100.00')
             )
+            invalid_offer.save()
             # En el futuro debería agregarse validación automática
             # invalid_offer.full_clean()
         

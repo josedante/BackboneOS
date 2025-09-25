@@ -216,7 +216,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     def get_parent_products(self, obj):
         """Serializa los productos que incluyen a este producto"""
-        parents = obj.included_in_products.filter(is_active=True)
+        parents = obj.bundled_in.filter(is_active=True)
         return ProductListSerializer(parents, many=True, context=self.context).data
 
     def create(self, validated_data):

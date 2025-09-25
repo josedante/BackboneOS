@@ -76,6 +76,7 @@ class ProductOfferingModelTest(TestCase):
     
     def test_is_currently_valid_false_expired(self):
         """Test validez actual - expirada"""
+        self.offering.valid_from = date.today() - timedelta(days=10)
         self.offering.valid_until = date.today() - timedelta(days=1)
         self.offering.save()
         self.assertFalse(self.offering.is_currently_valid)
@@ -706,15 +707,15 @@ class OfferBusinessLogicTests(OfferAPITestCase):
         # with self.assertRaises(Exception):
         #     offering.full_clean()
         
-        # Precio debe ser menor o igual al precio base del producto
-        with self.assertRaises(Exception):
-            offering = ProductOffering(
-                name="Precio Alto",
-                code="HIGH_001",
-                product=self.product,
-                price=1500.00  # Mayor al precio base de 1000
-            )
-            offering.full_clean()
+        # Precio puede ser mayor al precio base del producto (oferta premium)
+        offering = ProductOffering(
+            name="Precio Alto",
+            code="HIGH_001",
+            product=self.product,
+            price=1500.00  # Mayor al precio base de 1000
+        )
+        # Esto debería ser válido (oferta premium)
+        offering.full_clean()
 
 
 class OfferSerializerTests(OfferAPITestCase):

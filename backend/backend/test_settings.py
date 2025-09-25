@@ -31,6 +31,9 @@ from .settings import *
 # Override DEBUG for tests
 DEBUG = True
 
+# Add testserver to ALLOWED_HOSTS for testing
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+
 # Disable migrations for faster test execution
 class DisableMigrations:
     def __contains__(self, item):
@@ -329,9 +332,9 @@ if 'corsheaders.middleware.CorsMiddleware' in MIDDLEWARE:
 # =============================================================================
 
 # Add testing-specific apps
-INSTALLED_APPS += [
-    'django_nose',  # Alternative test runner
-]
+# INSTALLED_APPS += [
+#     'django_nose',  # Alternative test runner
+# ]
 
 # =============================================================================
 # TESTING COMMANDS

@@ -11,6 +11,7 @@ from interactions.serializers import ChannelChoiceSerializer
 
 class ProductOfferingListSerializer(serializers.ModelSerializer):
     """Serializer optimizado para listados de ofertas"""
+    product = serializers.PrimaryKeyRelatedField(read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_code = serializers.CharField(source='product.code', read_only=True)
     price_display = serializers.CharField(read_only=True)
@@ -19,7 +20,7 @@ class ProductOfferingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductOffering
         fields = [
-            'id', 'name', 'code', 'description', 'product_name', 'product_code',
+            'id', 'name', 'code', 'description', 'product', 'product_name', 'product_code',
             'price', 'currency_code', 'price_display', 'valid_from', 'valid_until',
             'auto_renew', 'duration_days', 'landing_url', 'is_currently_valid',
             'is_active', 'created_at', 'updated_at'
