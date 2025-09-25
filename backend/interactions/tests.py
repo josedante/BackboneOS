@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from .models import (
     Agent, Medium, Channel, ActionType, Action, 
-    TouchpointClass, Touchpoint, Interaction
+    TouchpointType, Touchpoint, Interaction
 )
 from world.models import Country, Industry, FunctionOrResponsibility, Skill, WorldDescriptor, DescriptorFamily
 from entities.models import Person, Organization
@@ -132,7 +132,7 @@ class ChannelModelTest(TestCase):
             'name': 'Facebook Ads',
             'code': 'FB_ADS',
             'description': 'Facebook advertising campaigns',
-            'medium': self.medium,
+            'source_type': 'external',
             'is_active': True
         }
     
@@ -143,7 +143,7 @@ class ChannelModelTest(TestCase):
         self.assertEqual(channel.name, 'Facebook Ads')
         self.assertEqual(channel.code, 'FB_ADS')
         self.assertEqual(channel.description, 'Facebook advertising campaigns')
-        self.assertEqual(channel.medium, self.medium)
+        self.assertEqual(channel.source_type, 'external')
         self.assertTrue(channel.is_active)
         self.assertIsNotNone(channel.created_at)
         self.assertIsNotNone(channel.updated_at)
@@ -171,13 +171,13 @@ class ChannelModelTest(TestCase):
             channel = Channel(**channel_data)
             channel.full_clean()
     
-    def test_channel_medium_optional(self):
-        """Test que medium es opcional"""
+    def test_channel_source_type_optional(self):
+        """Test que source_type es opcional"""
         channel_data = self.channel_data.copy()
-        del channel_data['medium']
+        del channel_data['source_type']
         
         channel = Channel.objects.create(**channel_data)
-        self.assertIsNone(channel.medium)
+        self.assertEqual(channel.source_type, 'external')  # default value
     
     def test_channel_unique_name(self):
         """Test que el name debe ser único"""
@@ -210,15 +210,18 @@ class ChannelModelTest(TestCase):
         with self.assertRaises(IntegrityError):
             Channel.objects.create(**channel2_data)
     
-    def test_channel_cascade_delete_medium(self):
-        """Test que al eliminar medium se setea NULL en channels"""
-        channel = Channel.objects.create(**self.channel_data)
+    def test_channel_source_type_choices(self):
+        """Test de validación de choices en source_type"""
+        valid_source_types = ['owned', 'external', 'partner']
         
-        self.medium.delete()
-        
-        # El channel debe seguir existiendo pero con medium=None
-        channel.refresh_from_db()
-        self.assertIsNone(channel.medium)
+        for source_type in valid_source_types:
+            channel_data = self.channel_data.copy()
+            channel_data['source_type'] = source_type
+            channel_data['name'] = f'Test {source_type}'
+            channel_data['code'] = f'TEST_{source_type.upper()}'
+            
+            channel = Channel.objects.create(**channel_data)
+            self.assertEqual(channel.source_type, source_type)
     
     def test_channel_default_values(self):
         """Test de valores por defecto"""
@@ -229,7 +232,7 @@ class ChannelModelTest(TestCase):
         
         self.assertTrue(channel.is_active)
         self.assertEqual(channel.description, '')
-        self.assertIsNone(channel.medium)
+        self.assertEqual(channel.source_type, 'external')
 
 
 class ActionTypeModelTest(TestCase):
@@ -621,84 +624,84 @@ class AgentModelTest(TestCase):
         self.assertEqual(agents[2].name, 'Zebra Agent')
 
 
-class TouchpointClassModelTest(TestCase):
-    """Tests para el modelo TouchpointClass"""
+class TouchpointTypeModelTest(TestCase):
+    """Tests para el modelo TouchpointType"""
     
     def setUp(self):
         """Configuración inicial para los tests"""
-        self.touchpoint_class_data = {
+        self.touchpoint_type_data = {
             'name': 'Website Page',
             'code': 'WEB_PAGE',
             'description': 'Web page touchpoint',
             'is_active': True
         }
     
-    def test_touchpoint_class_creation(self):
-        """Test de creación exitosa de TouchpointClass"""
-        touchpoint_class = TouchpointClass.objects.create(**self.touchpoint_class_data)
+    def test_touchpoint_type_creation(self):
+        """Test de creación exitosa de TouchpointType"""
+        touchpoint_type = TouchpointType.objects.create(**self.touchpoint_type_data)
         
-        self.assertEqual(touchpoint_class.name, 'Website Page')
-        self.assertEqual(touchpoint_class.code, 'WEB_PAGE')
-        self.assertEqual(touchpoint_class.description, 'Web page touchpoint')
-        self.assertTrue(touchpoint_class.is_active)
-        self.assertIsNotNone(touchpoint_class.created_at)
-        self.assertIsNotNone(touchpoint_class.updated_at)
+        self.assertEqual(touchpoint_type.name, 'Website Page')
+        self.assertEqual(touchpoint_type.code, 'WEB_PAGE')
+        self.assertEqual(touchpoint_type.description, 'Web page touchpoint')
+        self.assertTrue(touchpoint_type.is_active)
+        self.assertIsNotNone(touchpoint_type.created_at)
+        self.assertIsNotNone(touchpoint_type.updated_at)
     
-    def test_touchpoint_class_str_representation(self):
-        """Test de representación string del TouchpointClass"""
-        touchpoint_class = TouchpointClass.objects.create(**self.touchpoint_class_data)
-        self.assertEqual(str(touchpoint_class), 'Website Page')
+    def test_touchpoint_type_str_representation(self):
+        """Test de representación string del TouchpointType"""
+        touchpoint_type = TouchpointType.objects.create(**self.touchpoint_type_data)
+        self.assertEqual(str(touchpoint_type), 'Website Page')
     
-    def test_touchpoint_class_required_fields(self):
+    def test_touchpoint_type_required_fields(self):
         """Test de campos requeridos"""
         # Test sin name
-        touchpoint_class_data = self.touchpoint_class_data.copy()
-        del touchpoint_class_data['name']
+        touchpoint_type_data = self.touchpoint_type_data.copy()
+        del touchpoint_type_data['name']
         
         with self.assertRaises(ValidationError):
-            touchpoint_class = TouchpointClass(**touchpoint_class_data)
-            touchpoint_class.full_clean()
+            touchpoint_type = TouchpointType(**touchpoint_type_data)
+            touchpoint_type.full_clean()
         
         # Test sin code
-        touchpoint_class_data = self.touchpoint_class_data.copy()
-        del touchpoint_class_data['code']
+        touchpoint_type_data = self.touchpoint_type_data.copy()
+        del touchpoint_type_data['code']
         
         with self.assertRaises(ValidationError):
-            touchpoint_class = TouchpointClass(**touchpoint_class_data)
-            touchpoint_class.full_clean()
+            touchpoint_type = TouchpointType(**touchpoint_type_data)
+            touchpoint_type.full_clean()
     
-    def test_touchpoint_class_unique_constraints(self):
+    def test_touchpoint_type_unique_constraints(self):
         """Test de restricciones de unicidad"""
-        # Crear primer touchpoint class
-        TouchpointClass.objects.create(**self.touchpoint_class_data)
+        # Crear primer touchpoint type
+        TouchpointType.objects.create(**self.touchpoint_type_data)
         
         # Test name único - mismo nombre pero diferente code debería fallar
-        touchpoint_class_data_duplicate_name = self.touchpoint_class_data.copy()
-        touchpoint_class_data_duplicate_name['code'] = 'DIFFERENT_CODE'
+        touchpoint_type_data_duplicate_name = self.touchpoint_type_data.copy()
+        touchpoint_type_data_duplicate_name['code'] = 'DIFFERENT_CODE'
         
         with self.assertRaises(IntegrityError):
-            TouchpointClass.objects.create(**touchpoint_class_data_duplicate_name)
+            TouchpointType.objects.create(**touchpoint_type_data_duplicate_name)
     
-    def test_touchpoint_class_unique_code_constraint(self):
+    def test_touchpoint_type_unique_code_constraint(self):
         """Test de restricción de code único"""
-        TouchpointClass.objects.create(**self.touchpoint_class_data)
+        TouchpointType.objects.create(**self.touchpoint_type_data)
         
         # Test code único - nombre diferente pero mismo code debería fallar
-        touchpoint_class_data_duplicate_code = self.touchpoint_class_data.copy()
-        touchpoint_class_data_duplicate_code['name'] = 'Different Name'
+        touchpoint_type_data_duplicate_code = self.touchpoint_type_data.copy()
+        touchpoint_type_data_duplicate_code['name'] = 'Different Name'
         
         with self.assertRaises(IntegrityError):
-            TouchpointClass.objects.create(**touchpoint_class_data_duplicate_code)
+            TouchpointType.objects.create(**touchpoint_type_data_duplicate_code)
     
-    def test_touchpoint_class_default_values(self):
+    def test_touchpoint_type_default_values(self):
         """Test de valores por defecto"""
-        touchpoint_class = TouchpointClass.objects.create(
-            name='Test Class',
-            code='TEST_CLASS'
+        touchpoint_type = TouchpointType.objects.create(
+            name='Test Type',
+            code='TEST_TYPE'
         )
         
-        self.assertTrue(touchpoint_class.is_active)
-        self.assertEqual(touchpoint_class.description, '')
+        self.assertTrue(touchpoint_type.is_active)
+        self.assertEqual(touchpoint_type.description, '')
 
 
 class TouchpointModelTest(TestCase):
@@ -719,9 +722,20 @@ class TouchpointModelTest(TestCase):
             official_name='Republic of Test Country'
         )
         
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name='Web Page',
             code='WEB_PAGE'
+        )
+        
+        self.medium = Medium.objects.create(
+            name='Digital',
+            code='DIGITAL'
+        )
+        
+        self.channel = Channel.objects.create(
+            name='Website',
+            code='WEB',
+            source_type='owned'
         )
         
         self.product = Product.objects.create(
@@ -735,14 +749,16 @@ class TouchpointModelTest(TestCase):
         )
         
         self.touchpoint_data = {
-            'touchpoint_class': self.touchpoint_class,
+            'touchpoint_type': self.touchpoint_type,
+            'channel': self.channel,
+            'medium': self.medium,
             'name': 'Homepage',
             'code': 'HOMEPAGE',
             'description': 'Main website homepage',
             'url': 'https://example.com',
             'external_id': 'EXT001',
             'assigned_staff': self.user,
-            'funnel_stage': 'see',
+            'content_type': 'brand',
             'product': self.product,
             'is_active': True
         }
@@ -751,14 +767,16 @@ class TouchpointModelTest(TestCase):
         """Test de creación exitosa de Touchpoint"""
         touchpoint = Touchpoint.objects.create(**self.touchpoint_data)
         
-        self.assertEqual(touchpoint.touchpoint_class, self.touchpoint_class)
+        self.assertEqual(touchpoint.touchpoint_type, self.touchpoint_type)
+        self.assertEqual(touchpoint.channel, self.channel)
+        self.assertEqual(touchpoint.medium, self.medium)
         self.assertEqual(touchpoint.name, 'Homepage')
         self.assertEqual(touchpoint.code, 'HOMEPAGE')
         self.assertEqual(touchpoint.description, 'Main website homepage')
         self.assertEqual(touchpoint.url, 'https://example.com')
         self.assertEqual(touchpoint.external_id, 'EXT001')
         self.assertEqual(touchpoint.assigned_staff, self.user)
-        self.assertEqual(touchpoint.funnel_stage, 'see')
+        self.assertEqual(touchpoint.content_type, 'brand')
         self.assertEqual(touchpoint.product, self.product)
         self.assertTrue(touchpoint.is_active)
     
@@ -777,23 +795,23 @@ class TouchpointModelTest(TestCase):
             touchpoint = Touchpoint(**touchpoint_data)
             touchpoint.full_clean()
     
-    def test_touchpoint_funnel_stage_choices(self):
-        """Test de validación de choices en funnel_stage"""
-        valid_stages = ['see', 'think', 'do', 'care', 'any']
+    def test_touchpoint_content_type_choices(self):
+        """Test de validación de choices en content_type"""
+        valid_content_types = ['affinity', 'category', 'product', 'brand']
         
-        for stage in valid_stages:
+        for content_type in valid_content_types:
             touchpoint_data = self.touchpoint_data.copy()
-            touchpoint_data['funnel_stage'] = stage
-            touchpoint_data['name'] = f'Test {stage}'
-            touchpoint_data['code'] = f'TEST_{stage.upper()}'
+            touchpoint_data['content_type'] = content_type
+            touchpoint_data['name'] = f'Test {content_type}'
+            touchpoint_data['code'] = f'TEST_{content_type.upper()}'
             
             touchpoint = Touchpoint.objects.create(**touchpoint_data)
-            self.assertEqual(touchpoint.funnel_stage, stage)
+            self.assertEqual(touchpoint.content_type, content_type)
     
-    def test_touchpoint_invalid_funnel_stage(self):
-        """Test de funnel_stage inválido"""
+    def test_touchpoint_invalid_content_type(self):
+        """Test de content_type inválido"""
         touchpoint_data = self.touchpoint_data.copy()
-        touchpoint_data['funnel_stage'] = 'invalid_stage'
+        touchpoint_data['content_type'] = 'invalid_content_type'
         
         with self.assertRaises(ValidationError):
             touchpoint = Touchpoint(**touchpoint_data)
@@ -812,11 +830,11 @@ class TouchpointModelTest(TestCase):
         """Test de eliminación con SET_NULL"""
         touchpoint = Touchpoint.objects.create(**self.touchpoint_data)
         
-        # Al eliminar touchpoint_class, se debe setear NULL
-        self.touchpoint_class.delete()
+        # Al eliminar touchpoint_type, se debe setear NULL
+        self.touchpoint_type.delete()
         
         touchpoint.refresh_from_db()
-        self.assertIsNone(touchpoint.touchpoint_class)
+        self.assertIsNone(touchpoint.touchpoint_type)
     
     def test_touchpoint_default_values(self):
         """Test de valores por defecto"""
@@ -825,7 +843,6 @@ class TouchpointModelTest(TestCase):
         )
         
         self.assertTrue(touchpoint.is_active)
-        self.assertEqual(touchpoint.funnel_stage, 'any')
         self.assertEqual(touchpoint.code, '')
         self.assertEqual(touchpoint.description, '')
         self.assertEqual(touchpoint.url, '')
@@ -908,31 +925,19 @@ class TouchpointModelTest(TestCase):
     
     def test_touchpoint_channel_relationship(self):
         """Test de la relación channel en Touchpoint"""
-        # Crear medium y channel
-        medium = Medium.objects.create(
-            name='Digital',
-            code='DIGITAL'
-        )
-        channel = Channel.objects.create(
-            name='Website',
-            code='WEB',
-            medium=medium
-        )
-        
         # Test crear touchpoint con channel
         touchpoint_data = self.touchpoint_data.copy()
-        touchpoint_data['channel'] = channel
         touchpoint_data['name'] = 'Channel Test Touchpoint'
         touchpoint_data['code'] = 'CHANNEL_TEST'
         
         touchpoint = Touchpoint.objects.create(**touchpoint_data)
-        self.assertEqual(touchpoint.channel, channel)
+        self.assertEqual(touchpoint.channel, self.channel)
         
         # Test que se puede cambiar el channel
         new_channel = Channel.objects.create(
             name='Mobile App',
             code='MOBILE',
-            medium=medium
+            source_type='owned'
         )
         touchpoint.channel = new_channel
         touchpoint.save()
@@ -945,28 +950,16 @@ class TouchpointModelTest(TestCase):
     
     def test_touchpoint_channel_cascade_delete(self):
         """Test de eliminación con SET_NULL para channel"""
-        # Crear medium y channel
-        medium = Medium.objects.create(
-            name='Digital',
-            code='DIGITAL'
-        )
-        channel = Channel.objects.create(
-            name='Website',
-            code='WEB',
-            medium=medium
-        )
-        
         # Crear touchpoint con channel
         touchpoint_data = self.touchpoint_data.copy()
-        touchpoint_data['channel'] = channel
         touchpoint_data['name'] = 'Cascade Test Touchpoint'
         touchpoint_data['code'] = 'CASCADE_TEST'
         
         touchpoint = Touchpoint.objects.create(**touchpoint_data)
-        self.assertEqual(touchpoint.channel, channel)
+        self.assertEqual(touchpoint.channel, self.channel)
         
         # Eliminar channel
-        channel.delete()
+        self.channel.delete()
         
         # El touchpoint debe seguir existiendo pero con channel=None
         touchpoint.refresh_from_db()
@@ -1001,13 +994,26 @@ class InteractionModelTest(TestCase):
             country=self.country
         )
         
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name='Web Page',
             code='WEB_PAGE'
         )
         
+        self.medium = Medium.objects.create(
+            name='Digital',
+            code='DIGITAL'
+        )
+        
+        self.channel = Channel.objects.create(
+            name='Website',
+            code='WEB',
+            source_type='owned'
+        )
+        
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
+            channel=self.channel,
+            medium=self.medium,
             name='Homepage',
             code='HOMEPAGE'
         )
@@ -1023,17 +1029,6 @@ class InteractionModelTest(TestCase):
             action_type=self.action_type
         )
         
-        self.medium = Medium.objects.create(
-            name='Digital',
-            code='DIGITAL'
-        )
-        
-        self.channel = Channel.objects.create(
-            name='Website',
-            code='WEB',
-            medium=self.medium
-        )
-        
         self.agent = Agent.objects.create(
             agent_type='browser',
             name='Test Browser Agent'
@@ -1043,10 +1038,6 @@ class InteractionModelTest(TestCase):
             name='Test Product',
             description='Test product description'
         )
-        
-        # Assign channel to touchpoint
-        self.touchpoint.channel = self.channel
-        self.touchpoint.save()
         
         self.interaction_data = {
             'person': self.person,
@@ -1066,7 +1057,6 @@ class InteractionModelTest(TestCase):
             'ip_address': '192.168.1.1',
             'metadata': {'campaign': 'summer2024'},
             'product': self.product,
-            'jtbd_stage': 'job_awareness',
             'is_active': True
         }
     
@@ -1091,7 +1081,6 @@ class InteractionModelTest(TestCase):
         self.assertEqual(interaction.ip_address, '192.168.1.1')
         self.assertEqual(interaction.metadata['campaign'], 'summer2024')
         self.assertEqual(interaction.product, self.product)
-        self.assertEqual(interaction.jtbd_stage, 'job_awareness')
         self.assertTrue(interaction.is_active)
     
     def test_interaction_str_representation(self):
@@ -1110,29 +1099,14 @@ class InteractionModelTest(TestCase):
         expected_str = f"Interacción de {self.organization} en {self.touchpoint}"
         self.assertEqual(str(interaction), expected_str)
     
-    def test_interaction_jtbd_stage_choices(self):
-        """Test de validación de choices en jtbd_stage"""
-        valid_stages = [
-            'any', 'job_oblivious', 'job_awareness', 'job_research',
-            'job_decision', 'job_execution', 'job_solved', 'stage_unknown'
-        ]
-        
-        for stage in valid_stages:
-            interaction_data = self.interaction_data.copy()
-            interaction_data['jtbd_stage'] = stage
-            interaction_data['occurred_at'] = datetime.now(timezone.utc)
-            
-            interaction = Interaction.objects.create(**interaction_data)
-            self.assertEqual(interaction.jtbd_stage, stage)
-    
-    def test_interaction_invalid_jtbd_stage(self):
-        """Test de jtbd_stage inválido"""
+    def test_interaction_metadata_validation(self):
+        """Test de validación de metadata"""
         interaction_data = self.interaction_data.copy()
-        interaction_data['jtbd_stage'] = 'invalid_stage'
+        interaction_data['metadata'] = {'test': 'value', 'number': 123}
         
-        with self.assertRaises(ValidationError):
-            interaction = Interaction(**interaction_data)
-            interaction.full_clean()
+        interaction = Interaction.objects.create(**interaction_data)
+        self.assertEqual(interaction.metadata['test'], 'value')
+        self.assertEqual(interaction.metadata['number'], 123)
     
     def test_interaction_resolved_person_property(self):
         """Test de la propiedad resolved_person"""
@@ -1175,7 +1149,7 @@ class InteractionModelTest(TestCase):
         
         # Test con touchpoint sin channel
         touchpoint_no_channel = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             name='No Channel Touchpoint',
             code='NO_CHANNEL'
         )
@@ -1263,7 +1237,6 @@ class InteractionModelTest(TestCase):
         interaction = Interaction.objects.create()
         
         self.assertTrue(interaction.is_active)
-        self.assertEqual(interaction.jtbd_stage, 'any')
         self.assertIsNone(interaction.payload)
         self.assertIsNone(interaction.metadata)
         self.assertEqual(interaction.source, '')
@@ -1604,27 +1577,27 @@ class AgentAPITests(InteractionsAPITestCase):
         self.assertEqual(len(response.data['results']), 1)
 
 
-class TouchpointClassAPITests(InteractionsAPITestCase):
-    """Tests para la API de TouchpointClass"""
+class TouchpointTypeAPITests(InteractionsAPITestCase):
+    """Tests para la API de TouchpointType"""
     
     def setUp(self):
         super().setUp()
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name='Landing Page',
             code='LANDING',
             description='Landing page touchpoints'
         )
-        self.list_url = reverse('touchpointclass-list')
-        self.detail_url = reverse('touchpointclass-detail', kwargs={'pk': self.touchpoint_class.pk})
+        self.list_url = reverse('touchpointtype-list')
+        self.detail_url = reverse('touchpointtype-detail', kwargs={'pk': self.touchpoint_type.pk})
     
-    def test_list_touchpoint_classes(self):
-        """Test listar touchpoint classes"""
+    def test_list_touchpoint_types(self):
+        """Test listar touchpoint types"""
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
     
-    def test_create_touchpoint_class(self):
-        """Test crear touchpoint class"""
+    def test_create_touchpoint_type(self):
+        """Test crear touchpoint type"""
         data = {
             'name': 'Form',
             'code': 'FORM',
@@ -1639,9 +1612,20 @@ class TouchpointAPITests(InteractionsAPITestCase):
     
     def setUp(self):
         super().setUp()
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name='Web Page',
             code='WEB_PAGE'
+        )
+        
+        self.medium = Medium.objects.create(
+            name='Digital',
+            code='DIGITAL'
+        )
+        
+        self.channel = Channel.objects.create(
+            name='Website',
+            code='WEB',
+            source_type='owned'
         )
         
         self.product = Product.objects.create(
@@ -1650,12 +1634,14 @@ class TouchpointAPITests(InteractionsAPITestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
+            channel=self.channel,
+            medium=self.medium,
             name='Homepage',
             code='HOMEPAGE',
             description='Main website homepage',
             url='https://example.com',
-            funnel_stage='see',
+            content_type='brand',
             product=self.product,
             assigned_staff=self.user
         )
@@ -1672,11 +1658,13 @@ class TouchpointAPITests(InteractionsAPITestCase):
     def test_create_touchpoint(self):
         """Test crear touchpoint"""
         data = {
-            'touchpoint_class': self.touchpoint_class.id,
+            'touchpoint_type': self.touchpoint_type.id,
+            'channel': self.channel.id,
+            'medium': self.medium.id,
             'name': 'Contact Form',
             'code': 'CONTACT_FORM',
             'description': 'Contact form page',
-            'funnel_stage': 'do'
+            'content_type': 'brand'
         }
         response = self.client.post(self.list_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1705,25 +1693,24 @@ class TouchpointAPITests(InteractionsAPITestCase):
     
     def test_touchpoint_filtering(self):
         """Test filtrado de touchpoints"""
-        # Filtrar por funnel stage
-        response = self.client.get(self.list_url, {'funnel_stage': 'see'})
+        # Filtrar por content type
+        response = self.client.get(self.list_url, {'content_type': 'brand'})
         self.assertEqual(len(response.data['results']), 1)
         
-        # Filtrar por touchpoint class
-        response = self.client.get(self.list_url, {'touchpoint_class': self.touchpoint_class.id})
+        # Filtrar por touchpoint type
+        response = self.client.get(self.list_url, {'touchpoint_type': self.touchpoint_type.id})
         self.assertEqual(len(response.data['results']), 1)
         
         # Filtrar por staff asignado
         response = self.client.get(self.list_url, {'assigned_staff': self.user.id})
         self.assertEqual(len(response.data['results']), 1)
         
-        # Filtrar por channel (nuevo filtro)
-        medium = Medium.objects.create(name='Test Medium', code='TEST_MED')
-        channel = Channel.objects.create(name='Test Channel', code='TEST_CH', medium=medium)
-        self.touchpoint.channel = channel
-        self.touchpoint.save()
+        # Filtrar por channel
+        response = self.client.get(self.list_url, {'channel': self.channel.id})
+        self.assertEqual(len(response.data['results']), 1)
         
-        response = self.client.get(self.list_url, {'channel': channel.id})
+        # Filtrar por medium
+        response = self.client.get(self.list_url, {'medium': self.medium.id})
         self.assertEqual(len(response.data['results']), 1)
     
     def test_touchpoint_semantic_relationships(self):
@@ -1776,16 +1763,17 @@ class InteractionAPITests(InteractionsAPITestCase):
             name='Test Browser Agent'
         )
         
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             name='Web Page',
             code='WEB_PAGE'
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
+            channel=self.channel,
+            medium=self.medium,
             name='Homepage',
-            code='HOMEPAGE',
-            channel=self.channel  # Assign channel to touchpoint
+            code='HOMEPAGE'
         )
         
         # Crear persona para la interacción
@@ -1803,7 +1791,6 @@ class InteractionAPITests(InteractionsAPITestCase):
             agent=self.agent,
             representative=self.user,
             session_id='test_session_123',
-            jtbd_stage='job_awareness',
             duration_seconds=30,
             payload={'button': 'cta_main'}
         )
@@ -1826,7 +1813,6 @@ class InteractionAPITests(InteractionsAPITestCase):
             'agent': self.agent.id,
             'representative': self.user.id,
             'session_id': 'new_session_456',
-            'jtbd_stage': 'job_research',
             'duration_seconds': 45,
             'payload': {'page': 'about'}
         }
@@ -1837,8 +1823,8 @@ class InteractionAPITests(InteractionsAPITestCase):
     
     def test_interaction_filtering(self):
         """Test filtrado de interactions"""
-        # Filtrar por etapa JTBD
-        response = self.client.get(self.list_url, {'jtbd_stage': 'job_awareness'})
+        # Filtrar por session_id
+        response = self.client.get(self.list_url, {'session_id': 'test_session_123'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Verificar que la respuesta tenga el formato correcto
         if 'results' in response.data:
@@ -1902,7 +1888,7 @@ class InteractionsIntegrationTests(InteractionsAPITestCase):
         channel_data = {
             'name': 'Company Website',
             'code': 'COMPANY_WEB',
-            'medium': medium_id
+            'source_type': 'owned'
         }
         channel_response = self.client.post(
             reverse('channel-list'),
@@ -1951,25 +1937,26 @@ class InteractionsIntegrationTests(InteractionsAPITestCase):
         self.assertEqual(agent_response.status_code, status.HTTP_201_CREATED)
         agent_id = agent_response.data['id']
         
-        # 5. Crear touchpoint class y touchpoint
-        touchpoint_class_data = {
+        # 5. Crear touchpoint type y touchpoint
+        touchpoint_type_data = {
             'name': 'Website Page',
             'code': 'WEB_PAGE'
         }
-        touchpoint_class_response = self.client.post(
-            reverse('touchpointclass-list'),
-            touchpoint_class_data,
+        touchpoint_type_response = self.client.post(
+            reverse('touchpointtype-list'),
+            touchpoint_type_data,
             format='json'
         )
-        self.assertEqual(touchpoint_class_response.status_code, status.HTTP_201_CREATED)
-        touchpoint_class_id = touchpoint_class_response.data['id']
+        self.assertEqual(touchpoint_type_response.status_code, status.HTTP_201_CREATED)
+        touchpoint_type_id = touchpoint_type_response.data['id']
         
         touchpoint_data = {
-            'touchpoint_class': touchpoint_class_id,
+            'touchpoint_type': touchpoint_type_id,
+            'channel': channel_id,
+            'medium': medium_id,
             'name': 'Home Page',
             'code': 'HOME_PAGE',
-            'funnel_stage': 'see',
-            'channel': channel_id  # Assign channel to touchpoint
+            'content_type': 'brand'
         }
         touchpoint_response = self.client.post(
             reverse('touchpoint-list'),
@@ -1994,7 +1981,6 @@ class InteractionsIntegrationTests(InteractionsAPITestCase):
             'action': action_id,
             'agent': agent_id,
             'session_id': 'integration_test_session',
-            'jtbd_stage': 'job_awareness',
             'duration_seconds': 60,
             'payload': {'test': 'integration'}
         }
@@ -2037,7 +2023,7 @@ class InteractionsIntegrationTests(InteractionsAPITestCase):
             'actiontype-choices',
             'action-choices',
             'agent-choices',
-            'touchpointclass-choices',
+            'touchpointtype-choices',
             'touchpoint-choices'
         ]
         
@@ -2061,7 +2047,7 @@ class InteractionsPerformanceTests(InteractionsAPITestCase):
             channel = Channel.objects.create(
                 name=f'Channel {i}',
                 code=f'CH_{i}',
-                medium=medium
+                source_type='owned'
             )
             channels.append(channel)
         
@@ -2073,25 +2059,30 @@ class InteractionsPerformanceTests(InteractionsAPITestCase):
     def test_complex_filtering_performance(self):
         """Test performance de filtros complejos"""
         # Crear datos de prueba
-        touchpoint_class = TouchpointClass.objects.create(
-            name='Perf Test Class',
-            code='PERF_CLASS'
+        touchpoint_type = TouchpointType.objects.create(
+            name='Perf Test Type',
+            code='PERF_TYPE'
         )
+        
+        medium = Medium.objects.create(name='Perf Medium', code='PERF_MED')
+        channel = Channel.objects.create(name='Perf Channel', code='PERF_CH', source_type='owned')
         
         # Crear múltiples touchpoints con relaciones semánticas
         for i in range(20):
             touchpoint = Touchpoint.objects.create(
-                touchpoint_class=touchpoint_class,
+                touchpoint_type=touchpoint_type,
+                channel=channel,
+                medium=medium,
                 name=f'Touchpoint {i}',
                 code=f'TP_{i}',
-                funnel_stage='see'
+                content_type='brand'
             )
             touchpoint.related_industries.add(self.industry)
         
         # Test filtros múltiples
         response = self.client.get(reverse('touchpoint-list'), {
-            'funnel_stage': 'see',
-            'touchpoint_class': touchpoint_class.id,
+            'content_type': 'brand',
+            'touchpoint_type': touchpoint_type.id,
             'related_industries': self.industry.id
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2121,16 +2112,21 @@ class InteractionsValidationTests(InteractionsAPITestCase):
     
     def test_touchpoint_validation(self):
         """Test validaciones de Touchpoint"""
-        touchpoint_class = TouchpointClass.objects.create(
-            name='Test Class',
-            code='TEST_CLASS'
+        touchpoint_type = TouchpointType.objects.create(
+            name='Test Type',
+            code='TEST_TYPE'
         )
         
-        # Test funnel_stage inválido
+        medium = Medium.objects.create(name='Test Medium', code='TEST_MED')
+        channel = Channel.objects.create(name='Test Channel', code='TEST_CH', source_type='owned')
+        
+        # Test content_type inválido
         invalid_data = {
-            'touchpoint_class': touchpoint_class.id,
+            'touchpoint_type': touchpoint_type.id,
+            'channel': channel.id,
+            'medium': medium.id,
             'name': 'Invalid Touchpoint',
-            'funnel_stage': 'invalid_stage'
+            'content_type': 'invalid_content_type'
         }
         response = self.client.post(
             reverse('touchpoint-list'),
@@ -2141,14 +2137,13 @@ class InteractionsValidationTests(InteractionsAPITestCase):
     
     def test_interaction_validation(self):
         """Test validaciones de Interaction"""
-        # Test jtbd_stage inválido
+        # Test session_id inválido (muy largo)
         action_type = ActionType.objects.create(name='Test Action Type', code='TEST_AT')
         action = Action.objects.create(name='Test Action', code='TEST_A', action_type=action_type)
         
         invalid_data = {
             'action': action.id,
-            'session_id': 'test_session',
-            'jtbd_stage': 'invalid_stage'
+            'session_id': 'x' * 101,  # Más de 100 caracteres
         }
         response = self.client.post(
             reverse('interaction-list'),
