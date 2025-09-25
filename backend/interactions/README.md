@@ -63,11 +63,6 @@ class Medium(models.Model):
         ('real_time', 'Tiempo Real'),
         ('batch', 'Por Lotes')
     ], default='asynchronous')
-    
-    # NEW: Interaction capabilities
-    supports_interaction = models.BooleanField(default=True)
-    supports_feedback = models.BooleanField(default=True)
-    supports_tracking = models.BooleanField(default=True)
 ```
 
 **Propósito**: Los mediums especifican **cómo se comunica cada touchpoint** individual. Cada touchpoint tiene exactamente un medium que define su método de comunicación.
@@ -156,33 +151,6 @@ class TouchpointType(models.Model):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     
-    # NEW: Strategic classification
-    strategic_purpose = models.CharField(choices=[
-        ('acquisition', 'Adquisición de Clientes'),
-        ('engagement', 'Compromiso del Cliente'),
-        ('conversion', 'Optimización de Conversión'),
-        ('retention', 'Retención de Clientes'),
-        ('advocacy', 'Defensa del Cliente'),
-        ('support', 'Soporte al Cliente')
-    ], default='acquisition')
-    
-    # NEW: Journey stage mapping
-    journey_stage = models.CharField(choices=[
-        ('awareness', 'Etapa de Conciencia'),
-        ('consideration', 'Etapa de Consideración'),
-        ('decision', 'Etapa de Decisión'),
-        ('onboarding', 'Etapa de Incorporación'),
-        ('usage', 'Etapa de Uso'),
-        ('advocacy', 'Etapa de Defensa')
-    ], default='awareness')
-    
-    # NEW: Performance expectations
-    expected_engagement_level = models.CharField(choices=[
-        ('low', 'Bajo Compromiso'),
-        ('medium', 'Compromiso Medio'),
-        ('high', 'Alto Compromiso'),
-        ('critical', 'Punto Crítico')
-    ], default='medium')
 ```
 
 **Propósito**: Los TouchpointTypes clasifican **qué tipo funcional** es cada touchpoint y **qué propósito estratégico** cumple en el customer journey.
@@ -308,9 +276,7 @@ web_form_medium = Medium.objects.create(
 # TouchpointType: Tipo funcional
 web_form_type = TouchpointType.objects.create(
     name='Web Form',
-    code='web_form',
-    strategic_purpose='acquisition',
-    journey_stage='consideration'
+    code='web_form'
 )
 
 # Touchpoint: Instancia específica
@@ -342,9 +308,7 @@ search_results_medium = Medium.objects.create(
 # TouchpointType: Tipo funcional
 search_result_type = TouchpointType.objects.create(
     name='Search Result Item',
-    code='search_result_item',
-    strategic_purpose='acquisition',
-    journey_stage='awareness'
+    code='search_result_item'
 )
 
 # Touchpoint: Instancia específica
@@ -376,9 +340,7 @@ social_feed_medium = Medium.objects.create(
 # TouchpointType: Tipo funcional
 social_ad_type = TouchpointType.objects.create(
     name='Social Ad',
-    code='social_ad',
-    strategic_purpose='acquisition',
-    journey_stage='awareness'
+    code='social_ad'
 )
 
 # Touchpoint: Instancia específica

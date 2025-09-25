@@ -83,6 +83,21 @@ class Medium(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True)
+    
+    # NEW: Communication characteristics
+    COMMUNICATION_TYPE_CHOICES = [
+        ('synchronous', 'Comunicación Síncrona'),
+        ('asynchronous', 'Comunicación Asíncrona'),
+        ('real_time', 'Tiempo Real'),
+        ('batch', 'Por Lotes')
+    ]
+    communication_type = models.CharField(
+        max_length=20,
+        choices=COMMUNICATION_TYPE_CHOICES,
+        default='asynchronous',
+        help_text="Tipo de comunicación que soporta este medium"
+    )
+    
 
     class Meta:
         ordering = ['name']
@@ -90,6 +105,7 @@ class Medium(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['is_active']),
             models.Index(fields=['code']),
             models.Index(fields=['name']),
+            models.Index(fields=['communication_type']),
         ]
 
     def __str__(self):
@@ -100,7 +116,23 @@ class Channel(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=30, unique=True)
     description = models.TextField(blank=True)
-    medium = models.ForeignKey(Medium, on_delete=models.SET_NULL, null=True, blank=True, related_name="channels")
+    
+    # REMOVED: medium = models.ForeignKey(Medium, ...)  # ← REMOVED - Medium ahora está en Touchpoint
+    
+    # NEW: Source classification
+    SOURCE_TYPE_CHOICES = [
+        ('external', 'Fuente Externa'),
+        ('owned', 'Propiedad Propia'),
+        ('direct', 'Tráfico Directo'),
+        ('unknown', 'Fuente Desconocida')
+    ]
+    source_type = models.CharField(
+        max_length=20,
+        choices=SOURCE_TYPE_CHOICES,
+        default='external',
+        help_text="Tipo de fuente de tráfico"
+    )
+    
 
     class Meta:
         ordering = ['name']
@@ -108,7 +140,7 @@ class Channel(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['is_active']),
             models.Index(fields=['code']),
             models.Index(fields=['name']),
-            models.Index(fields=['medium']),
+            models.Index(fields=['source_type']),
         ]
 
     def __str__(self):
@@ -150,10 +182,11 @@ class Action(BaseUUIDModelWithActiveStatus):
         return self.name
 
 
-class TouchpointClass(BaseUUIDModelWithActiveStatus):
+class TouchpointType(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=30, unique=True)
     description = models.TextField(blank=True)
+    
 
     class Meta:
         ordering = ['name']
@@ -168,7 +201,23 @@ class TouchpointClass(BaseUUIDModelWithActiveStatus):
 
 
 class Touchpoint(BaseUUIDModelWithActiveStatus):
-    touchpoint_class = models.ForeignKey(TouchpointClass, on_delete=models.SET_NULL, null=True, blank=True, related_name='touchpoints')
+    # NEW: Three-dimensional classification
+    channel = models.ForeignKey(
+        Channel, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='touchpoints',
+        help_text="Canal de tráfico (DÓNDE vino la interacción)"
+    )
+    medium = models.ForeignKey(
+        Medium, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='touchpoints',
+        help_text="Método de comunicación (CÓMO se comunica)"
+    )
+    touchpoint_type = models.ForeignKey(
+        TouchpointType, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='touchpoints',
+        help_text="Tipo funcional (QUÉ tipo de touchpoint)"
+    )
+    
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=100, blank=True, unique=True)
     description = models.TextField(blank=True)
@@ -178,12 +227,6 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         'auth.User', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='assigned_touchpoints',
         help_text="Miembro del equipo responsable de este punto de contacto"
-    )
-
-    channel = models.ForeignKey(
-        Channel, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='touchpoints',
-        help_text="Canal al que pertenece este punto de contacto"
     )
 
     # Content type choices for strategic communication classification
@@ -220,10 +263,15 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         ordering = ['name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['touchpoint_class']),
+            models.Index(fields=['touchpoint_type']),  # Updated from touchpoint_class
             models.Index(fields=['code']),
             models.Index(fields=['name']),
             models.Index(fields=['channel']),
+            models.Index(fields=['medium']),  # NEW: Medium index
+            # NEW: Composite indexes for three-dimensional analysis
+            models.Index(fields=['channel', 'medium']),
+            models.Index(fields=['medium', 'touchpoint_type']),
+            models.Index(fields=['channel', 'touchpoint_type']),
         ]
 
     def __str__(self):
