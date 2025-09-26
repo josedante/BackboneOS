@@ -576,3 +576,221 @@ class ThreeDimensionalIntegrationTestCase(ThreeDimensionalClassificationTestCase
         
         channel_code = self.resolver._determine_channel_from_subject(hint)
         self.assertEqual(channel_code, 'esan.edu.pe')  # website_url should win
+
+
+class GoogleSearchScenarioTestCase(TestCase):
+    """Test case for the Google search scenario from the examples."""
+    
+    def setUp(self):
+        """Set up test data for Google search scenario."""
+        # Create test organization and division
+        self.organization = OurOrganization.objects.create(
+            name="ESAN University"
+        )
+        self.division = Division.objects.create(
+            name="Academic Division",
+            code="ACADEMIC",
+            organization=self.organization
+        )
+        
+        # Create test website
+        self.website = Website.objects.create(
+            name="ESAN University Website",
+            base_url="https://esan.edu.pe",
+            division=self.division
+        )
+        
+        # Create test product
+        self.product = Product.objects.create(
+            name="MBA Program",
+            code="MBA_PROGRAM"
+        )
+        
+        # Create test agent and action
+        self.agent = Agent.objects.create(
+            agent_type="browser",
+            name="Test User",
+            identifier="test_user_123"
+        )
+        self.action = Action.objects.create(
+            code="no_action",
+            name="Sin Acción",
+            description="Evento inferido o acción realizada hacia el usuario"
+        )
+        self.interaction = Interaction.objects.create(
+            action=self.action,
+            agent=self.agent
+        )
+        
+        # Create mapping provider and resolver
+        self.mapping_provider = WebMappingProvider()
+        self.resolver = WebTouchpointResolver(self.mapping_provider)
+    
+    def test_google_search_page_view_scenario(self):
+        """Test the Google search page view scenario from the examples."""
+        
+        # Create WebInteraction for the scenario
+        # Note: For organic Google search, UTM parameters would typically be empty
+        web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
+            website=self.website,
+            session_id="sess_abc123",
+            visitor_cookie="visitor_xyz789",
+            user_agent="Mozilla/5.0...",
+            utm_source="",  # Empty for organic search
+            utm_medium="",  # Empty for organic search
+            utm_campaign="",  # Empty for organic search
+            payload={
+                "page_title": "MBA Programs - ESAN University",
+                "page_description": "Comprehensive MBA programs designed for working professionals",
+                "page_category": "academic_programs"
+            }
+        )
+        
+        # Test Page View Interaction
+        print("\n=== Testing Page View Interaction ===")
+        
+        # Create hint for page view
+        page_view_hint = TouchpointHint(
+            code="web_page.mba_programs_esan_university",
+            metadata={
+                "website_url": "https://esan.edu.pe/programs/mba",
+                "page_title": "MBA Programs - ESAN University",
+                "page_description": "Comprehensive MBA programs designed for working professionals",
+                "event_type": "page_view"
+            }
+        )
+        
+        # Test channel determination
+        channel_code = self.resolver._determine_channel_from_subject(page_view_hint)
+        print(f"Page View Channel: {channel_code}")
+        self.assertEqual(channel_code, "esan.edu.pe")
+        
+        # Test medium determination
+        medium_code = self.resolver._determine_medium_from_subject(page_view_hint)
+        print(f"Page View Medium: {medium_code}")
+        self.assertEqual(medium_code, "owned_website")
+        
+        # Test touchpoint type determination
+        touchpoint_type_code = self.resolver._get_enhanced_touchpoint_class_code(page_view_hint)
+        print(f"Page View TouchpointType: {touchpoint_type_code}")
+        self.assertEqual(touchpoint_type_code, "web_page")
+        
+        # Test referrer click interaction
+        print("\n=== Testing Referrer Click Interaction ===")
+        
+        referrer_hint = TouchpointHint(
+            code="web.referrer_page.google_search",
+            metadata={
+                "referrer_url": "https://google.com/search?q=mba+programs+peru",
+                "event_type": "referrer_click"
+            }
+        )
+        
+        # Test channel determination for referrer
+        referrer_channel = self.resolver._determine_channel_from_subject(referrer_hint)
+        print(f"Referrer Channel: {referrer_channel}")
+        self.assertEqual(referrer_channel, "google.com")
+        
+        # Test medium determination for referrer
+        referrer_medium = self.resolver._determine_medium_from_subject(referrer_hint)
+        print(f"Referrer Medium: {referrer_medium}")
+        self.assertEqual(referrer_medium, "organic_search")
+        
+        # Test touchpoint type for referrer
+        referrer_touchpoint_type = self.resolver._get_enhanced_touchpoint_class_code(referrer_hint)
+        print(f"Referrer TouchpointType: {referrer_touchpoint_type}")
+        self.assertEqual(referrer_touchpoint_type, "search_results")
+        
+        print("\n=== Expected Results ===")
+        print("1. Page View Interaction:")
+        print("   - Channel: esan.edu.pe")
+        print("   - Medium: owned_website")
+        print("   - TouchpointType: web_page")
+        print("2. Referrer Click Interaction:")
+        print("   - Channel: google")
+        print("   - Medium: organic_search")
+        print("   - TouchpointType: search_results")
+        print("3. Session Start Interaction:")
+        print("   - Channel: esan.edu.pe")
+        print("   - Medium: owned_website")
+        print("   - TouchpointType: web_page")
+    
+    def test_utm_precedence_scenario(self):
+        """Test that UTM parameters take precedence over referrer analysis."""
+        
+        # Create WebInteraction with UTM parameters (paid campaign scenario)
+        web_interaction = WebInteraction.objects.create(
+            interaction=self.interaction,
+            website=self.website,
+            session_id="sess_utm123",
+            visitor_cookie="visitor_utm789",
+            user_agent="Mozilla/5.0...",
+            utm_source="google",  # UTM parameters present
+            utm_medium="cpc",     # Cost per click (paid)
+            utm_campaign="mba_paid_search",
+            payload={
+                "page_title": "MBA Programs - ESAN University",
+                "page_description": "Comprehensive MBA programs designed for working professionals",
+                "page_category": "academic_programs"
+            }
+        )
+        
+        # Test Page View Interaction with UTM precedence
+        print("\n=== Testing UTM Precedence Scenario ===")
+        
+        # Create hint for page view with UTM parameters
+        page_view_hint = TouchpointHint(
+            code="web_page.mba_programs_esan_university",
+            metadata={
+                "website_url": "https://esan.edu.pe/programs/mba",
+                "page_title": "MBA Programs - ESAN University",
+                "page_description": "Comprehensive MBA programs designed for working professionals",
+                "event_type": "page_view",
+                "utm_source": "google",  # UTM source should take precedence for channel
+                "utm_medium": "cpc"      # UTM medium should take precedence for medium
+            }
+        )
+        
+        # Test channel determination (should use UTM source, not website URL)
+        channel_code = self.resolver._determine_channel_from_subject(page_view_hint)
+        print(f"Page View Channel (with UTM): {channel_code}")
+        self.assertEqual(channel_code, "google")  # UTM source for paid traffic
+        
+        # Test medium determination (should use UTM, not owned_website)
+        medium_code = self.resolver._determine_medium_from_subject(page_view_hint)
+        print(f"Page View Medium (with UTM): {medium_code}")
+        self.assertEqual(medium_code, "cpc")  # UTM should take precedence
+        
+        # Test referrer click with UTM precedence
+        print("\n=== Testing Referrer Click with UTM Precedence ===")
+        
+        referrer_hint = TouchpointHint(
+            code="web.referrer_page.google_search",
+            metadata={
+                "referrer_url": "https://google.com/search?q=mba+programs+peru",
+                "event_type": "referrer_click",
+                "utm_source": "google",  # UTM source should take precedence for channel
+                "utm_medium": "cpc"      # UTM medium should take precedence for medium
+            }
+        )
+        
+        # Test channel determination for referrer (should use UTM source, not referrer URL)
+        referrer_channel = self.resolver._determine_channel_from_subject(referrer_hint)
+        print(f"Referrer Channel (with UTM): {referrer_channel}")
+        self.assertEqual(referrer_channel, "google")  # UTM source for paid traffic
+        
+        # Test medium determination for referrer (should use UTM)
+        referrer_medium = self.resolver._determine_medium_from_subject(referrer_hint)
+        print(f"Referrer Medium (with UTM): {referrer_medium}")
+        self.assertEqual(referrer_medium, "cpc")  # UTM should take precedence
+        
+        print("\n=== Expected Results (UTM Precedence) ===")
+        print("1. Page View Interaction:")
+        print("   - Channel: google (UTM source for paid traffic)")
+        print("   - Medium: cpc (UTM medium takes precedence)")
+        print("   - TouchpointType: web_page")
+        print("2. Referrer Click Interaction:")
+        print("   - Channel: google (UTM source for paid traffic)")
+        print("   - Medium: cpc (UTM medium takes precedence)")
+        print("   - TouchpointType: search_results")

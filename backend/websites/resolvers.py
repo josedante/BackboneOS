@@ -773,6 +773,12 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         Returns:
             str: The channel code
         """
+        # Check UTM source first (highest precedence)
+        if hint.metadata and 'utm_source' in hint.metadata:
+            utm_source = hint.metadata['utm_source']
+            if utm_source:
+                return utm_source.lower()
+        
         # Check if there's a website URL in metadata (where the interaction happened)
         if hint.metadata and 'website_url' in hint.metadata:
             website_url = hint.metadata['website_url']
@@ -805,6 +811,16 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 if domain:
                     return domain.replace('www.', '').lower()
         
+        # Check if there's a referrer URL in metadata (for referrer click interactions)
+        if hint.metadata and 'referrer_url' in hint.metadata:
+            referrer_url = hint.metadata['referrer_url']
+            if referrer_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(referrer_url)
+                domain = parsed.netloc
+                if domain:
+                    return domain.replace('www.', '').lower()
+        
         # Default to web channel for web interactions
         return 'web'
     
@@ -824,6 +840,13 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
             if utm_medium:
                 return utm_medium.lower()
         
+        # Check if this is a page view on our own website
+        if hint.metadata and 'website_url' in hint.metadata:
+            website_url = hint.metadata['website_url']
+            if website_url:
+                # This is a page view on our own website
+                return 'owned_website'
+        
         # Check referrer for medium inference
         if hint.metadata and 'referrer_url' in hint.metadata:
             referrer_url = hint.metadata['referrer_url']
@@ -834,12 +857,12 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
                 
                 # Map common domains to mediums
                 if 'google' in domain:
-                    return 'organic'
+                    return 'organic_search'
                 elif any(social in domain for social in ['facebook', 'twitter', 'linkedin', 'instagram']):
-                    return 'social'
+                    return 'social_media'
                 elif 'mail' in domain or 'email' in domain:
                     return 'email'
-                else:
+            else:
                     return 'referral'
         
         # Default to direct
@@ -868,6 +891,15 @@ class WebTouchpointResolver(DefaultTouchpointResolver):
         # Check event type from hint
         event_type = hint.metadata.get('event_type', '') if hint.metadata else ''
         code = hint.code or ''
+        
+        # Check for referrer click interactions
+        if 'referrer_click' in event_type.lower() or 'referrer_click' in code.lower():
+            # Check if it's a Google search referrer
+            if hint.metadata and 'referrer_url' in hint.metadata:
+                referrer_url = hint.metadata['referrer_url']
+                if 'google' in referrer_url.lower():
+                    return 'search_results'
+            return 'web_page'  # Default for referrer clicks
         
         # Map to web-specific touchpoint types (avoiding overlap with action field)
         if 'page_view' in event_type.lower() or 'page_view' in code.lower():
