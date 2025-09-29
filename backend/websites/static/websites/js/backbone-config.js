@@ -7,7 +7,7 @@
 
 window.BackboneConfig = {
     // API Configuration
-    apiEndpoint: '/api/websites/events/page-view/',
+    apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
     
     // Session Configuration
     sessionTimeout: 30 * 60 * 1000, // 30 minutes in milliseconds

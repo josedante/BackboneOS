@@ -7,9 +7,6 @@
 Add this code to your website's `<head>` section:
 
 ```html
-<!-- Add CSRF token for Django -->
-<meta name="csrf-token" content="{{ csrf_token }}">
-
 <!-- Load BackboneOS tracking script -->
 <script src="https://your-backboneos-domain.com/static/websites/js/backbone-tracker.min.js"></script>
 ```
@@ -20,7 +17,7 @@ Add this code to your website's `<head>` section:
 <!-- Configure tracking before loading script -->
 <script>
 window.BackboneConfig = {
-    apiEndpoint: '/api/websites/events/page-view/',
+    apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
     sessionTimeout: 30 * 60 * 1000, // 30 minutes
     engagementThreshold: 30 * 1000, // 30 seconds
     scrollThreshold: 50, // 50% scroll depth
@@ -117,8 +114,8 @@ if (sessionId) {
 
 ```javascript
 window.BackboneConfig = {
-    // API endpoint
-    apiEndpoint: '/api/websites/events/page-view/',
+    // API endpoint (full URL for cross-domain requests)
+    apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
     
     // Session settings
     sessionTimeout: 30 * 60 * 1000, // 30 minutes

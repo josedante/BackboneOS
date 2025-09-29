@@ -39,6 +39,68 @@ The BackboneOS Website Tracking Script is a comprehensive JavaScript solution fo
 <script src="https://your-backboneos-domain.com/static/websites/js/backbone-tracker.min.js"></script>
 ```
 
+**Note:** Replace `your-backboneos-domain.com` with your actual BackboneOS domain.
+
+### Cross-Domain Setup
+
+Since the tracking script runs on external websites, you need to configure CORS (Cross-Origin Resource Sharing) on your BackboneOS server:
+
+#### 1. Django CORS Configuration
+
+Add to your Django settings:
+
+```python
+# settings.py
+CORS_ALLOWED_ORIGINS = [
+    "https://example.com",
+    "https://www.example.com",
+    "https://your-client-domain.com",
+    # Add all domains that will use the tracking script
+]
+
+# Or allow all origins (not recommended for production)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Allow credentials for session tracking
+CORS_ALLOW_CREDENTIALS = True
+
+# Allowed headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+```
+
+#### 2. API Endpoint Configuration
+
+Make sure your API endpoint accepts cross-domain requests:
+
+```python
+# views.py
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+import json
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def page_view_event(request):
+    try:
+        data = json.loads(request.body)
+        # Process the event data
+        # ... your processing logic ...
+        return JsonResponse({"status": "success", "message": "Event processed"})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+```
+
 ### Option 2: Inline Script
 
 ```html
@@ -64,7 +126,7 @@ The BackboneOS Website Tracking Script is a comprehensive JavaScript solution fo
 <script>
 // Configure before loading the script
 window.BackboneConfig = {
-    apiEndpoint: '/api/websites/events/page-view/',
+    apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
     sessionTimeout: 30 * 60 * 1000, // 30 minutes
     engagementThreshold: 30 * 1000, // 30 seconds
     scrollThreshold: 50, // 50% scroll depth
