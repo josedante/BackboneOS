@@ -6,8 +6,6 @@ For a single **Page View Event**, we create **up to 3 separate WebInteraction in
 
 **✅ IMPLEMENTED**: This approach is fully functional in the current codebase.
 
----
-
 ## 🎯 Three Interaction Types
 
 ### **1. Page View Interaction**
@@ -28,117 +26,195 @@ For a single **Page View Event**, we create **up to 3 separate WebInteraction in
 - **Touchpoint**: Viewed page touchpoint (as landing page)
 - **Conditionally Created**: Only if new session criteria are met
 
----
+## 🏗️ Implementation Architecture
 
-## 🔧 Implementation
-
-### **Current Implementation**:
-
-The multi-interaction approach is implemented through:
-
-1. **`PageViewEventProcessor`** class in `processors.py`
-2. **`WebInteraction.process_page_view_event()`** class method in `models.py`
-3. **Server-side session inference logic** for determining new sessions
-
-### **Key Components**:
+### **PageViewEventProcessor**
+The `PageViewEventProcessor` class implements the multi-interaction approach:
 
 ```python
-# Usage: Process a page view event
-interactions = WebInteraction.process_page_view_event(event_data)
-
-# This creates up to 3 WebInteraction instances:
-# 1. Page View Interaction (always)
-# 2. Referrer Click Interaction (if external referrer)
-# 3. Session Start Interaction (if new session)
+class PageViewEventProcessor(BaseWebEventProcessor):
+    def process_page_view_event(self, event_data: dict) -> list:
+        """
+        Process a page view event and create up to 3 interactions:
+        1. Page View Interaction
+        2. Referrer Click Interaction (if external referrer exists)
+        3. Session Start Interaction (if new session)
+        """
+        interactions = []
+        
+        # 1. Always create Page View Interaction
+        page_view_interaction = self._create_page_view_interaction(event_data)
+        interactions.append(page_view_interaction)
+        
+        # 2. Create Referrer Click Interaction if external referrer exists
+        if self._has_external_referrer(event_data):
+            referrer_interaction = self._create_referrer_click_interaction(event_data)
+            interactions.append(referrer_interaction)
+        
+        # 3. Create Session Start Interaction if new session
+        if self._is_new_session(event_data):
+            session_interaction = self._create_session_start_interaction(event_data)
+            interactions.append(session_interaction)
+        
+        return interactions
 ```
 
----
+### **Business Logic**
+
+#### **Page View Interaction**
+- **Always created** for every page view event
+- **Touchpoint**: The page being viewed
+- **Channel**: Website domain where interaction occurred
+- **Medium**: Determined from UTM parameters or referrer analysis
+- **TouchpointType**: `web_page`
+
+#### **Referrer Click Interaction**
+- **Conditionally created** only if external referrer exists
+- **Touchpoint**: The referrer page (e.g., Google search results)
+- **Channel**: Referrer domain (e.g., `google.com`)
+- **Medium**: Determined from referrer analysis (e.g., `organic_search`)
+- **TouchpointType**: `search_results` for search engines, `web_page` for others
+
+#### **Session Start Interaction**
+- **Conditionally created** only if new session criteria are met
+- **Touchpoint**: The landing page (same as page view)
+- **Channel**: Website domain where interaction occurred
+- **Medium**: Same as page view interaction
+- **TouchpointType**: `web_page`
 
 ## 📊 Example Scenarios
 
-### **Scenario 1: New Visitor with External Referrer**
+### **Scenario 1: New Visitor from Google Search**
+```python
+# Input Event
+{
+    "event_type": "page_view",
+    "website_url": "https://esan.edu.pe/programs/mba",
+    "referrer_url": "https://google.com/search?q=mba+programs+peru",
+    "session_id": "sess_abc123",
+    "visitor_cookie": "visitor_xyz789"
+}
 
-**Page View Event**: New visitor comes from Google search to `/programs/mba`
+# Expected Output: 3 Interactions Created
+[
+    {
+        "type": "Page View Interaction",
+        "action": "no_action",
+        "touchpoint": "web_page.mba_programs_esan_university",
+        "channel": "esan.edu.pe",
+        "medium": "owned_website",
+        "touchpoint_type": "web_page"
+    },
+    {
+        "type": "Referrer Click Interaction", 
+        "action": "external_click",
+        "touchpoint": "web.referrer_page.google_search",
+        "channel": "google.com",
+        "medium": "organic_search",
+        "touchpoint_type": "search_results"
+    },
+    {
+        "type": "Session Start Interaction",
+        "action": "no_action", 
+        "touchpoint": "web_page.mba_programs_esan_university",
+        "channel": "esan.edu.pe",
+        "medium": "owned_website",
+        "touchpoint_type": "web_page"
+    }
+]
+```
 
-**3 Interactions Created**:
+### **Scenario 2: Paid Google Campaign**
+```python
+# Input Event
+{
+    "event_type": "page_view",
+    "website_url": "https://esan.edu.pe/programs/mba",
+    "referrer_url": "https://google.com/search?q=mba+programs+peru",
+    "utm_source": "google",
+    "utm_medium": "cpc",
+    "utm_campaign": "mba_search"
+}
 
-1. **Page View Interaction**:
-   - **Action**: `no_action`
-   - **Touchpoint**: `web.page_view.mba_programs_esan_university`
-   - **Purpose**: Track page being viewed
+# Expected Output: 3 Interactions Created
+[
+    {
+        "type": "Page View Interaction",
+        "action": "no_action",
+        "touchpoint": "web_page.mba_programs_esan_university",
+        "channel": "google",  # UTM source takes precedence
+        "medium": "cpc",      # UTM medium takes precedence
+        "touchpoint_type": "web_page"
+    },
+    {
+        "type": "Referrer Click Interaction",
+        "action": "external_click", 
+        "touchpoint": "web.referrer_page.google_search",
+        "channel": "google",  # UTM source takes precedence
+        "medium": "cpc",      # UTM medium takes precedence
+        "touchpoint_type": "search_results"
+    },
+    {
+        "type": "Session Start Interaction",
+        "action": "no_action",
+        "touchpoint": "web_page.mba_programs_esan_university", 
+        "channel": "google",  # UTM source takes precedence
+        "medium": "cpc",      # UTM medium takes precedence
+        "touchpoint_type": "web_page"
+    }
+]
+```
 
-2. **Referrer Click Interaction**:
-   - **Action**: `external_click`
-   - **Touchpoint**: `web.referrer_page.google_search`
-   - **Purpose**: Track click from Google
+## 🎯 Benefits
 
-3. **Session Start Interaction**:
-   - **Action**: `no_action`
-   - **Touchpoint**: `web.page_view.mba_programs_esan_university` (landing page)
-   - **Purpose**: Track new session beginning
+### **Complete Attribution Tracking**
+- **Page View**: Tracks what page was viewed
+- **Referrer Click**: Tracks how the visitor arrived
+- **Session Start**: Tracks the beginning of new sessions
 
-### **Scenario 2: Returning Visitor with External Referrer**
+### **Marketing Analytics**
+- **Traffic Source Analysis**: Clear understanding of how visitors arrive
+- **Session Tracking**: Better understanding of user behavior
+- **Attribution**: Complete attribution chain from source to conversion
 
-**Page View Event**: Returning visitor comes from Facebook to `/contact`
+### **Customer Journey**
+- **Complete Journey**: Full picture of user's path to conversion
+- **Touchpoint Analysis**: Understanding of all touchpoints in the journey
+- **Behavioral Insights**: Better understanding of user behavior patterns
 
-**2 Interactions Created**:
+## 🔧 Technical Implementation
 
-1. **Page View Interaction**:
-   - **Action**: `no_action`
-   - **Touchpoint**: `web.page_view.contact_us`
-   - **Purpose**: Track page being viewed
+### **Event Processing Flow**
+1. **Event Received**: Page view event arrives at the processor
+2. **Analysis**: Processor analyzes event data for referrer and session information
+3. **Interaction Creation**: Up to 3 interactions are created based on analysis
+4. **Touchpoint Resolution**: Each interaction gets its touchpoint resolved automatically
+5. **Storage**: All interactions are stored in the database
 
-2. **Referrer Click Interaction**:
-   - **Action**: `external_click`
-   - **Touchpoint**: `web.referrer_page.facebook_post`
-   - **Purpose**: Track click from Facebook
+### **Conditional Logic**
+- **Referrer Click**: Only created if external referrer exists
+- **Session Start**: Only created if new session criteria are met
+- **Page View**: Always created for every page view event
 
-3. **Session Start Interaction**: Not created (not a new session)
+### **Performance Considerations**
+- **Efficient Processing**: Minimal overhead for conditional interaction creation
+- **Database Optimization**: Efficient storage and retrieval of multiple interactions
+- **Caching**: Touchpoint resolution is cached for performance
 
-### **Scenario 3: Direct Traffic (No Referrer)**
+## 🧪 Testing
 
-**Page View Event**: User types URL directly to `/`
+### **Test Coverage**
+- **Multi-interaction creation**: Tests for all three interaction types
+- **Conditional logic**: Tests for referrer and session conditions
+- **Touchpoint resolution**: Tests for automatic touchpoint assignment
+- **Edge cases**: Tests for various event scenarios
 
-**1-2 Interactions Created**:
-
-1. **Page View Interaction**:
-   - **Action**: `no_action`
-   - **Touchpoint**: `web.page_view.homepage`
-   - **Purpose**: Track page being viewed
-
-2. **Referrer Click Interaction**: Not created (no external referrer)
-
-3. **Session Start Interaction**: Created if new session criteria met
+### **Test Scenarios**
+- **New visitor**: All three interactions created
+- **Returning visitor**: Only page view interaction created
+- **No referrer**: Only page view and session start interactions
+- **UTM parameters**: UTM precedence over referrer analysis
 
 ---
 
-## 🎯 Business Benefits
-
-### **Complete Attribution**:
-- **Source Tracking**: Know exactly where visitors came from
-- **Page Performance**: Track which pages are most viewed
-- **Session Analysis**: Understand session boundaries and patterns
-
-### **Detailed Analytics**:
-- **Referrer Performance**: Which external sources drive most traffic
-- **Landing Page Analysis**: Which pages are most common entry points
-- **User Journey Mapping**: Complete path from source to destination
-
-### **Marketing Intelligence**:
-- **Campaign Attribution**: Link external clicks to internal page views
-- **Conversion Tracking**: Track complete user journey
-- **ROI Analysis**: Measure effectiveness of different traffic sources
-
----
-
-## ✅ Implementation Status
-
-**FULLY IMPLEMENTED** - The multi-interaction approach is working in the current codebase:
-
-- ✅ **PageViewEventProcessor**: Creates up to 3 interactions per page view
-- ✅ **Session Inference**: Server-side logic for determining new sessions
-- ✅ **Touchpoint Resolution**: Handles multiple touchpoints per event
-- ✅ **Action Configuration**: Uses `no_action` and `external_click` actions
-- ✅ **WebSession Integration**: Links interactions to session tracking
-
-This multi-interaction approach provides granular tracking of every aspect of a user's page view, enabling comprehensive analytics and attribution analysis.
+This multi-interaction approach provides comprehensive attribution tracking while maintaining performance and scalability.

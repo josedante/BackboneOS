@@ -1,333 +1,253 @@
 # 🌐 Websites App - BackboneOS
 
-## 📋 Descripción General
+## 📋 Overview
 
-La aplicación `websites` extiende el núcleo de interacciones de BackboneOS para capturar y organizar las interacciones provenientes de sitios web. Su objetivo principal es:
+The `websites` app extends BackboneOS's interaction core to capture and organize interactions from websites. It provides:
 
-- Permitir registrar **interacciones web anónimas o autenticadas**.
-- Asociar esas interacciones con **Touchpoint Classes** y **Touchpoints** del sistema.
-- Resolver de forma flexible la URL donde ocurre una interacción.
-- Dar trazabilidad entre **sitios web corporativos** y la **estructura organizacional** de la instancia CRM.
-- **Resolución automática de touchpoints** con análisis avanzado de tráfico (UTM, referrer, user agent).
+- **Anonymous and authenticated web interaction tracking**
+- **Automatic touchpoint resolution** with three-dimensional classification
+- **Advanced traffic analysis** (UTM, referrer, user agent)
+- **Multi-interaction approach** for comprehensive attribution
+- **Integration** with organizational structure and CRM
 
-Esta app actúa como **conector especializado** para el canal digital `WWW`, integrando el tráfico web con el modelo unificado de `interactions` y el **sistema de resolución de touchpoints**.
+## 🎯 Three-Dimensional Classification System
 
-## 🎉 Estado: IMPLEMENTACIÓN COMPLETADA
+### **Channel (WHERE) - Where the interaction occurred**
+- **Purpose**: Identifies the context/location where the interaction happened
+- **Examples**: `esan.edu.pe`, `alpha.com`, `mobile_app`
+- **Logic**: Determined from the website URL where the interaction occurred
+- **Not**: Traffic source (that's the medium's responsibility)
 
-### ✅ Sistema de Resolución de Touchpoints con Clasificación Tridimensional
-- **Resolución automática**: Touchpoints creados automáticamente al guardar `WebInteraction`
-- **Clasificación tridimensional**: Channel (WHERE), Medium (HOW), TouchpointType (WHAT)
-- **Canales específicos por sitio**: Códigos de canal basados en dominio (ej: `alpha.com`, `esan.edu.pe`)
-- **Análisis de tráfico mejorado**: UTM, referrer, y análisis de user agent
-- **Tipos de touchpoint web-específicos**: `web_page`, `web_form`, `link`, `button` (sin solapamiento con action)
-- **Detección de apps nativas**: Análisis de user agent para tráfico de apps móviles
-- **Cobertura de pruebas**: 28 tests pasando con cobertura completa
+### **Medium (HOW) - How it communicates**
+- **Purpose**: Identifies the communication method
+- **Examples**: `organic_search`, `social_media`, `cpc`, `email`, `referral`, `direct`
+- **Logic**: UTM parameters take precedence, then referrer analysis, then defaults
+- **Analysis**: Comprehensive referrer analysis with domain mapping
 
----
+### **TouchpointType (WHAT) - What type of touchpoint**
+- **Purpose**: Identifies the functional type of touchpoint (web-specific)
+- **Examples**: `web_page`, `web_form`, `link`, `button`, `web_download`
+- **Logic**: Determined from event type with intelligent click classification
+- **No overlap**: Doesn't overlap with `interactions.Interaction.action` field
 
-## 🎯 Sistema de Clasificación Tridimensional
-
-La app `websites` implementa un sistema de clasificación tridimensional que separa claramente las diferentes dimensiones de una interacción web:
-
-### **Channel (WHERE) - Dónde ocurrió la interacción**
-- **Propósito**: Identifica el contexto/lugar donde ocurrió la interacción
-- **Ejemplos**: `esan.edu.pe`, `alpha.com`, `mobile_app`
-- **Lógica**: Se determina desde la URL del sitio web donde ocurrió la interacción
-- **No es**: El origen del tráfico (eso es responsabilidad del medium)
-
-### **Medium (HOW) - Cómo se comunica**
-- **Propósito**: Identifica el método de comunicación
-- **Ejemplos**: `organic`, `social`, `paid`, `email`, `referral`, `direct`
-- **Lógica**: Se determina desde parámetros UTM, análisis de referrer, o defaults
-- **Análisis**: UTM medium tiene prioridad, luego inferencia desde referrer
-
-### **TouchpointType (WHAT) - Qué tipo de touchpoint**
-- **Propósito**: Identifica el tipo funcional de touchpoint (web-específico)
-- **Ejemplos**: `web_page`, `web_form`, `link`, `button`, `web_download`
-- **Lógica**: Se determina desde el tipo de evento, con clasificación inteligente de clicks
-- **Sin solapamiento**: No se solapa con el campo `action` de `interactions.Interaction`
-
-### **Ejemplo de Clasificación Completa:**
+### **Example Classification:**
 ```
-Interacción: "Envío de formulario de contacto en ESAN"
-- Channel: "esan.edu.pe" (WHERE: ocurrió en el sitio de ESAN)
-- Medium: "organic" (HOW: llegó desde búsqueda orgánica)
-- TouchpointType: "web_form" (WHAT: envío de formulario web)
+Interaction: "Contact form submission on ESAN"
+- Channel: "esan.edu.pe" (WHERE: happened on ESAN's website)
+- Medium: "organic_search" (HOW: arrived from organic search)
+- TouchpointType: "web_form" (WHAT: web form submission)
 ```
 
-### **Beneficios del Sistema Tridimensional:**
-- **Análisis granular**: Cada dimensión puede analizarse independientemente
-- **ML/IA mejorado**: Mejor extracción de features para modelos predictivos
-- **Reporting flexible**: Agrupaciones y filtros por cualquier dimensión
-- **Sin solapamiento**: Separación clara de responsabilidades
-- **Escalabilidad**: Fácil extensión para nuevos tipos de interacciones
+## 🔄 Multi-Interaction Approach
 
-> 📖 **Documentación Técnica Detallada**: Ver [THREE_DIMENSIONAL_CLASSIFICATION.md](./THREE_DIMENSIONAL_CLASSIFICATION.md) para implementación técnica completa, ejemplos de código, y guía de migración.
+For a single **Page View Event**, we create **up to 3 separate WebInteraction instances**:
 
----
+### **1. Page View Interaction**
+- **Purpose**: Track the page being viewed on our website
+- **Action**: `no_action`
+- **Touchpoint**: Viewed page touchpoint
+- **Always Created**: Yes, for every page view
 
-## 🔧 Sistema de Resolución de Touchpoints
+### **2. Referrer Click Interaction**
+- **Purpose**: Track the click that brought the visitor to our site
+- **Action**: `external_click`
+- **Touchpoint**: Referrer page touchpoint
+- **Conditionally Created**: Only if external referrer exists
 
-### **WebTouchpointResolver**
-Resolvedor especializado que extiende el framework genérico con lógica específica para web:
+### **3. Session Start Interaction**
+- **Purpose**: Track the beginning of a new session
+- **Action**: `no_action`
+- **Touchpoint**: Viewed page touchpoint (as landing page)
+- **Conditionally Created**: Only if new session criteria are met
 
-- **Clasificación tridimensional**: Implementa Channel (WHERE), Medium (HOW), TouchpointType (WHAT)
-- **Análisis UTM**: Prioriza parámetros UTM para determinar medium de comunicación
-- **Análisis de referrer**: Detecta tráfico orgánico, social, y de referencia para medium
-- **Análisis de user agent**: Identifica tráfico de apps nativas y WebViews
-- **Canales específicos por sitio**: Usa el dominio del sitio web como código de canal (WHERE)
-- **Tipos web-específicos**: TouchpointType basado en funcionalidad web (`web_page`, `web_form`, `link`, `button`)
-- **Clasificación inteligente de clicks**: Distingue entre `link` y `button` basado en selector
-
-### **WebMappingProvider**
-Proveedor de reglas de mapeo específico para web:
-
-- **Identificación de fuente**: Extrae URL del sitio web como identificador
-- **Reglas configurables**: Permite override de comportamiento por sitio web
-- **Cache optimizado**: Mejora rendimiento con cache de reglas de mapeo
-
-### **WebTouchpointAdapter**
-Adaptador que implementa la inferencia de touchpoints:
-
-- **Mapeo de eventos**: Convierte tipos de evento web a códigos de touchpoint
-- **Análisis de contexto**: Extrae información de UTM, referrer, y user agent
-- **Metadatos enriquecidos**: Incluye información contextual en el hint
-
-### **Flujo de Resolución**
-1. `WebInteraction.save()` → `_ensure_touchpoint()`
-2. `infer_touchpoint_hint()` → Crea hint con análisis especializado
-3. `WebTouchpointResolver.resolve()` → Aplica reglas y crea touchpoint
-4. Touchpoint asignado automáticamente a la interacción
-
----
-
-## 🏗️ Arquitectura de Modelos
+## 🏗️ Core Models
 
 ### `Website`
-
-Representa un sitio web gestionado por la organización.
-
-- Campos: `name`, `base_url`, `active`.
-- Relación: puede estar vinculado a una o varias divisiones de `our_institution`.
-- Uso: fuente principal de los `WebSurface`.
+Represents a website managed by the organization.
+- **Fields**: `name`, `base_url`, `active`
+- **Relationship**: Can be linked to one or more divisions
+- **Usage**: Primary source for `WebSurface` entities
 
 ### `WebSurface`
-
-Entidad central que describe un **superficie direccionable por URL** (página o formulario) en el sitio web.
-
-- Campos clave: `path`, `exact_match`, `regex`, `title`, `product`.
-- Relación: posee un `Touchpoint Class` y un `Touchpoint` para integrarse con el core de interacciones.
-- Propiedades: `matches(path)` para verificar coincidencia de URL.
-- Flags: `is_form`, `is_thankyou` para clasificar superficies.
-
-### `WebPage` / `WebForm`
-
-Clases proxy que heredan de `WebSurface`.
-
-- Propósito: ergonomía en consultas (`WebPage.objects.all()` vs `WebForm.objects.all()`).
-- No generan nuevas tablas.
+Central entity describing a **URL-addressable surface** (page or form) on the website.
+- **Key fields**: `path`, `exact_match`, `regex`, `title`, `product`
+- **Relationship**: Has a `TouchpointType` and `Touchpoint` for integration
+- **Properties**: `matches(path)` to verify URL matching
+- **Flags**: `is_form`, `is_thankyou` for surface classification
 
 ### `WebInteraction`
+Model extending `AbstractConnectorInteraction` and implementing `TouchpointInferenceProtocol`:
+- **Browser fields**: `session_id`, `visitor_cookie`, `user_agent`, `client_hints`, `ip`
+- **UTM attribution**: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
+- **Events**: `element`, `payload`, `is_bot`
+- **Automatic resolution**: Implements `infer_touchpoint_hint()` and `_ensure_touchpoint()`
+- **Integration**: Automatically connects with the touchpoint system
 
-Modelo que extiende `AbstractConnectorInteraction` e implementa `TouchpointInferenceProtocol`:
+## 🔧 Touchpoint Resolution System
 
-- **Campos de navegador**: `session_id`, `visitor_cookie`, `user_agent`, `client_hints`, `ip`
-- **Atribución UTM**: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
-- **Eventos**: `element`, `payload`, `is_bot`
-- **Resolución automática**: Implementa `infer_touchpoint_hint()` y `_ensure_touchpoint()`
-- **Integración**: Se conecta automáticamente con el sistema de touchpoints
+### **WebTouchpointResolver**
+Specialized resolver extending the generic framework with web-specific logic:
 
-### `UrlRoutingRule`
+- **Three-dimensional classification**: Implements Channel (WHERE), Medium (HOW), TouchpointType (WHAT)
+- **UTM analysis**: Prioritizes UTM parameters for medium determination
+- **Referrer analysis**: Detects organic, social, and referral traffic for medium
+- **User agent analysis**: Identifies native app traffic and WebViews
+- **Site-specific channels**: Uses website domain as channel code (WHERE)
+- **Web-specific types**: TouchpointType based on web functionality (`web_page`, `web_form`, `link`, `button`)
+- **Intelligent click classification**: Distinguishes between `link` and `button` based on selector
 
-Define **reglas de enrutamiento flexibles** para mapear URLs a un `WebSurface`.
+### **Resolution Flow**
+1. `WebInteraction.save()` → `_ensure_touchpoint()` executes automatically
+2. `infer_touchpoint_hint()` analyzes context and creates specialized hint
+3. `WebTouchpointResolver.resolve()` applies rules and creates touchpoint with three-dimensional classification
+4. Touchpoint automatically assigned to interaction with all three dimensions
 
-- Modos: `exact`, `prefix`, `regex`.
-- Campos: `pattern`, `priority`, `active`.
-- Uso: resolución avanzada cuando no hay coincidencia directa con `WebSurface`.
+## 📊 Channel Differentiation Strategy
 
-### `SurfaceResolver`
+### **Organic vs Paid Traffic Distinction**
 
-Servicio helper que resuelve dinámicamente un `path` a un `WebSurface`.
+| Traffic Type | UTM Source | Referrer | Final Channel | Use Case |
+|--------------|------------|----------|---------------|----------|
+| Organic Google | (empty) | `google.com/search` | `google.com` | Natural search results |
+| Paid Google | `google` | `google.com/search` | `google` | Google Ads campaigns |
+| Organic Facebook | (empty) | `facebook.com/post` | `facebook.com` | Organic social posts |
+| Paid Facebook | `facebook` | `facebook.com/post` | `facebook` | Facebook Ads campaigns |
 
-- Paso 1: intenta coincidencia directa (`WebSurface.matches`).
-- Paso 2: recurre a `UrlRoutingRule` activas.
-- Devuelve el `WebSurface` encontrado o `None`.
+### **Benefits**
+- **Clear Attribution**: Easy distinction between organic and paid performance
+- **Marketing Analytics**: Better ROI analysis for paid campaigns
+- **Reporting Granularity**: Separate tracking of organic vs paid performance
 
----
+## 🧪 Testing Coverage
 
-## 🔗 Integración con Interactions App
+### **Test Suite**
+- **28 tests passing**: Complete coverage of all functionality
+- **Model tests**: Website, WebSurface, WebInteraction
+- **Resolver tests**: WebTouchpointResolver with all scenarios
+- **Adapter tests**: WebTouchpointAdapter with different event types
+- **Integration tests**: Complete touchpoint resolution flow
+- **Mapping provider tests**: WebMappingProvider and caching
 
-La app `websites` **no duplica** datos ya presentes en `interactions.Interaction` y ahora incluye **resolución automática de touchpoints**.
+### **Test Scenarios**
+- **UTM analysis**: Different UTM parameter combinations
+- **Referrer analysis**: Organic, social, referral traffic
+- **User agent analysis**: Native apps, WebViews, browsers
+- **Site-specific channels**: Different website domains
+- **Semantic classification**: Different traffic mediums
+- **Automatic resolution**: Automatic touchpoint creation
 
-### **Integración Tradicional**
-- Cada `WebSurface` **posee** un `Touchpoint`, por lo que cualquier `Interaction` que ocurra allí se enlaza directamente.
-- El canal `web` se crea automáticamente si no existe.
-- Los eventos específicos (p.ej. `page_read`, `form_submit`) se representan como `Action` en el core.
-
-### **Nueva Integración con Touchpoint Resolution**
-- **Resolución automática**: `WebInteraction` crea touchpoints automáticamente al guardarse
-- **Canales específicos por sitio**: Cada sitio web tiene su propio canal (ej: `alpha.com`, `esan.edu.pe`)
-- **Análisis de tráfico**: UTM, referrer, y user agent se analizan para determinar el medio
-- **Clasificación semántica**: TouchpointClass basado en medio de tráfico (ej: `web.social_traffic`)
-- **Diferenciación de canales**: Distinción entre canal de captura vs. canal de origen
-
-Esto asegura que:
-
-- Las interacciones web sean **compatibles** con cualquier otra fuente de interacciones.
-- La analítica y reporting se unifiquen.
-- **Mejor atribución**: Análisis avanzado de tráfico para mejor comprensión del customer journey.
-
----
-
-## ⚡ Flujo de Resolución y Registro de Interacciones
-
-### **Flujo Tradicional**
-1. Llega una petición desde el tracker web (ejemplo: visita a `/products/crm`).
-2. `SurfaceResolver.resolve(website, path)` intenta localizar un `WebSurface`.
-   - Si existe, devuelve su instancia.
-   - Si no existe, opcionalmente se puede crear una superficie dinámica (configurable).
-3. Se asegura la existencia del `Touchpoint` vía `WebSurface.ensure_tpi()`.
-4. Se crea un `Interaction` enlazando:
-   - `touchpoint_class` / `touchpoint`
-   - `channel=WWW`
-   - `action` según evento (`page_read`, `form_submit`)
-   - `agent` (ej. navegador identificado)
-
-### **Nuevo Flujo con Clasificación Tridimensional**
-1. Se crea un `WebInteraction` con datos de navegador, UTM, referrer, etc.
-2. `WebInteraction.save()` → `_ensure_touchpoint()` se ejecuta automáticamente
-3. `infer_touchpoint_hint()` analiza el contexto y crea un hint especializado
-4. `WebTouchpointResolver.resolve()` aplica reglas y crea el touchpoint con clasificación tridimensional:
-   - **Channel (WHERE)**: Determina desde URL del sitio web donde ocurrió la interacción
-   - **Medium (HOW)**: Análisis UTM y referrer para determinar método de comunicación
-   - **TouchpointType (WHAT)**: Tipo funcional web-específico (`web_page`, `web_form`, `link`, `button`)
-   - **Clasificación inteligente**: Distingue entre `link` y `button` basado en selector
-5. Touchpoint se asigna automáticamente a la interacción con las tres dimensiones
-
----
-
-## 🔄 Cambios Recientes y Migración
-
-### **Actualización del Sistema de Clasificación (Enero 2025)**
-
-La app `websites` ha sido actualizada para implementar el nuevo sistema de clasificación tridimensional del core `interactions`:
-
-#### **Cambios en el Modelo de Datos:**
-- **Medium movido**: De `Channel` a `Touchpoint` para mejor separación de responsabilidades
-- **TouchpointClass → TouchpointType**: Renombrado para mayor claridad
-- **Relaciones actualizadas**: Touchpoint ahora tiene `channel`, `medium`, y `touchpoint_type`
-
-#### **Cambios en la Lógica de Clasificación:**
-- **Channel**: Ahora representa WHERE ocurrió la interacción (sitio web), no el origen del tráfico
-- **Medium**: Representa HOW se comunica (organic, social, paid, etc.)
-- **TouchpointType**: Tipos web-específicos que no se solapan con el campo `action`
-
-#### **Tipos de TouchpointType Actualizados:**
-```python
-# Antes (se solapaba con action)
-'page_view', 'form_submit', 'click', 'download'
-
-# Ahora (web-específico, sin solapamiento)
-'web_page', 'web_form', 'link', 'button', 'web_download'
-```
-
-#### **Migración Automática:**
-- Las migraciones existentes han sido actualizadas
-- El sistema es compatible con datos existentes
-- No se requiere intervención manual
-
----
-
-## 📊 Casos de Uso
-
-### 1. Medición de Páginas Estratégicas
-
-- Definir `WebSurface` para páginas clave del producto.
-- Registrar cuántas interacciones ocurren y con qué agentes.
-
-### 2. Seguimiento de Formularios
-
-- Marcar `is_form=True` para distinguir formularios.
-- Capturar `form_submit` como acción.
-- Relacionar formularios con `products` u `offers`.
-
-### 3. Resolución Flexible de URLs
-
-- Usar `UrlRoutingRule` para mapear rutas dinámicas.
-- Ejemplo: `/blog/*` redirige a un `WebSurface` de tipo blog.
-
-### 4. Analytics Integrado
-
-- Agrupar interacciones web con otros canales (email, eventos presenciales, etc.).
-- Analizar recorrido de usuario cross-channel.
-
----
-
-## 🔮 Extensiones Futuras
-
-- **Creación automática** de `WebSurface` al recibir interacciones en paths desconocidos.
-- **Soporte multi-dominio**: permitir `Website` con múltiples `base_url`.
-- **Metadata enriquecida**: registrar parámetros UTM, campañas, experimentos A/B.
-- **UI de mapeo visual**: administrar `WebSurfaces` y `UrlRoutingRules` desde el panel.
-
----
-
-## 🧪 Testing y Calidad
-
-### **Cobertura de Pruebas**
-- **28 tests pasando**: Cobertura completa de toda la funcionalidad
-- **Tests de modelos**: Website, WebSurface, WebInteraction
-- **Tests de resolvers**: WebTouchpointResolver con todos los escenarios
-- **Tests de adapters**: WebTouchpointAdapter con diferentes tipos de eventos
-- **Tests de integración**: Flujo completo de resolución de touchpoints
-- **Tests de mapping providers**: WebMappingProvider y cache
-
-### **Escenarios de Prueba**
-- **Análisis UTM**: Diferentes combinaciones de parámetros UTM
-- **Análisis de referrer**: Tráfico orgánico, social, de referencia
-- **Análisis de user agent**: Apps nativas, WebViews, navegadores
-- **Canales específicos**: Diferentes dominios de sitios web
-- **Clasificación semántica**: Diferentes medios de tráfico
-- **Resolución automática**: Creación automática de touchpoints
-
-## 📁 Estructura de Archivos
+## 📁 File Structure
 
 ```
 websites/
-├── models.py              # Modelos Website, WebSurface, WebInteraction, UrlRoutingRule
-├── resolvers.py           # WebTouchpointResolver y CachedWebTouchpointResolver
-├── mapping_providers.py   # WebMappingProvider y CachedWebMappingProvider
+├── models.py              # Website, WebSurface, WebInteraction, UrlRoutingRule
+├── resolvers.py           # WebTouchpointResolver and CachedWebTouchpointResolver
+├── mapping_providers.py   # WebMappingProvider and CachedWebMappingProvider
 ├── adapters.py            # WebTouchpointAdapter (infer_web_touchpoint_hint)
-├── admin.py               # Configuración admin
-├── serializers.py         # Serializers para API REST
-├── views.py               # ViewSets y lógica de API
-├── urls.py                # Rutas API REST
-├── tests.py               # 28 tests unitarios y de integración
-├── README.md              # Esta documentación
-├── THREE_DIMENSIONAL_CLASSIFICATION.md  # Documentación técnica detallada
-└── migrations/            # Migraciones iniciales
+├── processors.py          # Event processors with multi-interaction approach
+├── admin.py               # Admin configuration
+├── views.py               # ViewSets and API logic
+├── urls.py                # API routes
+├── tests/                 # Comprehensive test suite
+│   ├── test_models.py
+│   ├── test_resolvers.py
+│   ├── test_adapters.py
+│   ├── test_integration.py
+│   └── test_three_dimensional_classification.py
+├── README.md              # This documentation
+├── MULTI_INTERACTION_APPROACH.md           # Multi-interaction approach details
+├── THREE_DIMENSIONAL_CLASSIFICATION.md    # Technical implementation details
+├── EVENT_DIFFERENTIATION_SUMMARY.md       # Event type differentiation
+├── SERVER_SIDE_SESSION_INFERENCE.md       # Session inference logic
+├── WEBSITE_EVENTS_CATALOG.md              # Complete events catalog
+└── migrations/            # Database migrations
 ```
+
+## 📚 Additional Documentation
+
+### **Technical Implementation**
+- **[THREE_DIMENSIONAL_CLASSIFICATION.md](./THREE_DIMENSIONAL_CLASSIFICATION.md)**: Detailed technical implementation of the three-dimensional classification system
+- **[MULTI_INTERACTION_APPROACH.md](./MULTI_INTERACTION_APPROACH.md)**: Multi-interaction approach for page view events
+
+### **Event Processing**
+- **[EVENT_DIFFERENTIATION_SUMMARY.md](./EVENT_DIFFERENTIATION_SUMMARY.md)**: Event type differentiation and improvements
+- **[SERVER_SIDE_SESSION_INFERENCE.md](./SERVER_SIDE_SESSION_INFERENCE.md)**: Server-side session inference logic
+- **[WEBSITE_EVENTS_CATALOG.md](./WEBSITE_EVENTS_CATALOG.md)**: Complete catalog of website events and their effects
+
+## 🎯 Value for BackboneOS
+
+The `websites` app converts **anonymous web activity** into traceable interactions within the CRM, bridging the gap between **digital marketing** and **customer management**:
+
+### **Key Benefits**
+- **Automatic resolution**: Touchpoints created automatically without manual intervention
+- **Advanced attribution**: UTM, referrer, and user agent analysis for better traffic understanding
+- **Site-specific channels**: Each website has its own channel for granular analysis
+- **Semantic classification**: TouchpointType based on web functionality for better categorization
+- **Native app detection**: Identification of mobile app traffic vs. web browsers
+- **Channel differentiation**: Distinction between capture channel vs. origin channel
+- **Better customer journey**: Deeper understanding of customer journey
+
+## 🔄 Recent Changes and Migration
+
+### **Three-Dimensional Classification Update (January 2025)**
+
+The `websites` app has been updated to implement the new three-dimensional classification system:
+
+#### **Data Model Changes:**
+- **Medium moved**: From `Channel` to `Touchpoint` for better separation of responsibilities
+- **TouchpointClass → TouchpointType**: Renamed for clarity
+- **Updated relationships**: Touchpoint now has `channel`, `medium`, and `touchpoint_type`
+
+#### **Classification Logic Changes:**
+- **Channel**: Now represents WHERE the interaction occurred (website), not traffic source
+- **Medium**: Represents HOW it communicates (organic, social, paid, etc.)
+- **TouchpointType**: Web-specific types that don't overlap with the `action` field
+
+#### **Updated TouchpointType Examples:**
+```python
+# Before (overlapped with action)
+'page_view', 'form_submit', 'click', 'download'
+
+# Now (web-specific, no overlap)
+'web_page', 'web_form', 'link', 'button', 'web_download'
+```
+
+#### **Automatic Migration:**
+- Existing migrations have been updated
+- System is compatible with existing data
+- No manual intervention required
 
 ---
 
-## 🎯 Valor para BackboneOS
+## 🚀 Getting Started
 
-La app `websites` convierte la **actividad anónima de la web** en interacciones trazables dentro del CRM, cerrando la brecha entre **marketing digital** y **gestión de clientes**:
+### **Basic Usage**
+```python
+# Create a WebInteraction
+web_interaction = WebInteraction.objects.create(
+    interaction=interaction,
+    website=website,
+    session_id="sess_123",
+    visitor_cookie="visitor_456",
+    user_agent="Mozilla/5.0...",
+    utm_source="google",
+    utm_medium="cpc",
+    referrer_url="https://google.com/search?q=example",
+    payload={"event_type": "page_view", "page_title": "Home Page"}
+)
 
-### **Valor Tradicional**
-- **Unificación de canales** bajo el modelo de interacciones.
-- **Rastreo semántico** conectado a productos y ofertas.
-- **Flexibilidad** para múltiples estructuras organizacionales.
-- **Escalabilidad** para soportar reglas de enrutamiento y superficies dinámicas.
+# Touchpoint is automatically resolved and assigned
+print(web_interaction.touchpoint.channel.name)  # "google"
+print(web_interaction.touchpoint.medium.name)   # "cpc"
+print(web_interaction.touchpoint.touchpoint_type.name)  # "web_page"
+```
 
-### **Nuevo Valor con Touchpoint Resolution**
-- **Resolución automática**: Touchpoints creados automáticamente sin intervención manual
-- **Atribución avanzada**: Análisis de UTM, referrer, y user agent para mejor comprensión del tráfico
-- **Canales específicos**: Cada sitio web tiene su propio canal para análisis granular
-- **Clasificación semántica**: TouchpointClass basado en medio de tráfico para mejor categorización
-- **Detección de apps nativas**: Identificación de tráfico de apps móviles vs. navegadores web
-- **Diferenciación de canales**: Distinción entre canal de captura vs. canal de origen
-- **Mejor customer journey**: Comprensión más profunda del recorrido del cliente
+### **API Endpoints**
+- `POST /api/websites/interactions/` - Create web interaction
+- `GET /api/websites/interactions/` - List web interactions
+- `GET /api/websites/surfaces/` - List web surfaces
+- `GET /api/websites/websites/` - List websites
 
-👉 En conclusión, `websites` es el puente entre el **tráfico web** y el **ecosistema CRM** de BackboneOS, ahora con capacidades avanzadas de análisis y resolución automática de touchpoints.
+---
 
+👉 The `websites` app is the bridge between **web traffic** and BackboneOS's **CRM ecosystem**, now with advanced analysis capabilities and automatic touchpoint resolution.
