@@ -578,7 +578,8 @@ class WebInteraction(AbstractConnectorInteraction):
         
         return 'referral'
     
-    def _extract_domain(self, url: str) -> str:
+    @classmethod
+    def _extract_domain(cls, url: str) -> str:
         """Extract domain from URL."""
         from urllib.parse import urlparse
         parsed = urlparse(url)
@@ -587,21 +588,359 @@ class WebInteraction(AbstractConnectorInteraction):
     @classmethod
     def _create_page_view_interaction(cls, event_data: dict) -> 'WebInteraction':
         """Create page view interaction from event data."""
-        # Implementation for creating page view interaction
-        # This would create the actual WebInteraction instance
-        pass
+        from interactions.models import Interaction, Action
+        from interactions.models import Agent
+        from urllib.parse import urlparse
+        import uuid
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for page view interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': urlparse(website_base).netloc or website_base,
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent from user agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action
+        action, _ = Action.objects.get_or_create(
+            code='no_action',
+            defaults={
+                'name': 'No Action',
+                'description': 'Inferred event with no specific action',
+                'action_type': None  # System action
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'page_view',
+                'full_url': event_data.get('full_url', ''),
+                'referrer': event_data.get('referrer', ''),
+                'page_title': event_data.get('payload', {}).get('page_title', ''),
+                'page_category': event_data.get('payload', {}).get('page_category', ''),
+                'load_time': event_data.get('payload', {}).get('load_time'),
+                'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
+                'page_depth': event_data.get('payload', {}).get('page_depth', 1)
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return web_interaction
     
     @classmethod
     def _create_referrer_click_interaction(cls, event_data: dict, touchpoint) -> 'WebInteraction':
         """Create referrer click interaction from event data."""
-        # Implementation for creating referrer click interaction
-        pass
+        from interactions.models import Interaction, Action
+        from urllib.parse import urlparse
+        
+        # Get or create Website (same as page view)
+        website_base = event_data.get('website_base')
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': urlparse(website_base).netloc or website_base,
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent (same as page view)
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for external click
+        action, _ = Action.objects.get_or_create(
+            code='external_click',
+            defaults={
+                'name': 'External Click',
+                'description': 'Click from external referrer',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction for referrer click
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload={
+                **event_data.get('payload', {}),
+                'referrer_url': event_data.get('referrer', ''),
+                'referrer_domain': cls._extract_domain(event_data.get('referrer', '')),
+                'interaction_type': 'referrer_click'
+            },
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            touchpoint=touchpoint,
+            payload={
+                'interaction_type': 'referrer_click',
+                'referrer_url': event_data.get('referrer', ''),
+                'referrer_domain': cls._extract_domain(event_data.get('referrer', '')),
+                'referrer_title': event_data.get('payload', {}).get('referrer_title', ''),
+                'referrer_description': event_data.get('payload', {}).get('referrer_description', ''),
+                'click_source': 'external'
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return web_interaction
     
     @classmethod
     def _create_session_start_interaction(cls, event_data: dict, touchpoint) -> 'WebInteraction':
         """Create session start interaction from event data."""
-        # Implementation for creating session start interaction
-        pass
+        from interactions.models import Interaction, Action
+        from urllib.parse import urlparse
+        
+        # Get or create Website (same as page view)
+        website_base = event_data.get('website_base')
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': urlparse(website_base).netloc or website_base,
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent (same as page view)
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for session start
+        action, _ = Action.objects.get_or_create(
+            code='session_start',
+            defaults={
+                'name': 'Session Start',
+                'description': 'Beginning of a new session',
+                'action_type': None  # System action
+            }
+        )
+        
+        # Create WebInteraction for session start
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload={
+                **event_data.get('payload', {}),
+                'session_start': True,
+                'landing_page': event_data.get('full_url', ''),
+                'interaction_type': 'session_start'
+            },
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            touchpoint=touchpoint,
+            payload={
+                'interaction_type': 'session_start',
+                'session_id': event_data.get('session_id', ''),
+                'visitor_cookie': event_data.get('visitor_cookie', ''),
+                'landing_page': event_data.get('full_url', ''),
+                'referrer': event_data.get('referrer', ''),
+                'utm_source': event_data.get('utm_source', ''),
+                'utm_medium': event_data.get('utm_medium', ''),
+                'utm_campaign': event_data.get('utm_campaign', ''),
+                'session_start': True
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return web_interaction
+    
+    @classmethod
+    def _get_default_division(cls):
+        """Get or create a default division for websites."""
+        from our_institution.models import Division
+        
+        division, _ = Division.objects.get_or_create(
+            name="Default Division",
+            defaults={
+                'description': 'Default division for website interactions',
+                'active': True
+            }
+        )
+        return division
+    
+    @classmethod
+    def _get_or_create_agent(cls, user_agent: str):
+        """Get or create Agent from user agent string."""
+        from interactions.models import Agent
+        import uuid
+        
+        if not user_agent:
+            # Create anonymous agent
+            agent, _ = Agent.objects.get_or_create(
+                identifier=f"anonymous_{uuid.uuid4().hex[:8]}",
+                defaults={
+                    'agent_type': 'browser',
+                    'name': 'Anonymous Browser',
+                    'metadata': {
+                        'user_agent': user_agent,
+                        'browser': {'family': 'Unknown'},
+                        'os': {'family': 'Unknown'},
+                        'device': {'family': 'Unknown'}
+                    }
+                }
+            )
+            return agent
+        
+        # Parse user agent to extract browser/OS info
+        browser_info = cls._parse_user_agent(user_agent)
+        
+        # Create unique identifier from user agent
+        agent_identifier = f"web_{hash(user_agent) % 1000000:06d}"
+        
+        agent, _ = Agent.objects.get_or_create(
+            identifier=agent_identifier,
+            defaults={
+                'agent_type': 'browser',
+                'name': f"{browser_info.get('browser', {}).get('family', 'Unknown')} on {browser_info.get('os', {}).get('family', 'Unknown')}",
+                'metadata': {
+                    'user_agent': user_agent,
+                    **browser_info
+                }
+            }
+        )
+        
+        return agent
+    
+    @classmethod
+    def _parse_user_agent(cls, user_agent: str) -> dict:
+        """Parse user agent string to extract browser/OS/device info."""
+        # Simple user agent parsing - in production, use ua-parser-python
+        user_agent_lower = user_agent.lower()
+        
+        # Browser detection
+        browser_family = 'Unknown'
+        if 'chrome' in user_agent_lower:
+            browser_family = 'Chrome'
+        elif 'firefox' in user_agent_lower:
+            browser_family = 'Firefox'
+        elif 'safari' in user_agent_lower:
+            browser_family = 'Safari'
+        elif 'edge' in user_agent_lower:
+            browser_family = 'Edge'
+        elif 'opera' in user_agent_lower:
+            browser_family = 'Opera'
+        
+        # OS detection
+        os_family = 'Unknown'
+        if 'windows' in user_agent_lower:
+            os_family = 'Windows'
+        elif 'mac' in user_agent_lower:
+            os_family = 'macOS'
+        elif 'linux' in user_agent_lower:
+            os_family = 'Linux'
+        elif 'android' in user_agent_lower:
+            os_family = 'Android'
+        elif 'ios' in user_agent_lower:
+            os_family = 'iOS'
+        
+        # Device detection
+        device_family = 'Other'
+        if 'mobile' in user_agent_lower or 'android' in user_agent_lower or 'iphone' in user_agent_lower:
+            device_family = 'Mobile'
+        elif 'tablet' in user_agent_lower or 'ipad' in user_agent_lower:
+            device_family = 'Tablet'
+        
+        return {
+            'browser': {
+                'family': browser_family,
+                'version': 'Unknown'
+            },
+            'os': {
+                'family': os_family,
+                'version': 'Unknown'
+            },
+            'device': {
+                'family': device_family,
+                'brand': 'Unknown',
+                'model': 'Unknown'
+            }
+        }
+    
+    @classmethod
+    def _is_bot_user_agent(cls, user_agent: str) -> bool:
+        """Check if user agent indicates a bot/crawler."""
+        if not user_agent:
+            return False
+        
+        user_agent_lower = user_agent.lower()
+        bot_indicators = [
+            'bot', 'crawler', 'spider', 'scraper', 'crawling',
+            'googlebot', 'bingbot', 'slurp', 'duckduckbot',
+            'baiduspider', 'yandexbot', 'facebookexternalhit',
+            'twitterbot', 'linkedinbot', 'whatsapp', 'telegram'
+        ]
+        
+        return any(indicator in user_agent_lower for indicator in bot_indicators)
 
 
 # --------------------------
