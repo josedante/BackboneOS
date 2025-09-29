@@ -66,14 +66,7 @@ For a single **Page View Event**, we create **up to 3 separate WebInteraction in
 Represents a website managed by the organization.
 - **Fields**: `name`, `base_url`, `active`
 - **Relationship**: Can be linked to one or more divisions
-- **Usage**: Primary source for `WebSurface` entities
-
-### `WebSurface`
-Central entity describing a **URL-addressable surface** (page or form) on the website.
-- **Key fields**: `path`, `exact_match`, `regex`, `title`, `product`
-- **Relationship**: Has a `TouchpointType` and `Touchpoint` for integration
-- **Properties**: `matches(path)` to verify URL matching
-- **Flags**: `is_form`, `is_thankyou` for surface classification
+- **Usage**: Primary source for web interaction tracking
 
 ### `WebInteraction`
 Model extending `AbstractConnectorInteraction` and implementing `TouchpointInferenceProtocol`:
@@ -82,6 +75,12 @@ Model extending `AbstractConnectorInteraction` and implementing `TouchpointInfer
 - **Events**: `element`, `payload`, `is_bot`
 - **Automatic resolution**: Implements `infer_touchpoint_hint()` and `_ensure_touchpoint()`
 - **Integration**: Automatically connects with the touchpoint system
+
+### `WebSession`
+Represents a web session - a continuous period of user activity.
+- **Session tracking**: Session identity, timing, and attribution
+- **Analytics**: Page count, bounce detection, conversion events
+- **Integration**: Links to Website and Agent models
 
 ## 🔧 Touchpoint Resolution System
 
@@ -121,12 +120,9 @@ Specialized resolver extending the generic framework with web-specific logic:
 ## 🧪 Testing Coverage
 
 ### **Test Suite**
-- **28 tests passing**: Complete coverage of all functionality
-- **Model tests**: Website, WebSurface, WebInteraction
-- **Resolver tests**: WebTouchpointResolver with all scenarios
-- **Adapter tests**: WebTouchpointAdapter with different event types
+- **Model tests**: Website, WebInteraction, WebSession
 - **Integration tests**: Complete touchpoint resolution flow
-- **Mapping provider tests**: WebMappingProvider and caching
+- **Event processing tests**: Multi-interaction approach validation
 
 ### **Test Scenarios**
 - **UTM analysis**: Different UTM parameter combinations
@@ -140,20 +136,11 @@ Specialized resolver extending the generic framework with web-specific logic:
 
 ```
 websites/
-├── models.py              # Website, WebSurface, WebInteraction, UrlRoutingRule
-├── resolvers.py           # WebTouchpointResolver and CachedWebTouchpointResolver
-├── mapping_providers.py   # WebMappingProvider and CachedWebMappingProvider
-├── adapters.py            # WebTouchpointAdapter (infer_web_touchpoint_hint)
-├── processors.py          # Event processors with multi-interaction approach
+├── models.py              # Website, WebInteraction, WebSession, WebAgent
 ├── admin.py               # Admin configuration
 ├── views.py               # ViewSets and API logic
 ├── urls.py                # API routes
-├── tests/                 # Comprehensive test suite
-│   ├── test_models.py
-│   ├── test_resolvers.py
-│   ├── test_adapters.py
-│   ├── test_integration.py
-│   └── test_three_dimensional_classification.py
+├── tests/                 # Test suite
 ├── README.md              # This documentation
 ├── MULTI_INTERACTION_APPROACH.md           # Multi-interaction approach details
 ├── THREE_DIMENSIONAL_CLASSIFICATION.md    # Technical implementation details
