@@ -71,12 +71,10 @@ This document summarizes the key improvements made to differentiate between diff
 
 ### **Content Optimization**:
 - Page read vs. page view ratios
-- Engagement scoring
 - Content performance analysis
 
 ### **Lead Qualification**:
 - Higher engagement = higher lead quality
-- Better scoring for sales teams
 - Improved conversion rates
 
 ---
@@ -115,7 +113,6 @@ BackboneTracker.trackPageRead();
 - **User Journey**: Session-based path analysis
 
 ### **Sales Intelligence**:
-- **Lead Scoring**: Engagement-based qualification
 - **Content ROI**: Which content drives engagement
 - **Conversion Optimization**: Better funnel analysis
 
@@ -140,14 +137,13 @@ BackboneTracker.trackPageRead();
 - ✅ **User Agent Parsing** - ua-parser-python integration
 - ✅ **WebSession Model** - Explicit session tracking
 - ✅ **WebAgent Proxy Model** - Website-specific functionality
-- ✅ **Engagement Scoring** - Weighted algorithm implementation
 - ✅ **Touchpoint Resolution** - Automatic creation and linking
 - ✅ **Comprehensive Testing** - 20 test cases, all passing
 
 ### **Test Coverage**
 - **PageViewEventProcessor**: 11 test cases
 - **PageReadEventProcessor**: 9 test cases
-- **Scenarios**: New visitors, returning visitors, external referrers, session inference, engagement scoring, error handling
+- **Scenarios**: New visitors, returning visitors, external referrers, session inference, error handling
 - **Status**: All tests passing ✅
 
 ### **Production Ready**
@@ -164,7 +160,6 @@ BackboneTracker.trackPageRead();
 - **Engagement Rate**: Page reads / Page views ratio
 - **Session Quality**: Average session duration and engagement
 - **Content Performance**: Which pages have highest read rates
-- **Lead Quality**: Engagement scores of converted leads
 - **Attribution Accuracy**: Session-level campaign attribution
 
 This differentiation provides much richer insights into user behavior and enables better decision-making for content, marketing, and sales strategies.

@@ -45,7 +45,6 @@ This categorization enables:
 - ✅ **User Agent Parsing** - ua-parser-python integration
 - ✅ **WebSession Model** - Explicit session tracking
 - ✅ **WebAgent Proxy Model** - Website-specific agent functionality
-- ✅ **Engagement Scoring** - Weighted algorithm (time + scroll + interactions)
 - ✅ **Touchpoint Resolution** - Automatic touchpoint and class creation
 - ✅ **Comprehensive Testing** - 20 test cases covering all scenarios
 
@@ -53,7 +52,7 @@ This categorization enables:
 - **PageViewEventProcessor**: 11 test cases
 - **PageReadEventProcessor**: 9 test cases
 - **Total**: 20 passing tests
-- **Scenarios**: New visitors, returning visitors, external referrers, session inference, engagement scoring, error handling
+- **Scenarios**: New visitors, returning visitors, external referrers, session inference, error handling
 
 ### **Production Ready**
 - ✅ All tests passing
@@ -179,10 +178,6 @@ This categorization enables:
 - **Touchpoint Created**: `web.page_read.{page_title}` with `web_page` medium
 - **Channel**: Website domain (e.g., `esan.edu.pe`)
 - **TouchpointType**: `web.internal_interaction`
-- **Engagement Score**: Calculated algorithm (0.0-1.0) based on:
-  - Time factor (30% weight, content-length adjusted)
-  - Scroll depth (40% weight, most important)
-  - User interactions (30% weight)
 - **Session Activity**: Updates session last activity timestamp
 - **Content Analysis**: High engagement indicator for content performance
 
@@ -648,7 +643,6 @@ window.BackboneTracker = {
       scroll_depth: scrollDepth,
       read_criteria_met: this.getReadCriteriaMet(timeOnPage, scrollDepth, wordCount),
       word_count: wordCount,
-      engagement_score: this.calculateEngagementScore(timeOnPage, scrollDepth),
       interactions_count: this.getInteractionCount()
     });
   },
