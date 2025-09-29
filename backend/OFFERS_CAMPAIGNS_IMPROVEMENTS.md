@@ -59,7 +59,7 @@
 ### ✅ Problemas Resueltos
 
 #### 1. **Imports y Referencias de Modelo**
-- **Problema**: `TouchpointClass` vs `TouchpointType`, campo `medium` en `Channel`
+- **Problema**: `TouchpointType` vs `TouchpointType`, campo `medium` en `Channel`
 - **Solución**: Corregidos imports y referencias de modelo
 - **Archivo**: `backend/campaigns/tests.py`
 

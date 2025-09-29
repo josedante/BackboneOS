@@ -85,7 +85,7 @@ class WebSurface(BaseUUIDModelWithActiveStatus):
     # offering = models.ForeignKey(ProductOffering, null=True, blank=True, on_delete=models.SET_NULL)
 
     # TouchpointType linking
-    touchpoint_class = models.ForeignKey(TouchpointType, on_delete=models.PROTECT, related_name="web_surfaces")
+    touchpoint_type = models.ForeignKey(TouchpointType, on_delete=models.PROTECT, related_name="web_surfaces")
     touchpoint = models.OneToOneField(
         Touchpoint,
         on_delete=models.CASCADE,
@@ -104,7 +104,7 @@ class WebSurface(BaseUUIDModelWithActiveStatus):
         unique_together = [("website", "path", "is_form", "is_thankyou")]
         indexes = [
             models.Index(fields=["website", "path"]),
-            models.Index(fields=["touchpoint_class"]),
+            models.Index(fields=["touchpoint_type"]),
             models.Index(fields=["is_form", "is_thankyou"]),
         ]
         ordering = ["website__name", "path"]
@@ -138,7 +138,7 @@ class WebSurface(BaseUUIDModelWithActiveStatus):
         # Create a minimal TPI capturing the canonical URL
         # (Assumes TPI has fields like url/title/metadata; if not, store in metadata.)
         tpi = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             title=self.title or self.path,
             # If your TPI model has no URL field, put it into metadata JSON:
             # metadata={"url_path": self.path, "is_form": self.is_form, "is_thankyou": self.is_thankyou}

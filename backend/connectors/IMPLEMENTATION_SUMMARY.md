@@ -45,7 +45,7 @@ class WebInteraction(AbstractConnectorInteraction, TouchpointInferenceProtocol):
 - **WhatsApp** (Independent Package): Message type analysis, phone number handling
 
 ### **Layer 3: Core Integration (Interactions App)**
-- `Touchpoint`, `TouchpointClass`, `Channel` models
+- `Touchpoint`, `TouchpointType`, `Channel` models
 - `Interaction` model with touchpoint relationships
 - Existing analytics and reporting infrastructure
 
@@ -68,7 +68,7 @@ class WebInteraction(AbstractConnectorInteraction, TouchpointInferenceProtocol):
 - ✅ Website-specific channels (domain-based channel codes)
 - ✅ Enhanced traffic source detection (UTM, referrer, user agent)
 - ✅ Source vs capture channel differentiation
-- ✅ Medium-based TouchpointClass categorization
+- ✅ Medium-based TouchpointType categorization
 - ✅ Native app detection via user agent analysis
 
 ### **Phase 3: Configuration & Admin (Week 5-6) ✅ COMPLETED**
@@ -134,7 +134,7 @@ Each independent connector package must:
 2. **Website-Specific Channels**: Domain-based channel codes (e.g., `alpha.com`, `esan.edu.pe`)
 3. **Enhanced Traffic Attribution**: UTM, referrer, and user agent analysis
 4. **Source vs Capture Channel Logic**: Proper differentiation between where events are captured vs. where they originated
-5. **Medium-Based TouchpointClass**: Semantic categorization (e.g., `web.social_traffic`, `web.email_traffic`)
+5. **Medium-Based TouchpointType**: Semantic categorization (e.g., `web.social_traffic`, `web.email_traffic`)
 6. **Native App Detection**: User agent analysis for mobile app traffic
 7. **Comprehensive Test Coverage**: 28 tests covering all functionality
 8. **Django Migrations**: Applied and ready for production

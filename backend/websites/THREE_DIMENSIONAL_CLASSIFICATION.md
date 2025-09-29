@@ -35,7 +35,7 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
 - **Purpose**: Identifies the functional type of touchpoint (web-specific)
 - **Examples**: `web_page`, `web_form`, `link`, `button`, `web_download`
 - **Logic**: Determined from event type with intelligent click classification
-- **Implementation**: `_get_enhanced_touchpoint_class_code()` in `WebTouchpointResolver`
+- **Implementation**: `_get_enhanced_touchpoint_type_code()` in `WebTouchpointResolver`
 
 ## 🔧 Implementation Details
 
@@ -50,7 +50,7 @@ def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
     medium = self._determine_medium_from_subject(hint)
     
     # 3. TouchpointType (WHAT) - What type of touchpoint
-    touchpoint_type = self._get_enhanced_touchpoint_class_code(hint)
+    touchpoint_type = self._get_enhanced_touchpoint_type_code(hint)
     
     # Create touchpoint with three-dimensional classification
     touchpoint, created = Touchpoint.objects.get_or_create(
@@ -141,7 +141,7 @@ def _determine_medium_from_subject(self, hint: TouchpointHint) -> str:
 ### **TouchpointType Determination Logic**
 
 ```python
-def _get_enhanced_touchpoint_class_code(self, hint: TouchpointHint) -> str:
+def _get_enhanced_touchpoint_type_code(self, hint: TouchpointHint) -> str:
     # Get event type and code from hint
     event_type = hint.metadata.get('event_type', '') if hint.metadata else ''
     code = hint.code or ''
@@ -265,13 +265,13 @@ def _get_enhanced_touchpoint_class_code(self, hint: TouchpointHint) -> str:
 
 ### **Data Model Changes**
 1. **Medium field moved**: From `Channel` to `Touchpoint`
-2. **TouchpointClass renamed**: To `TouchpointType`
+2. **TouchpointType renamed**: To `TouchpointType`
 3. **Updated relationships**: Touchpoint now has direct relationships to all three dimensions
 
 ### **Code Changes Required**
 ```python
 # Before
-touchpoint_class = models.ForeignKey(TouchpointClass, ...)
+touchpoint_type = models.ForeignKey(TouchpointType, ...)
 channel.medium = models.ForeignKey(Medium, ...)
 
 # After

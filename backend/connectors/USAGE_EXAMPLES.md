@@ -1006,7 +1006,7 @@ def robust_touchpoint_resolution(subject, max_retries=3):
 
 def create_fallback_touchpoint(subject):
     """Create a fallback touchpoint when resolution fails."""
-    from interactions.models import Touchpoint, TouchpointClass, Channel
+    from interactions.models import Touchpoint, TouchpointType, Channel
     
     # Get or create fallback channel
     channel, _ = Channel.objects.get_or_create(
@@ -1015,7 +1015,7 @@ def create_fallback_touchpoint(subject):
     )
     
     # Get or create fallback touchpoint class
-    touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+    touchpoint_type, _ = TouchpointType.objects.get_or_create(
         code='fallback',
         defaults={
             'name': 'Fallback Touchpoint Class',
@@ -1027,7 +1027,7 @@ def create_fallback_touchpoint(subject):
     touchpoint = Touchpoint.objects.create(
         code=f'fallback.{subject.__class__.__name__.lower()}',
         name=f'Fallback {subject.__class__.__name__}',
-        touchpoint_class=touchpoint_class,
+        touchpoint_type=touchpoint_type,
         channel=channel,
         description=f'Fallback touchpoint for {subject.__class__.__name__}',
         is_active=True

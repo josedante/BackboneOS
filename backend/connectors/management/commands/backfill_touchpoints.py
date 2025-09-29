@@ -173,7 +173,7 @@ class Command(BaseCommand):
     
     def _create_generic_touchpoint(self, interaction):
         """Create a generic touchpoint for an interaction."""
-        from interactions.models import Touchpoint, TouchpointClass, Channel
+        from interactions.models import Touchpoint, TouchpointType, Channel
         
         # Determine channel based on interaction context or use generic
         # For now, we'll infer the channel from the action or use a default
@@ -202,9 +202,9 @@ class Command(BaseCommand):
         )
         
         # Get or create a touchpoint class based on the channel
-        touchpoint_class_code = f"{channel_code}_generic"
-        touchpoint_class, _ = TouchpointClass.objects.get_or_create(
-            code=touchpoint_class_code,
+        touchpoint_type_code = f"{channel_code}_generic"
+        touchpoint_type, _ = TouchpointType.objects.get_or_create(
+            code=touchpoint_type_code,
             defaults={
                 'name': f'{channel_name} Generic Touchpoint Class',
                 'description': f'Generic touchpoint class for {channel_name} interactions'
@@ -218,7 +218,7 @@ class Command(BaseCommand):
             code=touchpoint_code,
             defaults={
                 'name': f"{channel_name} {action_code.title()}",
-                'touchpoint_class': touchpoint_class,
+                'touchpoint_type': touchpoint_type,
                 'channel': channel,
                 'description': f"Auto-generated touchpoint for {action_code} in {channel_name}",
                 'is_active': True

@@ -87,7 +87,7 @@ The Touchpoint Resolution System has been **fully implemented** and is ready for
 ### **🔧 Enhanced Features Beyond Original Plan**
 - **Website-Specific Channels**: Domain-based channel codes (e.g., `alpha.com`)
 - **Source vs Capture Channel Logic**: Proper event origin tracking
-- **Medium-Based TouchpointClass**: Semantic categorization
+- **Medium-Based TouchpointType**: Semantic categorization
 - **Native App Detection**: User agent analysis for mobile apps
 - **Enhanced Traffic Attribution**: UTM, referrer, and user agent analysis
 
@@ -135,7 +135,7 @@ class MappingProviderProtocol(Protocol):
 **File: `connectors/resolvers.py`**
 ```python
 from django.db import transaction
-from interactions.models import Touchpoint, TouchpointClass, Channel
+from interactions.models import Touchpoint, TouchpointType, Channel
 from .protocols import TouchpointInferenceProtocol, TouchpointResolverProtocol, TouchpointHint
 
 class DefaultTouchpointResolver:
@@ -197,10 +197,10 @@ class DefaultTouchpointResolver:
             )
         
         # Get or create touchpoint class
-        touchpoint_class = None
+        touchpoint_type = None
         if hint.code:
             class_code = hint.code.split('.')[0]  # e.g., "web" from "web.page_read"
-            touchpoint_class, _ = TouchpointClass.objects.get_or_create(
+            touchpoint_type, _ = TouchpointType.objects.get_or_create(
                 code=class_code,
                 defaults={
                     'name': class_code.title(),
@@ -213,7 +213,7 @@ class DefaultTouchpointResolver:
             code=hint.code or f"generic.{subject.__class__.__name__.lower()}",
             defaults={
                 'name': hint.label or hint.code or 'Generic Touchpoint',
-                'touchpoint_class': touchpoint_class,
+                'touchpoint_type': touchpoint_type,
                 'description': f"Auto-generated touchpoint for {subject.__class__.__name__}",
                 'is_active': True
             }
@@ -980,7 +980,7 @@ class WebTouchpointResolutionTests(TestCase):
         interaction.refresh_from_db()
         self.assertIsNotNone(interaction.touchpoint)
         self.assertEqual(interaction.touchpoint.code, 'web.page_read')
-        self.assertEqual(interaction.touchpoint.touchpoint_class.code, 'web')
+        self.assertEqual(interaction.touchpoint.touchpoint_type.code, 'web')
 ```
 
 ---

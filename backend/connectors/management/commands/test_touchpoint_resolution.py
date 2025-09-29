@@ -116,7 +116,7 @@ class Command(BaseCommand):
         self.stdout.write(f"✅ Created touchpoint: {touchpoint.code}")
         if verbose:
             self.stdout.write(f"   Name: {touchpoint.name}")
-            self.stdout.write(f"   TouchpointClass: {touchpoint.touchpoint_class.code if touchpoint.touchpoint_class else 'None'}")
+            self.stdout.write(f"   TouchpointType: {touchpoint.touchpoint_type.code if touchpoint.touchpoint_type else 'None'}")
         
         # Test 2: Reuse existing touchpoint
         touchpoint2 = resolver.resolve(mock_connector)

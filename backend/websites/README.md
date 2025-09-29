@@ -195,7 +195,7 @@ The `websites` app has been updated to implement the new three-dimensional class
 
 #### **Data Model Changes:**
 - **Medium moved**: From `Channel` to `Touchpoint` for better separation of responsibilities
-- **TouchpointClass → TouchpointType**: Renamed for clarity
+- **TouchpointType → TouchpointType**: Renamed for clarity
 - **Updated relationships**: Touchpoint now has `channel`, `medium`, and `touchpoint_type`
 
 #### **Classification Logic Changes:**

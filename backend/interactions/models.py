@@ -263,7 +263,7 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         ordering = ['name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['touchpoint_type']),  # Updated from touchpoint_class
+            models.Index(fields=['touchpoint_type']),  # Updated from touchpoint_type
             models.Index(fields=['code']),
             models.Index(fields=['name']),
             models.Index(fields=['channel']),

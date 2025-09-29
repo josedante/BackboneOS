@@ -88,7 +88,7 @@ def log_user_activity(user, activity_type, description="", metadata=None, reques
         "user_agent": getattr(request, 'META', {}).get('HTTP_USER_AGENT') if request else None,
         "source": 'web',
         # Elementos adicionales inspirados en estructura anterior
-        "trigger_context": metadata.get("trigger_context") if metadata else None,  # como "touchpoint_class_identifier"
+        "trigger_context": metadata.get("trigger_context") if metadata else None,  # como "touchpoint_type_identifier"
         "related_object_uuid": metadata.get("related_object_uuid") if metadata else None,  # como "touchpoint_uuid"
         "command_name": validated_command_name,
     }

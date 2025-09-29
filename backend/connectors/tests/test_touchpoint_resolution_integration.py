@@ -157,7 +157,7 @@ class CompleteResolutionWorkflowTest(TestCase):
                 self.assertIsNotNone(touchpoint)
                 
                 # The touchpoint class should be based on the UTM medium (cpc -> paid_traffic)
-                self.assertEqual(touchpoint.touchpoint_class.code, 'web.paid_traffic')
+                self.assertEqual(touchpoint.touchpoint_type.code, 'web.paid_traffic')
                 # Channel should be the UTM source (google) since this is an external click event
                 self.assertEqual(touchpoint.channel.code, 'google')
                 # Medium should be 'paid' based on utm_medium='cpc'
@@ -198,7 +198,7 @@ class CompleteResolutionWorkflowTest(TestCase):
         )
         
         # Create custom touchpoint class
-        custom_touchpoint_class = TouchpointClass.objects.create(
+        custom_touchpoint_type = TouchpointType.objects.create(
             code='web.custom_page_view',
             name='Custom Web Page View',
             description='A custom web page view interaction'
@@ -236,7 +236,7 @@ class CompleteResolutionWorkflowTest(TestCase):
         touchpoint = resolver.resolve(custom_web_interaction)
         
         # Verify custom rule was applied
-        self.assertEqual(touchpoint.touchpoint_class.code, 'web.custom_page_view')
+        self.assertEqual(touchpoint.touchpoint_type.code, 'web.custom_page_view')
         self.assertEqual(touchpoint.channel.code, 'paid')
         self.assertEqual(touchpoint.medium.code, 'search')
     
@@ -374,7 +374,7 @@ class SystemIntegrationTest(TransactionTestCase):
             
             # Verify touchpoint was created within transaction
             self.assertIsNotNone(touchpoint)
-            self.assertEqual(touchpoint.touchpoint_class.code, 'web.page_view')
+            self.assertEqual(touchpoint.touchpoint_type.code, 'web.page_view')
             
             # Verify resolution event was created within transaction
             event = TouchpointResolutionEvent.objects.get(connector_type='web')

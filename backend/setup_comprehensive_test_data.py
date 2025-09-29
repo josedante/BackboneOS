@@ -31,7 +31,7 @@ from django.contrib.auth import get_user_model
 # Import all models
 from products.models import Product, ProductCategory, Division, Modality, Customization
 from entities.models import Person, Organization, ContactDetail, IndividualProfile, PhysicalAddress
-from interactions.models import Channel, Medium, ActionType, Action, Agent, TouchpointClass, Touchpoint, Interaction
+from interactions.models import Channel, Medium, ActionType, Action, Agent, TouchpointType, Touchpoint, Interaction
 from campaigns.models import Campaign, CampaignTouchpoint
 from offers.models import ProductOffering
 from our_institution.models import OurOrganization, Division as OrgDivision, Team

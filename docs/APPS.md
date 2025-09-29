@@ -80,7 +80,7 @@
 **Framework completo de gestión de customer journey**
 
 - **🎯 Jobs-to-be-Done**: `Interaction` con etapas JTBD (8 modelos)
-- **📡 Touchpoints**: `Touchpoint`, `TouchpointClass` (puntos de contacto)
+- **📡 Touchpoints**: `Touchpoint`, `TouchpointType` (puntos de contacto)
 - **🔄 Sesiones**: `Session` (seguimiento de comportamiento)
 - **🤖 Agentes**: `Agent` (browsers, humans, bots)
 - **📢 Canales**: `Medium`, `Channel`, `Action`, `ActionType`

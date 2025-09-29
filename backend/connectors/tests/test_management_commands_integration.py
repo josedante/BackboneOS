@@ -38,7 +38,7 @@ class ManagementCommandsIntegrationTest(TestCase):
     def setUp(self):
         """Set up test data."""
         # Create test touchpoint class
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -59,7 +59,7 @@ class ManagementCommandsIntegrationTest(TestCase):
         
         # Create test touchpoint
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             channel=self.channel,
             name='Test Touchpoint',
             code='test_touchpoint',
@@ -221,7 +221,7 @@ class ManagementCommandsErrorHandlingTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -240,7 +240,7 @@ class ManagementCommandsErrorHandlingTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'
@@ -290,7 +290,7 @@ class ManagementCommandsPerformanceTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -309,7 +309,7 @@ class ManagementCommandsPerformanceTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'
@@ -373,7 +373,7 @@ class ManagementCommandsIntegrationWithAdminTest(TestCase):
     
     def setUp(self):
         """Set up test data."""
-        self.touchpoint_class = TouchpointClass.objects.create(
+        self.touchpoint_type = TouchpointType.objects.create(
             code='web.page_view',
             name='Web Page View',
             description='A web page view interaction'
@@ -392,7 +392,7 @@ class ManagementCommandsIntegrationWithAdminTest(TestCase):
         )
         
         self.touchpoint = Touchpoint.objects.create(
-            touchpoint_class=self.touchpoint_class,
+            touchpoint_type=self.touchpoint_type,
             name='Test Touchpoint',
             code='test_touchpoint',
             description='Test touchpoint for integration tests'

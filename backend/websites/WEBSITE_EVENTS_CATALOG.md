@@ -107,7 +107,7 @@ This categorization enables:
    - **Touchpoint Code**: `web.page_view` (e.g., `web.page_view.mba_programs`)
    - **Channel**: `esan.edu.pe` (capture channel - our website)
    - **Medium**: `direct` (internal page view)
-   - **TouchpointClass**: `web.internal_interaction`
+   - **TouchpointType**: `web.internal_interaction`
    - **Description**: Page title and description from website script
    - **URL**: Full URL of the viewed page
 
@@ -115,7 +115,7 @@ This categorization enables:
    - **Touchpoint Code**: `web.referrer_page` (e.g., `web.referrer_page.google_search`)
    - **Channel**: `google` (source channel - where visitor came from)
    - **Medium**: `organic` (from referrer analysis)
-   - **TouchpointClass**: `web.organic_traffic`
+   - **TouchpointType**: `web.organic_traffic`
    - **Description**: Referrer page title/description
    - **URL**: Referrer URL
 
@@ -178,7 +178,7 @@ This categorization enables:
 - **Single Interaction Created**: `page_read` action (no UTM fields)
 - **Touchpoint Created**: `web.page_read.{page_title}` with `web_page` medium
 - **Channel**: Website domain (e.g., `esan.edu.pe`)
-- **TouchpointClass**: `web.internal_interaction`
+- **TouchpointType**: `web.internal_interaction`
 - **Engagement Score**: Calculated algorithm (0.0-1.0) based on:
   - Time factor (30% weight, content-length adjusted)
   - Scroll depth (40% weight, most important)
@@ -224,7 +224,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.lead_form` or `web.contact_form`
 - **Channel**: `facebook` (source) or `esan.edu.pe` (capture)
 - **Medium**: `social`
-- **TouchpointClass**: `web.social_traffic`
+- **TouchpointType**: `web.social_traffic`
 - **Interaction**: Form submission with lead data
 - **Lead Creation**: Potential lead record if email/contact info provided
 
@@ -260,7 +260,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.click`
 - **Channel**: `esan.edu.pe` (internal click)
 - **Medium**: `direct` (internal navigation)
-- **TouchpointClass**: `web.internal_traffic`
+- **TouchpointType**: `web.internal_traffic`
 - **Interaction**: Click interaction with element details
 
 ---
@@ -297,7 +297,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.download`
 - **Channel**: `email` (source) or `esan.edu.pe` (capture)
 - **Medium**: `email`
-- **TouchpointClass**: `web.email_traffic`
+- **TouchpointType**: `web.email_traffic`
 - **Interaction**: Download interaction with file details
 - **Engagement Score**: High engagement indicator
 
@@ -333,7 +333,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.video_play`
 - **Channel**: `esan.edu.pe`
 - **Medium**: `direct`
-- **TouchpointClass**: `web.internal_interaction`
+- **TouchpointType**: `web.internal_interaction`
 - **Interaction**: Video engagement with content details
 - **Engagement Score**: High engagement indicator
 
@@ -368,7 +368,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.search`
 - **Channel**: `esan.edu.pe`
 - **Medium**: `direct`
-- **TouchpointClass**: `web.internal_interaction`
+- **TouchpointType**: `web.internal_interaction`
 - **Interaction**: Search interaction with query details
 - **Intent Analysis**: Search terms for content optimization
 
@@ -406,7 +406,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.newsletter_signup`
 - **Channel**: `blog` (source) or `esan.edu.pe` (capture)
 - **Medium**: `content`
-- **TouchpointClass**: `web.content_traffic`
+- **TouchpointType**: `web.content_traffic`
 - **Interaction**: Newsletter signup with contact details
 - **Lead Creation**: Email subscriber record
 - **Marketing List**: Addition to newsletter distribution list
@@ -452,7 +452,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.purchase`
 - **Channel**: `google` (source) or `esan.edu.pe` (capture)
 - **Medium**: `paid`
-- **TouchpointClass**: `web.paid_traffic`
+- **TouchpointType**: `web.paid_traffic`
 - **Interaction**: Purchase interaction with transaction details
 - **Revenue Tracking**: Revenue attribution to marketing campaigns
 - **Customer Status**: Potential customer conversion
@@ -478,7 +478,7 @@ This categorization enables:
 - **Touchpoint Created**: `web.session_start`
 - **Channel**: Source channel (e.g., `google`) or capture channel (e.g., `esan.edu.pe`)
 - **Medium**: Inferred from UTM or referrer analysis
-- **TouchpointClass**: Traffic source classification (e.g., `web.organic_traffic`)
+- **TouchpointType**: Traffic source classification (e.g., `web.organic_traffic`)
 - **Interaction**: Session start interaction with visitor classification
 - **Session Tracking**: Establishes session context for subsequent events
 
@@ -498,7 +498,7 @@ WebInteraction → infer_touchpoint_hint() → WebTouchpointResolver → Touchpo
 
 ### 3. **Channel and Medium Analysis**
 ```
-UTM Parameters → Medium Classification → Channel Assignment → TouchpointClass Creation
+UTM Parameters → Medium Classification → Channel Assignment → TouchpointType Creation
 ```
 
 ### 4. **Session and Engagement Tracking**
@@ -696,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
 - **WebInteraction**: Stores web-specific event data
 - **Interaction**: Core interaction record
 - **Touchpoint**: Automatically resolved touchpoint
-- **TouchpointClass**: Traffic source classification
+- **TouchpointType**: Traffic source classification
 - **Channel**: Source and capture channels
 
 ---
