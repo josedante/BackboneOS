@@ -189,6 +189,82 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         self.save(update_fields=['ended_at', 'last_activity_at'])
     
     @classmethod
+    def infer_session_for_interaction(cls, web_interaction: 'WebInteraction') -> 'WebSession':
+        """
+        Infer or create a WebSession for the given WebInteraction.
+        
+        Simple logic: session continues if within 30 minutes, otherwise create new session.
+        
+        Args:
+            web_interaction: The WebInteraction to infer session for
+            
+        Returns:
+            WebSession: The inferred or created session
+        """
+        visitor_cookie = web_interaction.visitor_cookie
+        website = web_interaction.website
+        occurred_at = web_interaction.occurred_at
+        
+        # Check for existing active session within 30-minute window
+        timeout_threshold = occurred_at - timedelta(minutes=30)
+        
+        # Look for recent session with same visitor cookie
+        recent_session = cls.objects.filter(
+            visitor_cookie=visitor_cookie,
+            website=website,
+            last_activity_at__gte=timeout_threshold,
+            ended_at__isnull=True
+        ).order_by('-last_activity_at').first()
+        
+        if recent_session:
+            # Continue existing session
+            recent_session.last_activity_at = occurred_at
+            recent_session.page_count += 1
+            recent_session.is_bounce = False  # Multiple pages = not a bounce
+            recent_session.save()
+            return recent_session
+        
+        # Create new session
+        return cls._create_new_session(web_interaction)
+    
+    @classmethod
+    def _create_new_session(cls, web_interaction: 'WebInteraction') -> 'WebSession':
+        """
+        Create a new WebSession for the given interaction.
+        
+        Args:
+            web_interaction: The WebInteraction to create session for
+            
+        Returns:
+            WebSession: The newly created session
+        """
+        # Generate unique session ID
+        session_id = f"sess_{uuid.uuid4().hex[:16]}"
+        
+        # Create session with interaction data
+        session = cls.objects.create(
+            session_id=session_id,
+            visitor_cookie=web_interaction.visitor_cookie,
+            website=web_interaction.website,
+            agent=web_interaction.agent,
+            started_at=web_interaction.occurred_at,
+            last_activity_at=web_interaction.occurred_at,
+            utm_source=web_interaction.utm_source,
+            utm_medium=web_interaction.utm_medium,
+            utm_campaign=web_interaction.utm_campaign,
+            utm_content=web_interaction.utm_content,
+            utm_term=web_interaction.utm_term,
+            referrer_url=web_interaction.payload.get('referrer', ''),
+            landing_page_url=web_interaction.payload.get('full_url', ''),
+            user_agent=web_interaction.user_agent,
+            ip_address=web_interaction.ip,
+            page_count=1,
+            is_bounce=True  # Will be updated if more pages are viewed
+        )
+        
+        return session
+    
+    @classmethod
     def get_session_end_time(cls):
         """Get the default session end time from now."""
         return timezone.now() + timedelta(seconds=settings.WEB_SESSION_DURATION_SECONDS)
@@ -429,12 +505,20 @@ class WebInteraction(AbstractConnectorInteraction):
         return referrer_domain and referrer_domain != website_domain
     
     def _is_new_session(self) -> bool:
-        """Check if this is a new session."""
-        # Simple session detection - can be enhanced
-        return not WebInteraction.objects.filter(
-            session_id=self.session_id,
-            created_at__lt=self.created_at
-        ).exists()
+        """
+        Check if this interaction represents a new session.
+        
+        Simple logic: new session if no existing session within 30 minutes.
+        """
+        # If we already have a session, check if it's new
+        if self.session:
+            # Check if this is the first interaction in the session
+            return self.session.interactions.count() == 0
+        
+        # If no session yet, we need to infer one
+        # This will be called during the inference process
+        # For now, assume new session if no session_id
+        return not self.session_id
     
     def _get_event_data(self) -> dict:
         """Get event data for batch processing."""

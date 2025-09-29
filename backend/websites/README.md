@@ -78,6 +78,7 @@ Model extending `AbstractConnectorInteraction` and implementing `TouchpointInfer
 
 ### `WebSession`
 Represents a web session - a continuous period of user activity.
+- **Simple session logic**: Session continues if within 30 minutes, otherwise new session
 - **Session tracking**: Session identity, timing, and attribution
 - **Analytics**: Page count, bounce detection, conversion events
 - **Integration**: Links to Website and Agent models
@@ -145,7 +146,7 @@ websites/
 ├── MULTI_INTERACTION_APPROACH.md           # Multi-interaction approach details
 ├── THREE_DIMENSIONAL_CLASSIFICATION.md    # Technical implementation details
 ├── EVENT_DIFFERENTIATION_SUMMARY.md       # Event type differentiation
-├── SERVER_SIDE_SESSION_INFERENCE.md       # Session inference logic
+├── SIMPLE_SESSION_MANAGEMENT.md            # Simple session management logic
 ├── WEBSITE_EVENTS_CATALOG.md              # Complete events catalog
 └── migrations/            # Database migrations
 ```
@@ -158,7 +159,7 @@ websites/
 
 ### **Event Processing**
 - **[EVENT_DIFFERENTIATION_SUMMARY.md](./EVENT_DIFFERENTIATION_SUMMARY.md)**: Event type differentiation and improvements
-- **[SERVER_SIDE_SESSION_INFERENCE.md](./SERVER_SIDE_SESSION_INFERENCE.md)**: Server-side session inference logic
+- **[SIMPLE_SESSION_MANAGEMENT.md](./SIMPLE_SESSION_MANAGEMENT.md)**: Simple session management logic
 - **[WEBSITE_EVENTS_CATALOG.md](./WEBSITE_EVENTS_CATALOG.md)**: Complete catalog of website events and their effects
 
 ## 🎯 Value for BackboneOS
