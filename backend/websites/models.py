@@ -44,43 +44,7 @@ def get_or_create_www_channel() -> Channel:
     # Ensure a "WWW" (website) channel exists
     return Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
 
-def get_or_create_tpc(code: str, name: str, channel: Channel) -> TouchpointType:
-    return TouchpointType.objects.get_or_create(
-        code=code,
-        defaults={"name": name}
-    )[0]
 
-# def seed_touchpoint_types(apps, schema_editor):
-#     Channel = apps.get_model("interactions", "Channel")
-#     TouchpointType = apps.get_model("interactions", "TouchpointType")
-
-#     www = Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
-#     get_or_create = lambda code, name: TouchpointType.objects.get_or_create(code=code, defaults={"name": name})[0]
-
-#     get_or_create("WWW_PAGE", "Website Page")
-#     get_or_create("WWW_FORM", "Website Form")
-#     get_or_create("WWW_THANKYOU", "Website Thank You")
-
-
-
-# --------------------------
-# Removed WebSurface, UrlRoutingRule, and SurfaceResolver models
-# These were over-engineered and not actually used in practice.
-# Touchpoint resolution works directly with URLs without these abstractions.
-# --------------------------
-
-
-# class Website(models.Model):
-#     name = models.CharField(max_length=150)
-#     base_url = models.URLField(unique=True)
-#     # Option A: flexible ownership
-#     divisions = models.ManyToManyField("our_institution.Division", through="WebsiteOwnership", blank=True)
-#     active = models.BooleanField(default=True)
-
-# class WebsiteOwnership(models.Model):
-#     website = models.ForeignKey(Website, on_delete=models.CASCADE)
-#     division = models.ForeignKey("our_institution.Division", on_delete=models.CASCADE)
-#     role = models.CharField(max_length=20, default="PRIMARY")  # or choices
 
 class WebSession(BaseUUIDModelWithActiveStatus):
     """
