@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Example page demonstrating BackboneOS tracking script">
+    <meta name="csrf-token" content="example-csrf-token-12345">
+    <title>BackboneOS Tracking Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .download-link {
+            color: #007bff;
+            text-decoration: none;
+            padding: 10px;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 5px;
+        }
+        .download-link:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .video-container {
+            margin: 20px 0;
+        }
+        .search-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .newsletter-form {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .tracking-info {
+            background-color: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .tracking-info h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        .tracking-info p {
+            margin: 5px 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>BackboneOS Tracking Example</h1>
+    <p>This page demonstrates the BackboneOS tracking script in action. Open your browser's developer console to see the tracking events being sent.</p>
+
+    <!-- Tracking Information Display -->
+    <div class="tracking-info">
+        <h3>Tracking Information</h3>
+        <p><strong>Session ID:</strong> <span id="session-id">Loading...</span></p>
+        <p><strong>Visitor Cookie:</strong> <span id="visitor-cookie">Loading...</span></p>
+        <p><strong>Page Category:</strong> <span id="page-category">Loading...</span></p>
+        <p><strong>Engagement Status:</strong> <span id="engagement-status">Not engaged</span></p>
+    </div>
+
+    <!-- Click Tracking Section -->
+    <div class="section">
+        <h2>Click Tracking</h2>
+        <p>Click these buttons to see click events in the console:</p>
+        <button class="button" id="primary-button">Primary Button</button>
+        <button class="button" id="secondary-button">Secondary Button</button>
+        <button class="button" id="cta-button">Call to Action</button>
+        <a href="#" class="button" id="link-button">Link Button</a>
+    </div>
+
+    <!-- Form Submission Tracking -->
+    <div class="section">
+        <h2>Form Submission Tracking</h2>
+        <form id="contact-form">
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="button">Send Message</button>
+        </form>
+    </div>
+
+    <!-- Download Tracking -->
+    <div class="section">
+        <h2>Download Tracking</h2>
+        <p>Click these links to see download events:</p>
+        <a href="/static/sample.pdf" class="download-link" download>Download PDF</a>
+        <a href="/static/sample.docx" class="download-link" download>Download DOCX</a>
+        <a href="/static/sample.zip" class="download-link" download>Download ZIP</a>
+        <a href="/static/sample.mp4" class="download-link" download>Download Video</a>
+    </div>
+
+    <!-- Video Play Tracking -->
+    <div class="section">
+        <h2>Video Play Tracking</h2>
+        <div class="video-container">
+            <video id="demo-video" width="400" height="300" controls>
+                <source src="/static/sample-video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        <p>Play the video above to see video play events.</p>
+    </div>
+
+    <!-- Search Tracking -->
+    <div class="section">
+        <h2>Search Tracking</h2>
+        <div class="search-form">
+            <form id="search-form">
+                <div class="form-group">
+                    <label for="search-query">Search:</label>
+                    <input type="search" id="search-query" name="query" placeholder="Enter your search term">
+                </div>
+                <div class="form-group">
+                    <label for="search-category">Category:</label>
+                    <select id="search-category" name="category">
+                        <option value="all">All</option>
+                        <option value="products">Products</option>
+                        <option value="services">Services</option>
+                        <option value="blog">Blog</option>
+                    </select>
+                </div>
+                <button type="submit" class="button">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Newsletter Signup Tracking -->
+    <div class="section">
+        <h2>Newsletter Signup Tracking</h2>
+        <div class="newsletter-form">
+            <form id="newsletter-form">
+                <div class="form-group">
+                    <label for="newsletter-email">Email:</label>
+                    <input type="email" id="newsletter-email" name="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label>Interests:</label>
+                    <label><input type="checkbox" name="interests" value="technology"> Technology</label>
+                    <label><input type="checkbox" name="interests" value="business"> Business</label>
+                    <label><input type="checkbox" name="interests" value="marketing"> Marketing</label>
+                </div>
+                <button type="submit" class="button">Subscribe to Newsletter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Event Tracking -->
+    <div class="section">
+        <h2>Custom Event Tracking</h2>
+        <p>Click these buttons to see custom events:</p>
+        <button class="button" onclick="trackProductView()">Track Product View</button>
+        <button class="button" onclick="trackAddToCart()">Track Add to Cart</button>
+        <button class="button" onclick="trackPurchase()">Track Purchase</button>
+        <button class="button" onclick="trackCustomEvent()">Track Custom Event</button>
+    </div>
+
+    <!-- Engagement Tracking -->
+    <div class="section">
+        <h2>Engagement Tracking</h2>
+        <p>This section contains enough content to trigger engagement tracking. Scroll down to see scroll depth tracking in action.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+        <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+        <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+        <p>Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.</p>
+        <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+        <p>Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
+        <p>Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.</p>
+        <p>Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.</p>
+    </div>
+
+    <!-- BackboneOS Tracking Script -->
+    <script>
+        // Configuration
+        window.BackboneConfig = {
+            apiEndpoint: '/api/websites/events/page-view/',
+            sessionTimeout: 30 * 60 * 1000, // 30 minutes
+            engagementThreshold: 30 * 1000, // 30 seconds
+            scrollThreshold: 50, // 50% scroll depth
+            wordCountThreshold: 200,
+            shortContentThreshold: 10 * 1000, // 10 seconds
+            batchSize: 10,
+            retryAttempts: 3,
+            retryDelay: 1000,
+            features: {
+                pageViews: true,
+                pageReads: true,
+                clicks: true,
+                formSubmissions: true,
+                downloads: true,
+                videoPlays: true,
+                searches: true,
+                newsletterSignups: true,
+                scrollTracking: true,
+                timeTracking: true,
+                utmTracking: true,
+                referrerTracking: true,
+                botDetection: true,
+                engagementTracking: true
+            },
+            debug: {
+                enabled: true,
+                logEvents: true,
+                logErrors: true,
+                verbose: true
+            }
+        };
+    </script>
+    
+    <!-- Load the tracking script -->
+    <script src="{% static 'websites/js/backbone-tracker.js' %}"></script>
+    
+    <script>
+        // Update tracking information display
+        function updateTrackingInfo() {
+            if (window.BackboneTracker) {
+                document.getElementById('session-id').textContent = window.BackboneTracker.getSessionId() || 'Not available';
+                document.getElementById('visitor-cookie').textContent = window.BackboneTracker.getVisitorCookie() || 'Not available';
+                document.getElementById('page-category').textContent = getPageCategory();
+            }
+        }
+        
+        function getPageCategory() {
+            const path = window.location.pathname.toLowerCase();
+            if (path.includes('/blog/') || path.includes('/news/')) return 'blog';
+            if (path.includes('/products/') || path.includes('/services/')) return 'products';
+            if (path.includes('/about/') || path.includes('/company/')) return 'about';
+            if (path.includes('/contact/') || path.includes('/support/')) return 'contact';
+            if (path.includes('/pricing/') || path.includes('/plans/')) return 'pricing';
+            return 'other';
+        }
+        
+        // Custom event tracking functions
+        function trackProductView() {
+            if (window.BackboneTracker) {
+                window.BackboneTracker.trackCustom('product_view', {
+                    product_id: '12345',
+                    product_name: 'Amazing Product',
+                    category: 'electronics',
+                    price: 99.99,
+                    source: 'example_page'
+                });
+                console.log('Product view event tracked');
+            }
+        }
+        
+        function trackAddToCart() {
+            if (window.BackboneTracker) {
+                window.BackboneTracker.trackCustom('add_to_cart', {
+                    product_id: '12345',
+                    product_name: 'Amazing Product',
+                    quantity: 1,
+                    value: 99.99,
+                    currency: 'USD'
+                });
+                console.log('Add to cart event tracked');
+            }
+        }
+        
+        function trackPurchase() {
+            if (window.BackboneTracker) {
+                window.BackboneTracker.trackCustom('purchase', {
+                    order_id: 'ORD-12345',
+                    value: 99.99,
+                    currency: 'USD',
+                    items: [
+                        { product_id: '12345', quantity: 1, price: 99.99 }
+                    ]
+                });
+                console.log('Purchase event tracked');
+            }
+        }
+        
+        function trackCustomEvent() {
+            if (window.BackboneTracker) {
+                window.BackboneTracker.trackCustom('custom_event', {
+                    event_name: 'button_click',
+                    custom_data: 'This is a custom event',
+                    timestamp: new Date().toISOString(),
+                    user_action: 'manual_tracking'
+                });
+                console.log('Custom event tracked');
+            }
+        }
+        
+        // Update tracking info when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTrackingInfo();
+            
+            // Update engagement status
+            let engagementStatus = 'Not engaged';
+            const engagementElement = document.getElementById('engagement-status');
+            
+            // Check engagement every 5 seconds
+            setInterval(function() {
+                if (window.BackboneTracker) {
+                    const sessionId = window.BackboneTracker.getSessionId();
+                    if (sessionId) {
+                        engagementStatus = 'Engaged';
+                    }
+                }
+                engagementElement.textContent = engagementStatus;
+            }, 5000);
+        });
+        
+        // Form submission handlers
+        document.getElementById('contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Contact form submitted');
+            alert('Form submitted! Check console for tracking event.');
+        });
+        
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Search form submitted');
+            alert('Search submitted! Check console for tracking event.');
+        });
+        
+        document.getElementById('newsletter-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Newsletter form submitted');
+            alert('Newsletter subscription submitted! Check console for tracking event.');
+        });
+        
+        // Video play handler
+        document.getElementById('demo-video').addEventListener('play', function() {
+            console.log('Video play event detected');
+        });
+        
+        // Download link handlers
+        document.querySelectorAll('.download-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                console.log('Download link clicked:', this.href);
+            });
+        });
+        
+        // Button click handlers
+        document.querySelectorAll('.button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                console.log('Button clicked:', this.textContent);
+            });
+        });
+    </script>
+</body>
+</html>
