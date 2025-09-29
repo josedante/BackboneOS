@@ -13,10 +13,14 @@
 class TouchpointInferenceProtocol(Protocol):
     def infer_touchpoint_hint(self) -> TouchpointHint: ...
 
+# Extended protocol for multi-interaction approach
+class MultiTouchpointInferenceProtocol(Protocol):
+    def infer_multi_touchpoint_hints(self) -> BatchTouchpointHint: ...
+
 # Specialized implementation in websites app
-class WebInteraction(AbstractConnectorInteraction, TouchpointInferenceProtocol):
-    def infer_touchpoint_hint(self) -> TouchpointHint:
-        return infer_web_touchpoint_hint(self)  # Delegates to web-specific logic
+class WebInteraction(AbstractConnectorInteraction, MultiTouchpointInferenceProtocol):
+    def infer_multi_touchpoint_hints(self) -> BatchTouchpointHint:
+        return self._create_batch_hints()  # Multi-interaction approach
 ```
 
 ### **3. Configurable Business Rules**
@@ -34,10 +38,13 @@ class WebInteraction(AbstractConnectorInteraction, TouchpointInferenceProtocol):
 ## 🏗️ Architecture Layers
 
 ### **Layer 1: Core Framework (Connectors App)**
-- `TouchpointInferenceProtocol`: Interface for connector inference
-- `DefaultTouchpointResolver`: Generic resolution logic
+- `TouchpointInferenceProtocol`: Interface for single-interaction inference
+- `MultiTouchpointInferenceProtocol`: Interface for multi-interaction inference
+- `DefaultTouchpointResolver`: Generic single-interaction resolution logic
+- `ExtendedTouchpointResolver`: Multi-interaction and session-aware resolution
 - `TouchpointMappingRule`: Configurable business rules
-- `DatabaseMappingProvider`: Rule lookup and caching
+- `DatabaseMappingProvider`: Single-interaction rule lookup and caching
+- `ExtendedDatabaseMappingProvider`: Multi-interaction and session-aware rule lookup
 
 ### **Layer 2: Specialized Implementations (Connector Apps)**
 - **Websites**: UTM analysis, referrer parsing, web-specific defaults

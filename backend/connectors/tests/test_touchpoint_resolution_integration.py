@@ -31,9 +31,8 @@ from connectors.metrics import track_resolution
 from connectors.alerting import alert_manager
 from interactions.models import Interaction, Touchpoint, TouchpointType, Channel, Medium
 from websites.models import WebInteraction
-from websites.resolvers import WebTouchpointResolver
-from websites.mapping_providers import WebMappingProvider
-from websites.adapters import infer_web_touchpoint_hint
+from connectors.extended_resolvers import ExtendedTouchpointResolver
+from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
 
 
 class CompleteResolutionWorkflowTest(TestCase):
@@ -143,31 +142,37 @@ class CompleteResolutionWorkflowTest(TestCase):
         return WebInteraction.objects.create(**defaults)
     
     def test_complete_web_resolution_workflow(self):
-        """Test complete web touchpoint resolution workflow."""
-        # Step 1: Create web touchpoint resolver
-        mapping_provider = WebMappingProvider()
-        resolver = WebTouchpointResolver(mapping_provider)
+        """Test complete web touchpoint resolution workflow with multi-interaction approach."""
+        # Step 1: Create extended touchpoint resolver
+        mapping_provider = ExtendedDatabaseMappingProvider()
+        resolver = ExtendedTouchpointResolver(mapping_provider)
         
-        # Step 2: Resolve touchpoint
-        with track_resolution('web', {'interaction_id': self.web_interaction.interaction.id}) as tracker:
+        # Step 2: Resolve multiple touchpoints using batch resolution
+        with track_resolution('web', {'interaction_id': self.web_interaction.interaction.id, 'batch': True}) as tracker:
             try:
-                touchpoint = resolver.resolve(self.web_interaction)
+                touchpoints = resolver.resolve_batch(self.web_interaction)
                 
-                # Step 3: Verify touchpoint was created
-                self.assertIsNotNone(touchpoint)
+                # Step 3: Verify multiple touchpoints were created
+                self.assertIsNotNone(touchpoints)
+                self.assertGreater(len(touchpoints), 0)
+                
+                # Should have at least page view touchpoint
+                page_view_touchpoint = touchpoints[0]
+                self.assertIsNotNone(page_view_touchpoint)
                 
                 # The touchpoint class should be based on the UTM medium (cpc -> paid_traffic)
-                self.assertEqual(touchpoint.touchpoint_type.code, 'web.paid_traffic')
+                self.assertEqual(page_view_touchpoint.touchpoint_type.code, 'web.paid_traffic')
                 # Channel should be the UTM source (google) since this is an external click event
-                self.assertEqual(touchpoint.channel.code, 'google')
+                self.assertEqual(page_view_touchpoint.channel.code, 'google')
                 # Medium should be 'paid' based on utm_medium='cpc'
-                self.assertEqual(touchpoint.channel.medium.code, 'paid')
+                self.assertEqual(page_view_touchpoint.channel.medium.code, 'paid')
                 
                 # Step 4: Record success
                 tracker.record_success(
                     cache_hit=False,
                     mapping_applied=True,
-                    touchpoint_created=True
+                    touchpoint_created=True,
+                    batch_size=len(touchpoints)
                 )
                 
             except Exception as e:

@@ -110,10 +110,12 @@ Interaction → Touchpoint Hint → Mapping Rule Lookup → Touchpoint Creation
 
 ## 💡 Usage Examples
 
-### Web Connector
+### Web Connector (Multi-Interaction Approach)
 
 ```python
 from websites.models import WebInteraction
+from connectors.extended_resolvers import ExtendedTouchpointResolver
+from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
 
 # Create web interaction
 web_interaction = WebInteraction.objects.create(
@@ -123,9 +125,12 @@ web_interaction = WebInteraction.objects.create(
     occurred_at=timezone.now()
 )
 
-# Resolve touchpoint
-touchpoint = resolver.resolve(web_interaction)
-print(f"Created touchpoint: {touchpoint.name}")
+# Use extended resolver for multi-interaction approach
+resolver = ExtendedTouchpointResolver(ExtendedDatabaseMappingProvider())
+
+# Resolve multiple touchpoints (page view, referrer click, session start)
+touchpoints = resolver.resolve_batch(web_interaction)
+print(f"Created {len(touchpoints)} touchpoints: {[tp.name for tp in touchpoints]}")
 ```
 
 ### Email Connector

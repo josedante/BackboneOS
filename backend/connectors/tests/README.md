@@ -25,7 +25,7 @@ tests/
 - **Integration Tests**: Full workflow simulation using all protocols
 
 ### 2. Resolver Tests (`test_resolvers.py`)
-- **DefaultTouchpointResolver**: Core resolution logic
+- **DefaultTouchpointResolver**: Core resolution logic (single interaction)
   - Resolution without mapping rules
   - Resolution with mapping rules
   - Touchpoint reuse and caching
@@ -36,6 +36,15 @@ tests/
   - Cache initialization and configuration
   - Cache hit/miss scenarios
   - Custom cache timeouts
+- **ExtendedTouchpointResolver**: Multi-interaction resolution logic
+  - Batch resolution for multiple interactions
+  - Session-aware resolution
+  - Coordinated touchpoint creation
+  - Multi-interaction mapping rule application
+- **CachedExtendedTouchpointResolver**: Extended caching functionality
+  - Session-aware cache management
+  - Batch cache invalidation
+  - Performance optimization for multi-interaction scenarios
 
 ### 3. Mapping Provider Tests (`test_mapping_providers.py`)
 - **DatabaseMappingProvider**: Database-backed rule lookup

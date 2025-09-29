@@ -33,6 +33,7 @@ def run_tests():
         'connectors.tests.test_resolvers',
         'connectors.tests.test_mapping_providers',
         'connectors.tests.test_models',
+        'connectors.tests.test_touchpoint_resolution_integration',
     ]
     
     # Run tests

@@ -35,7 +35,7 @@ Interaction → Touchpoint Hint → Mapping Rule Lookup → Touchpoint Creation
 
 ### 1. Touchpoint Resolution
 
-#### Resolve Touchpoint
+#### Resolve Touchpoint (Single Interaction)
 ```python
 from connectors.resolvers import DefaultTouchpointResolver
 from connectors.mapping_providers import DatabaseMappingProvider
@@ -43,8 +43,23 @@ from connectors.mapping_providers import DatabaseMappingProvider
 # Initialize resolver
 resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
 
-# Resolve touchpoint
+# Resolve single touchpoint
 touchpoint = resolver.resolve(subject)
+```
+
+#### Resolve Multiple Touchpoints (Multi-Interaction)
+```python
+from connectors.extended_resolvers import ExtendedTouchpointResolver
+from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
+
+# Initialize extended resolver
+resolver = ExtendedTouchpointResolver(ExtendedDatabaseMappingProvider())
+
+# Resolve multiple touchpoints for batch processing
+touchpoints = resolver.resolve_batch(subject)
+
+# Resolve with session context
+touchpoints = resolver.resolve_with_session_context(subject, session_context)
 ```
 
 **Parameters:**
