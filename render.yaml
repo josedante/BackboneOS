@@ -39,7 +39,7 @@ services:
     runtime: docker
     rootDir: backend
     dockerfilePath: Dockerfile.prod
-    # dockerCommand: ./entrypoint.sh
+    dockerCommand: ./entrypoint.sh
     plan: starter # Free tier for development
     region: oregon # Default region
     scaling:
