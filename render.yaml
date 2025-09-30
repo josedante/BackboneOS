@@ -39,7 +39,7 @@ services:
     runtime: docker
     rootDir: backend
     dockerfilePath: Dockerfile.prod
-    dockerCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 --graceful-timeout 30 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100 backend.wsgi:application
+    dockerCommand: ./entrypoint.sh gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 --graceful-timeout 30 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100 backend.wsgi:application
     plan: starter # Free tier for development
     region: oregon # Default region
     scaling:
@@ -222,7 +222,7 @@ services:
     runtime: docker
     rootDir: backend
     dockerfilePath: Dockerfile.prod
-    dockerCommand: sleep 10 && celery -A backend beat -l info
+    dockerCommand: celery -A backend beat -l info
     plan: starter
     region: oregon
     dependsOn:
