@@ -28,11 +28,48 @@ from users.views import UserViewSet
 @csrf_exempt
 def health_check(request):
     """Health check endpoint for Render deployment"""
-    return JsonResponse({
+    from django.db import connection
+    from django.core.management import call_command
+    from io import StringIO
+    import sys
+    
+    health_status = {
         'status': 'healthy',
         'service': 'backboneos-backend',
-        'timestamp': timezone.now().isoformat()
-    })
+        'timestamp': timezone.now().isoformat(),
+        'checks': {}
+    }
+    
+    # Check database connectivity
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        health_status['checks']['database'] = 'healthy'
+    except Exception as e:
+        health_status['checks']['database'] = f'unhealthy: {str(e)}'
+        health_status['status'] = 'unhealthy'
+    
+    # Check migration status
+    try:
+        # Capture output from showmigrations command
+        old_stdout = sys.stdout
+        sys.stdout = StringIO()
+        call_command('showmigrations', '--plan', verbosity=0)
+        migration_output = sys.stdout.getvalue()
+        sys.stdout = old_stdout
+        
+        # Check if there are unapplied migrations
+        unapplied_migrations = '[ ]' in migration_output
+        if unapplied_migrations:
+            health_status['checks']['migrations'] = 'unhealthy: pending migrations'
+            health_status['status'] = 'unhealthy'
+        else:
+            health_status['checks']['migrations'] = 'healthy: all migrations applied'
+    except Exception as e:
+        health_status['checks']['migrations'] = f'unhealthy: {str(e)}'
+        health_status['status'] = 'unhealthy'
+    
+    return JsonResponse(health_status)
 
 @csrf_exempt
 def root_view(request):

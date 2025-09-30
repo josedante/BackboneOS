@@ -48,6 +48,8 @@ services:
       targetCPUPercent: 70
     healthCheckPath: /health/
     autoDeploy: true
+    # Ensure migrations run before service starts
+    buildCommand: echo "Building backend with migration support..."
     envVars:
       # Database connection
       - key: DATABASE_URL

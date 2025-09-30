@@ -24,7 +24,7 @@ run_migrations() {
     
     # Wait for database to be ready with retries
     local retries=0
-    local max_retries=10
+    local max_retries=15  # Increased for Render.com reliability
     
     while [ $retries -lt $max_retries ]; do
         if check_database; then
@@ -40,9 +40,17 @@ run_migrations() {
         exit 1
     fi
     
-    # Use Django's migrate command with advisory lock
-    # This prevents multiple instances from migrating simultaneously
-    python manage.py migrate --noinput
+    # Check if migrations are needed
+    echo "🔍 Checking for pending migrations..."
+    python manage.py showmigrations --plan | grep -q "\[ \]" && {
+        echo "📋 Pending migrations found, running migrations..."
+        # Use Django's migrate command with advisory lock
+        # This prevents multiple instances from migrating simultaneously
+        python manage.py migrate --noinput
+        echo "✅ Database migrations completed"
+    } || {
+        echo "✅ No pending migrations found"
+    }
     
     # For Celery Beat, also ensure the beat tables exist
     if [[ "${@}" == *"beat"* ]]; then
@@ -58,8 +66,6 @@ except Exception as e:
     exit(1)
 "
     fi
-    
-    echo "✅ Database migrations completed"
 }
 
 # Function to collect static files
@@ -93,6 +99,11 @@ start_app() {
 
 # Main execution flow
 main() {
+    echo "🚀 BackboneOS Backend starting..."
+    echo "📋 Environment: ${NODE_ENV:-development}"
+    echo "🗄️  Database: ${DATABASE_URL:+configured}"
+    echo "🔗 Redis: ${REDIS_URL:+configured}"
+    
     # Run migrations for web services (gunicorn or default) and Celery Beat
     if [[ "$1" == *"gunicorn"* ]] || [ $# -eq 0 ] || [[ "$1" == *"beat"* ]]; then
         if [[ "$1" == *"beat"* ]]; then
@@ -106,6 +117,8 @@ main() {
     else
         echo "⚙️  Worker service detected - skipping migrations and static files"
     fi
+    
+    echo "🎯 All setup completed, starting application..."
     
     # Start the application
     start_app "$@"
