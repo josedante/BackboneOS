@@ -166,8 +166,6 @@ services:
     dockerCommand: celery -A backend worker -l info --concurrency=2
     plan: starter
     region: oregon
-    dependsOn:
-      - backboneos-backend
     envVars:
       # Database connection
       - key: DATABASE_URL
@@ -214,8 +212,6 @@ services:
       - fromGroup: backboneos-shared
 
 # Celery Beat Service (Scheduler) - Depends on backend for migrations
-# The dependsOn ensures backend migrations complete before Celery Beat starts
-# The sleep 10 gives extra buffer time for database tables to be ready
   - type: worker
     name: backboneos-celery-beat
     runtime: docker
@@ -224,8 +220,6 @@ services:
     dockerCommand: celery -A backend beat -l info
     plan: starter
     region: oregon
-    dependsOn:
-      - backboneos-backend
     envVars:
       # Database connection
       - key: DATABASE_URL
@@ -286,8 +280,6 @@ services:
     numInstances: 1
     healthCheckPath: /
     autoDeploy: true
-    dependsOn:
-      - backboneos-backend
     envVars:
       # Celery configuration
       - key: CELERY_BROKER_URL
