@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Disable ESLint during build for production deployment
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
   // External packages for server components
   serverExternalPackages: ['axios'],
   

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+
 import { Header } from './header'
 import { Sidebar } from './sidebar'
 

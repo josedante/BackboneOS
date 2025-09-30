@@ -17,7 +17,7 @@ export default function PersonDetailPage() {
   const params = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const personId = params.id as string
+  const personId = params['id'] as string
 
   // Fetch person details
   const { data: person, isLoading, error } = useQuery({
@@ -114,7 +114,7 @@ export default function PersonDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Persona">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Cargando persona...</div>
         </div>
@@ -124,7 +124,7 @@ export default function PersonDetailPage() {
 
   if (error || !person) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Persona">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg text-red-600">Error al cargar la persona</div>
         </div>
@@ -133,7 +133,7 @@ export default function PersonDetailPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Persona">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -398,15 +398,15 @@ export default function PersonDetailPage() {
                     
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">{person.profile.industries_count}</div>
+                        <div className="text-2xl font-bold text-blue-600">{person.profile.industries.length}</div>
                         <div className="text-sm text-muted-foreground">Industrias</div>
                       </div>
                       <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">{person.profile.skills_count}</div>
+                        <div className="text-2xl font-bold text-green-600">{person.profile.skills.length}</div>
                         <div className="text-sm text-muted-foreground">Habilidades</div>
                       </div>
                       <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">{person.profile.functions_count}</div>
+                        <div className="text-2xl font-bold text-purple-600">{person.profile.functions.length}</div>
                         <div className="text-sm text-muted-foreground">Funciones</div>
                       </div>
                     </div>

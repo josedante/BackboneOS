@@ -17,7 +17,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const productId = params.id as string
+  const productId = params['id'] as string
 
   // Fetch product details
   const { data: product, isLoading, error } = useQuery({
@@ -129,9 +129,9 @@ export default function ProductDetailPage() {
         base_price: product.base_price,
         currency_code: product.currency_code || 'PEN',
         is_active: product.is_active ?? true,
-        category_id: product.category,
+        category_id: product.category ? product.category.id.toString() : undefined,
         modalities_ids: product.modalities?.map((m: any) => m.id) || [],
-        customization_id: product.customization,
+        customization_id: product.customization ? product.customization.id.toString() : undefined,
         duration: product.duration,
         target_segments_ids: product.target_segments?.map((s: any) => s.id) || [],
         related_industries_ids: product.related_industries?.map((i: any) => i.id) || [],
@@ -183,7 +183,7 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Producto">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Cargando producto...</div>
         </div>
@@ -193,7 +193,7 @@ export default function ProductDetailPage() {
 
   if (error || !product) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Producto">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg text-red-600">Error al cargar el producto</div>
         </div>
@@ -202,7 +202,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Producto">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

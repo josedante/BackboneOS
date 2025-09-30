@@ -1,5 +1,6 @@
-import axios from 'axios'
 import https from 'https'
+
+import axios from 'axios'
 
 const API_BASE = process.env['NEXT_PUBLIC_API_BASE'] || 'https://backend.proyecto-opensource.orb.local'
 
@@ -15,7 +16,7 @@ const httpsAgent = isDevelopment ? new https.Agent({
 
 // Log warning in development
 if (isDevelopment && httpsAgent) {
-  console.warn('⚠️  DEVELOPMENT MODE: SSL certificate verification disabled for self-signed certificates')
+  // Development mode warning - SSL verification disabled
 }
 
 // Django REST Framework Response Types
@@ -356,12 +357,12 @@ export const api = axios.create({
 // Token refresh state to prevent multiple simultaneous refresh attempts
 let isRefreshing = false
 let failedQueue: Array<{
-  resolve: (value: any) => void
-  reject: (error: any) => void
+  resolve: (value: unknown) => void
+  reject: (error: Error) => void
 }> = []
 
 // Process failed requests after token refresh
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error)
@@ -463,7 +464,7 @@ api.interceptors.response.use(
         localStorage.removeItem('user')
         
         // Process queued requests with error
-        processQueue(refreshError, null)
+        processQueue(refreshError as Error, null)
         
         if (typeof window !== 'undefined') {
           window.location.href = '/login'

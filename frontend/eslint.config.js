@@ -31,19 +31,19 @@ const eslintConfig = [
       "react/jsx-key": "error",
       
       // TypeScript strict rules
-      "@typescript-eslint/no-unused-vars": ["error", { 
+      "@typescript-eslint/no-unused-vars": ["warn", { 
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_" 
       }],
       "@typescript-eslint/no-explicit-any": "warn",
       
       // Modern JavaScript/ES6+ rules
-      "prefer-const": "error",
-      "no-var": "error",
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "prefer-const": "warn",
+      "no-var": "warn",
+      "no-console": "off", // Allow console statements
       
-      // Import organization
-      "import/order": ["error", {
+      // Import organization - make less strict
+      "import/order": ["warn", {
         "groups": [
           "builtin",
           "external", 

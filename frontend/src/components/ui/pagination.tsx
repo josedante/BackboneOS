@@ -1,8 +1,10 @@
 'use client'
 
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
-import { Button } from './button'
+
 import { cn } from '@/lib/utils'
+
+import { Button } from './button'
 
 interface PaginationProps {
   currentPage: number
@@ -124,7 +126,7 @@ interface PaginationInfoProps {
 
 export function PaginationInfo({ 
   currentPage, 
-  totalPages, 
+  totalPages: _totalPages, 
   totalItems, 
   itemsPerPage,
   className 

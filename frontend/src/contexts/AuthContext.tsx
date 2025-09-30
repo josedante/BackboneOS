@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -99,9 +100,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       toast.success('Login successful!')
       return true
-    } catch (error: any) {
-      console.error('Login error:', error)
-      const errorMessage = error.response?.data?.error || 'Login failed'
+    } catch (error) {
+      // Login error
+      const errorMessage = (error as any).response?.data?.error || 'Login failed'
       toast.error(errorMessage)
       return false
     } finally {
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'https://backend.proyecto-opensource.orb.local'}/users/jwt/refresh/`, {
+      const response = await fetch(`${process.env['NEXT_PUBLIC_API_BASE'] || 'https://backend.proyecto-opensource.orb.local'}/users/jwt/refresh/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

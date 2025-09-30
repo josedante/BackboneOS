@@ -22,8 +22,6 @@ export async function loginAction(formData: FormData) {
   const password = formData.get('password') as string
 
   try {
-    console.log('Attempting login with:', { username, password: '***' })
-    console.log('API Base URL:', process.env['NEXT_PUBLIC_API_BASE'] || 'https://backend.proyecto-opensource.orb.local')
     const response = await api.post('/users/jwt/login/', { username, password })
     
     // In a real app, you'd set the token in a secure httpOnly cookie

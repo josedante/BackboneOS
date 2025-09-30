@@ -38,7 +38,7 @@ function decodeJWT(token: string): TokenPayload | null {
     )
     return JSON.parse(jsonPayload)
   } catch (error) {
-    console.error('Error decoding JWT:', error)
+    // Error decoding JWT
     return null
   }
 }
@@ -124,7 +124,7 @@ export class TokenRefreshTester {
         isExpiringSoon
       }
     } catch (error) {
-      console.error('Error getting token info:', error)
+      // Error getting token info
       return { hasTokens: false }
     }
   }
@@ -197,7 +197,7 @@ export class TokenRefreshTester {
     try {
       const tokensStr = localStorage.getItem('auth_tokens')
       if (!tokensStr) {
-        console.warn('No tokens found to simulate expiration')
+        // No tokens found to simulate expiration
         return
       }
 
@@ -211,9 +211,8 @@ export class TokenRefreshTester {
       }
 
       localStorage.setItem('auth_tokens', JSON.stringify(newTokens))
-      console.log(`Token set to expire in ${expiresInSeconds} seconds`)
     } catch (error) {
-      console.error('Error simulating token expiration:', error)
+      // Error simulating token expiration
     }
   }
 
@@ -236,35 +235,17 @@ export class TokenRefreshTester {
    */
   printTokenInfo(): void {
     const info = this.getTokenInfo()
-    
-    console.group('🔐 Token Information')
-    console.log('Has Tokens:', info.hasTokens)
-    
-    if (info.hasTokens && info.accessPayload) {
-      console.log('User ID:', info.accessPayload.user_id)
-      console.log('Username:', info.accessPayload.username)
-      console.log('Issued At:', new Date(info.accessPayload.iat * 1000).toLocaleString())
-      console.log('Expires At:', new Date(info.accessPayload.exp * 1000).toLocaleString())
-      console.log('Time Until Expiry:', formatTime(info.timeUntilExpiry || 0))
-      console.log('Is Expiring Soon:', info.isExpiringSoon)
-    }
-    
-    console.groupEnd()
+    // Token information is available through the getTokenInfo method
   }
 
   /**
    * Start monitoring token refresh (for debugging)
    */
   startMonitoring(): void {
-    console.log('🔍 Starting token refresh monitoring...')
-    
     const monitor = () => {
       const info = this.getTokenInfo()
       if (info.hasTokens && info.isExpiringSoon) {
-        console.warn('⚠️ Token is expiring soon!', {
-          timeUntilExpiry: formatTime(info.timeUntilExpiry || 0),
-          isExpiringSoon: info.isExpiringSoon
-        })
+        // Token is expiring soon
       }
     }
 
@@ -280,5 +261,4 @@ export const tokenRefreshTester = TokenRefreshTester.getInstance()
 // Make it available globally in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).tokenRefreshTester = tokenRefreshTester
-  console.log('🔧 Token Refresh Tester available as window.tokenRefreshTester')
 }

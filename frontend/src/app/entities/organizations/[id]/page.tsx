@@ -17,7 +17,7 @@ export default function OrganizationDetailPage() {
   const params = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const organizationId = params.id as string
+  const organizationId = params['id'] as string
 
   // Fetch organization details
   const { data: organization, isLoading, error } = useQuery({
@@ -110,7 +110,7 @@ export default function OrganizationDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Organización">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Cargando organización...</div>
         </div>
@@ -120,7 +120,7 @@ export default function OrganizationDetailPage() {
 
   if (error || !organization) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Organización">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg text-red-600">Error al cargar la organización</div>
         </div>
@@ -129,7 +129,7 @@ export default function OrganizationDetailPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Organización">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

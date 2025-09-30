@@ -10,19 +10,26 @@ import { tokenRefreshTester } from '@/utils/tokenRefreshTester'
  * Only renders in development mode.
  */
 export function TokenRefreshDebugger() {
-  const [tokenInfo, setTokenInfo] = useState<any>(null)
-  const [refreshLog, setRefreshLog] = useState<any[]>([])
+  const [tokenInfo, setTokenInfo] = useState<{
+    hasTokens: boolean;
+    accessPayload?: { username: string };
+    isExpiringSoon: boolean;
+    timeUntilExpiry?: number;
+  } | null>(null)
+  const [refreshLog, setRefreshLog] = useState<Array<{
+    timestamp: Date;
+    success: boolean;
+    error?: string;
+  }>>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [expirationSeconds, setExpirationSeconds] = useState(30)
 
-  // Only render in development
-  if (process.env.NODE_ENV !== 'development') {
-    return null
-  }
-
   const updateTokenInfo = () => {
     const info = tokenRefreshTester.getTokenInfo()
-    setTokenInfo(info)
+    setTokenInfo({
+      ...info,
+      isExpiringSoon: info.isExpiringSoon ?? false
+    })
   }
 
   const updateRefreshLog = () => {
@@ -31,6 +38,11 @@ export function TokenRefreshDebugger() {
   }
 
   useEffect(() => {
+    // Only run in development
+    if (process.env.NODE_ENV !== 'development') {
+      return
+    }
+    
     updateTokenInfo()
     updateRefreshLog()
     
@@ -43,12 +55,16 @@ export function TokenRefreshDebugger() {
     return () => clearInterval(interval)
   }, [])
 
+  // Only render in development
+  if (process.env.NODE_ENV !== 'development') {
+    return null
+  }
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true)
     try {
       const result = await tokenRefreshTester.manualRefresh()
       if (result.success) {
-        console.log('✅ Manual refresh successful:', result.newTokens)
         // Update localStorage with new tokens
         if (result.newTokens) {
           const currentTokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}')
@@ -58,11 +74,9 @@ export function TokenRefreshDebugger() {
           }
           localStorage.setItem('auth_tokens', JSON.stringify(newTokens))
         }
-      } else {
-        console.error('❌ Manual refresh failed:', result.error)
       }
     } catch (error) {
-      console.error('❌ Manual refresh error:', error)
+      // Error handling is done by the tokenRefreshTester
     } finally {
       setIsRefreshing(false)
       updateTokenInfo()
