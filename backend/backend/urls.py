@@ -110,6 +110,7 @@ urlpatterns = [
     path('api/users/', UserViewSet.as_view({'get': 'list'}), name='user-list'),
 ]
 
-# Serve static files in development
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Serve static files in both development and production
+# In production, Django will serve static files when DEBUG=False
+# This is necessary for Render deployment where static files are served by Django
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
