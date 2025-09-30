@@ -167,8 +167,7 @@ services:
     plan: starter
     region: oregon
     dependsOn:
-      - name: backboneos-backend
-        type: web
+      - backboneos-backend
     envVars:
       # Database connection
       - key: DATABASE_URL
@@ -226,8 +225,7 @@ services:
     plan: starter
     region: oregon
     dependsOn:
-      - name: backboneos-backend
-        type: web
+      - backboneos-backend
     envVars:
       # Database connection
       - key: DATABASE_URL
@@ -289,8 +287,7 @@ services:
     healthCheckPath: /
     autoDeploy: true
     dependsOn:
-      - name: backboneos-backend
-        type: web
+      - backboneos-backend
     envVars:
       # Celery configuration
       - key: CELERY_BROKER_URL
