@@ -95,10 +95,10 @@ class TestDefaultTouchpointResolver(TestCase):
         )
         
         self.mapping_provider.mapping_rule = mapping_rule
-        
+        connector = MockConnector(hint)
         
         with transaction.atomic():
-            touchpoint = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
+            touchpoint = self.resolver.resolve(connector)
         
         # Verify mapping rule was applied
         assert touchpoint.code == "web.lead_form"
@@ -113,11 +113,11 @@ class TestDefaultTouchpointResolver(TestCase):
             touchpoint_type_code="landing_page",
             label="Web Page View"
         )
-        
+        connector = MockConnector(hint)
         
         with transaction.atomic():
-            touchpoint1 = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
-            touchpoint2 = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
+            touchpoint1 = self.resolver.resolve(connector)
+            touchpoint2 = self.resolver.resolve(connector)
         
         # Should return the same touchpoint
         assert touchpoint1.id == touchpoint2.id
@@ -129,10 +129,10 @@ class TestDefaultTouchpointResolver(TestCase):
             medium_code="organic",
             label="Generic Web Interaction"
         )
-        
+        connector = MockConnector(hint)
         
         with transaction.atomic():
-            touchpoint = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
+            touchpoint = self.resolver.resolve(connector)
         
         # Should create a generic touchpoint code
         assert touchpoint.code == "generic.web"
@@ -146,10 +146,10 @@ class TestDefaultTouchpointResolver(TestCase):
             touchpoint_type_code="generic",
             label="Generic Interaction"
         )
-        
+        connector = MockConnector(hint)
         
         with transaction.atomic():
-            touchpoint = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
+            touchpoint = self.resolver.resolve(connector)
         
         # Should create touchpoint without channel
         assert touchpoint.code == "generic.interaction"
@@ -207,6 +207,16 @@ class TestDefaultTouchpointResolver(TestCase):
         assert result_hint.channel_code == "web"  # Original value
         assert result_hint.medium_code == "organic"  # Original value
         assert result_hint.label == "Web Form Submit"  # Original value
+    
+    def test_ensure_required_fields(self):
+        """Test the ensure_required_fields method."""
+        hint = TouchpointHint(code="test.code")
+        connector = MockConnector(hint)
+        
+        result_hint = self.resolver._ensure_required_fields(connector, hint)
+        
+        # Default implementation should return the hint unchanged
+        assert result_hint == hint
     
     def test_get_or_create_touchpoint(self):
         """Test touchpoint creation logic."""
@@ -272,7 +282,8 @@ class TestCachedTouchpointResolver(TestCase):
         assert self.resolver.mapping_provider == self.mapping_provider
         assert self.resolver.cache_timeout == 3600
         assert hasattr(self.resolver, '_touchpoint_cache')
-        assert hasattr(self.resolver, 'use_cache')
+        assert hasattr(self.resolver, '_channel_cache')
+        assert hasattr(self.resolver, '_touchpoint_type_cache')
     
     def test_resolve_with_caching(self):
         """Test touchpoint resolution with caching."""
@@ -283,14 +294,14 @@ class TestCachedTouchpointResolver(TestCase):
             touchpoint_type_code="landing_page",
             label="Web Page View"
         )
-        
+        connector = MockConnector(hint)
         
         with transaction.atomic():
             # First resolution should create and cache
-            touchpoint1 = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
+            touchpoint1 = self.resolver.resolve(connector)
             
             # Second resolution should use cache
-            touchpoint2 = self.resolver.resolve(hint, connector_type="web", source_identifier="test.com")
+            touchpoint2 = self.resolver.resolve(connector)
         
         # Should return the same touchpoint
         assert touchpoint1.id == touchpoint2.id

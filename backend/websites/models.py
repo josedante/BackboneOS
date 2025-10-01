@@ -64,7 +64,7 @@ class Website(BaseUUIDModelWithActiveStatus):
                 'name': f"{self.name} Website",
                 'description': f"Owned website channel for {self.name}",
                 'source_type': 'owned',
-                'active': True
+                'is_active': True
             }
         )
         

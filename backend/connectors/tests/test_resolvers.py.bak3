@@ -208,6 +208,16 @@ class TestDefaultTouchpointResolver(TestCase):
         assert result_hint.medium_code == "organic"  # Original value
         assert result_hint.label == "Web Form Submit"  # Original value
     
+    def test_ensure_required_fields(self):
+        """Test the ensure_required_fields method."""
+        hint = TouchpointHint(code="test.code")
+        
+        
+        result_hint = self.resolver._ensure_required_fields(connector, hint)
+        
+        # Default implementation should return the hint unchanged
+        assert result_hint == hint
+    
     def test_get_or_create_touchpoint(self):
         """Test touchpoint creation logic."""
         hint = TouchpointHint(
@@ -272,7 +282,8 @@ class TestCachedTouchpointResolver(TestCase):
         assert self.resolver.mapping_provider == self.mapping_provider
         assert self.resolver.cache_timeout == 3600
         assert hasattr(self.resolver, '_touchpoint_cache')
-        assert hasattr(self.resolver, 'use_cache')
+        assert hasattr(self.resolver, '_channel_cache')
+        assert hasattr(self.resolver, '_touchpoint_type_cache')
     
     def test_resolve_with_caching(self):
         """Test touchpoint resolution with caching."""

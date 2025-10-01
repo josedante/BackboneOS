@@ -40,13 +40,13 @@ class TestDatabaseMappingProvider(TestCase):
     def test_lookup_mapping_no_hint_code(self):
         """Test lookup with no hint code."""
         hint = TouchpointHint()  # No code
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         assert result is None
     
     def test_lookup_mapping_no_rules(self):
         """Test lookup with no matching rules."""
         hint = TouchpointHint(code="web.page_read")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         assert result is None
     
     def test_lookup_mapping_specific_source(self):
@@ -62,10 +62,10 @@ class TestDatabaseMappingProvider(TestCase):
         )
         
         # Create connector with specific source
-        # connector created with source_identifier="example.com"
+        connector = MockConnector(source_identifier="example.com")
         hint = TouchpointHint(code="web.specific_source_test")
         
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="example.com", hint=hint)
+        result = self.provider.lookup_mapping(connector, hint)
         
         assert result is not None
         assert result.touchpoint_code == "web.example_page"
@@ -84,7 +84,7 @@ class TestDatabaseMappingProvider(TestCase):
         )
         
         hint = TouchpointHint(code="web.generic_connector_test")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         assert result is not None
         assert result.touchpoint_code == "web.generic_page"
@@ -103,7 +103,7 @@ class TestDatabaseMappingProvider(TestCase):
         )
         
         hint = TouchpointHint(code="web.generic_event_test")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         assert result is not None
         assert result.touchpoint_code == "web.fallback_page"
@@ -130,7 +130,7 @@ class TestDatabaseMappingProvider(TestCase):
         
         # Test with the high priority event code
         hint = TouchpointHint(code="web.priority_test_high")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         # Should return the higher priority rule
         assert result.touchpoint_code == "web.high_priority"
@@ -148,9 +148,33 @@ class TestDatabaseMappingProvider(TestCase):
         )
         
         hint = TouchpointHint(code="web.inactive_rule_test")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         assert result is None
+    
+    def test_get_connector_type(self):
+        """Test connector type extraction."""
+        # Test web connector
+        web_connector = MockConnector("WebInteraction")
+        assert self.provider._get_connector_type(web_connector) == "web"
+        
+        # Test email connector
+        email_connector = MockConnector("EmailInteraction")
+        assert self.provider._get_connector_type(email_connector) == "email"
+        
+        # Test WhatsApp connector
+        whatsapp_connector = MockConnector("WhatsAppInteraction")
+        assert self.provider._get_connector_type(whatsapp_connector) == "whatsapp"
+        
+        # Test generic connector
+        generic_connector = MockConnector("GenericInteraction")
+        assert self.provider._get_connector_type(generic_connector) == "generic"
+    
+    def test_get_source_identifier(self):
+        """Test source identifier extraction."""
+        # Default implementation should return empty string
+        result = self.provider._get_source_identifier(self.connector)
+        assert result == ""
 
 
 class TestCachedMappingProvider(TestCase):
@@ -159,6 +183,7 @@ class TestCachedMappingProvider(TestCase):
     def setUp(self):
         """Set up test data."""
         self.provider = CachedMappingProvider()
+        self.connector = MockConnector()
         # Clear cache before each test
         cache.clear()
     
@@ -184,7 +209,7 @@ class TestCachedMappingProvider(TestCase):
         )
         
         hint = TouchpointHint(code="web.page_read")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         # Verify cache was checked
         mock_cache.get.assert_called_once()
@@ -206,7 +231,7 @@ class TestCachedMappingProvider(TestCase):
         mock_cache.get.return_value = mock_rule
         
         hint = TouchpointHint(code="web.page_read")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         # Verify cache was checked
         mock_cache.get.assert_called_once()
@@ -296,6 +321,7 @@ class TestFileMappingProvider(TestCase):
     def setUp(self):
         """Set up test data."""
         self.provider = FileMappingProvider()
+        self.connector = MockConnector()
     
     def test_provider_initialization(self):
         """Test file provider initialization."""
@@ -310,13 +336,13 @@ class TestFileMappingProvider(TestCase):
     def test_lookup_mapping_no_hint_code(self):
         """Test lookup with no hint code."""
         hint = TouchpointHint()  # No code
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         assert result is None
     
     def test_lookup_mapping_no_rules(self):
         """Test lookup with no matching rules."""
         hint = TouchpointHint(code="web.page_read")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         assert result is None
     
     def test_lookup_mapping_with_rules(self):
@@ -330,7 +356,26 @@ class TestFileMappingProvider(TestCase):
         }
         
         hint = TouchpointHint(code="web.page_read")
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
+        result = self.provider.lookup_mapping(self.connector, hint)
         
         # Should return a mock rule (implementation would create real rule)
         assert result is None  # Mock implementation
+    
+    def test_get_connector_type(self):
+        """Test connector type extraction."""
+        # Test web connector
+        web_connector = MockConnector("WebInteraction")
+        assert self.provider._get_connector_type(web_connector) == "web"
+        
+        # Test email connector
+        email_connector = MockConnector("EmailInteraction")
+        assert self.provider._get_connector_type(email_connector) == "email"
+        
+        # Test generic connector
+        generic_connector = MockConnector("GenericInteraction")
+        assert self.provider._get_connector_type(generic_connector) == "generic"
+    
+    def test_get_source_identifier(self):
+        """Test source identifier extraction."""
+        result = self.provider._get_source_identifier(self.connector)
+        assert result == ""

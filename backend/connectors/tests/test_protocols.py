@@ -9,7 +9,7 @@ import pytest
 from dataclasses import dataclass
 from typing import Optional
 
-from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol, TouchpointResolverProtocol, MappingProviderProtocol
+from connectors.protocols import TouchpointHint, TouchpointResolverProtocol, MappingProviderProtocol
 from interactions.models import Touchpoint
 
 
@@ -61,44 +61,6 @@ class TestTouchpointHint:
             hint.metadata = {"new": "value"}
 
 
-class TestTouchpointInferenceProtocol:
-    """Test the TouchpointInferenceProtocol interface."""
-    
-    def test_protocol_implementation(self):
-        """Test that a class can implement the protocol."""
-        
-        class MockConnector:
-            def infer_touchpoint_hint(self) -> TouchpointHint:
-                return TouchpointHint(
-                    code="test.generic",
-                    channel_code="test",
-                    medium_code="test",
-                    label="Test Touchpoint"
-                )
-        
-        # This should not raise any errors
-        connector = MockConnector()
-        hint = connector.infer_touchpoint_hint()
-        
-        assert isinstance(hint, TouchpointHint)
-        assert hint.code == "test.generic"
-    
-    def test_protocol_type_checking(self):
-        """Test that the protocol can be used for type checking."""
-        
-        def process_connector(connector: TouchpointInferenceProtocol) -> TouchpointHint:
-            return connector.infer_touchpoint_hint()
-        
-        class MockConnector:
-            def infer_touchpoint_hint(self) -> TouchpointHint:
-                return TouchpointHint(code="test.code")
-        
-        connector = MockConnector()
-        hint = process_connector(connector)
-        
-        assert hint.code == "test.code"
-
-
 class TestTouchpointResolverProtocol:
     """Test the TouchpointResolverProtocol interface."""
     
@@ -106,20 +68,15 @@ class TestTouchpointResolverProtocol:
         """Test that a class can implement the resolver protocol."""
         
         class MockResolver:
-            def resolve(self, subject: TouchpointInferenceProtocol) -> Touchpoint:
+            def resolve(self, hint: TouchpointHint, *, connector_type: str, source_identifier: str = '') -> Touchpoint:
                 # This would normally create a real Touchpoint
                 # For testing, we'll just return a mock
                 return None  # In real tests, this would be a Touchpoint instance
         
         # This should not raise any errors
         resolver = MockResolver()
-        
-        class MockSubject:
-            def infer_touchpoint_hint(self) -> TouchpointHint:
-                return TouchpointHint(code="test.code")
-        
-        subject = MockSubject()
-        result = resolver.resolve(subject)
+        hint = TouchpointHint(code="test.code")
+        result = resolver.resolve(hint, connector_type='web', source_identifier='test.com')
         
         # In a real test, we'd assert the result is a Touchpoint
         assert result is None  # Mock implementation
@@ -132,19 +89,17 @@ class TestMappingProviderProtocol:
         """Test that a class can implement the mapping provider protocol."""
         
         class MockMappingProvider:
-            def lookup_mapping(self, subject: TouchpointInferenceProtocol, hint: TouchpointHint):
+            def lookup_mapping(self, *, connector_type: str, source_identifier: str, hint: TouchpointHint):
                 return None  # Mock implementation
         
         # This should not raise any errors
         provider = MockMappingProvider()
-        
-        class MockSubject:
-            def infer_touchpoint_hint(self) -> TouchpointHint:
-                return TouchpointHint(code="test.code")
-        
-        subject = MockSubject()
         hint = TouchpointHint(code="test.code")
-        result = provider.lookup_mapping(subject, hint)
+        result = provider.lookup_mapping(
+            connector_type='web',
+            source_identifier='test.com',
+            hint=hint
+        )
         
         assert result is None  # Mock implementation
 
@@ -155,18 +110,18 @@ class TestProtocolIntegration:
     def test_full_workflow_simulation(self):
         """Test a simulated full workflow using all protocols."""
         
-        class MockConnector:
-            def infer_touchpoint_hint(self) -> TouchpointHint:
-                return TouchpointHint(
-                    code="web.form_submit",
-                    channel_code="web",
-                    medium_code="organic",
-                    label="Web Form Submit",
-                    metadata={"form_id": "contact_form"}
-                )
+        # Create a hint directly (no connector needed)
+        hint = TouchpointHint(
+            code="web.form_submit",
+            channel_code="web",
+            medium_code="organic",
+            touchpoint_type_code="web_form",
+            label="Web Form Submit",
+            metadata={"form_id": "contact_form"}
+        )
         
         class MockMappingProvider:
-            def lookup_mapping(self, subject: TouchpointInferenceProtocol, hint: TouchpointHint):
+            def lookup_mapping(self, *, connector_type: str, source_identifier: str, hint: TouchpointHint):
                 # Simulate finding a mapping rule
                 if hint.code == "web.form_submit":
                     return MockMappingRule()
@@ -178,15 +133,19 @@ class TestProtocolIntegration:
                 self.touchpoint_label = "Lead Form"
                 self.channel_code = "web"
                 self.medium_code = "organic"
+                self.touchpoint_type_code = "web_form"
                 self.metadata = {"form_type": "lead"}
         
         class MockResolver:
             def __init__(self, mapping_provider: MappingProviderProtocol):
                 self.mapping_provider = mapping_provider
             
-            def resolve(self, subject: TouchpointInferenceProtocol) -> Touchpoint:
-                hint = subject.infer_touchpoint_hint()
-                mapping_rule = self.mapping_provider.lookup_mapping(subject, hint)
+            def resolve(self, hint: TouchpointHint, *, connector_type: str, source_identifier: str = '') -> Touchpoint:
+                mapping_rule = self.mapping_provider.lookup_mapping(
+                    connector_type=connector_type,
+                    source_identifier=source_identifier,
+                    hint=hint
+                )
                 
                 # Simulate applying mapping rule
                 if mapping_rule:
@@ -200,20 +159,22 @@ class TestProtocolIntegration:
                 return None  # Mock implementation
         
         # Test the full workflow
-        connector = MockConnector()
         mapping_provider = MockMappingProvider()
         resolver = MockResolver(mapping_provider)
         
-        # Get hint from connector
-        hint = connector.infer_touchpoint_hint()
+        # Verify hint
         assert hint.code == "web.form_submit"
         
         # Look up mapping rule
-        mapping_rule = mapping_provider.lookup_mapping(connector, hint)
+        mapping_rule = mapping_provider.lookup_mapping(
+            connector_type='web',
+            source_identifier='test.com',
+            hint=hint
+        )
         assert mapping_rule is not None
         assert mapping_rule.touchpoint_code == "web.lead_form"
         
         # Resolve touchpoint
-        touchpoint = resolver.resolve(connector)
+        touchpoint = resolver.resolve(hint, connector_type='web', source_identifier='test.com')
         # In a real test, we'd assert the touchpoint properties
         assert touchpoint is None  # Mock implementation

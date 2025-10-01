@@ -62,10 +62,10 @@ class TestDatabaseMappingProvider(TestCase):
         )
         
         # Create connector with specific source
-        # connector created with source_identifier="example.com"
+        connector = MockConnector(source_identifier="example.com")
         hint = TouchpointHint(code="web.specific_source_test")
         
-        result = self.provider.lookup_mapping(connector_type="web", source_identifier="example.com", hint=hint)
+        result = self.provider.lookup_mapping(connector, hint)
         
         assert result is not None
         assert result.touchpoint_code == "web.example_page"
@@ -151,6 +151,30 @@ class TestDatabaseMappingProvider(TestCase):
         result = self.provider.lookup_mapping(connector_type="web", source_identifier="", hint=hint)
         
         assert result is None
+    
+    def test_get_connector_type(self):
+        """Test connector type extraction."""
+        # Test web connector
+        web_connector = MockConnector("WebInteraction")
+        assert self.provider._get_connector_type(web_connector) == "web"
+        
+        # Test email connector
+        email_connector = MockConnector("EmailInteraction")
+        assert self.provider._get_connector_type(email_connector) == "email"
+        
+        # Test WhatsApp connector
+        whatsapp_connector = MockConnector("WhatsAppInteraction")
+        assert self.provider._get_connector_type(whatsapp_connector) == "whatsapp"
+        
+        # Test generic connector
+        generic_connector = MockConnector("GenericInteraction")
+        assert self.provider._get_connector_type(generic_connector) == "generic"
+    
+    def test_get_source_identifier(self):
+        """Test source identifier extraction."""
+        # Default implementation should return empty string
+        result = self.provider._get_source_identifier(self.connector)
+        assert result == ""
 
 
 class TestCachedMappingProvider(TestCase):
@@ -159,6 +183,7 @@ class TestCachedMappingProvider(TestCase):
     def setUp(self):
         """Set up test data."""
         self.provider = CachedMappingProvider()
+        self.connector = MockConnector()
         # Clear cache before each test
         cache.clear()
     
@@ -296,6 +321,7 @@ class TestFileMappingProvider(TestCase):
     def setUp(self):
         """Set up test data."""
         self.provider = FileMappingProvider()
+        self.connector = MockConnector()
     
     def test_provider_initialization(self):
         """Test file provider initialization."""
@@ -334,3 +360,22 @@ class TestFileMappingProvider(TestCase):
         
         # Should return a mock rule (implementation would create real rule)
         assert result is None  # Mock implementation
+    
+    def test_get_connector_type(self):
+        """Test connector type extraction."""
+        # Test web connector
+        web_connector = MockConnector("WebInteraction")
+        assert self.provider._get_connector_type(web_connector) == "web"
+        
+        # Test email connector
+        email_connector = MockConnector("EmailInteraction")
+        assert self.provider._get_connector_type(email_connector) == "email"
+        
+        # Test generic connector
+        generic_connector = MockConnector("GenericInteraction")
+        assert self.provider._get_connector_type(generic_connector) == "generic"
+    
+    def test_get_source_identifier(self):
+        """Test source identifier extraction."""
+        result = self.provider._get_source_identifier(self.connector)
+        assert result == ""
