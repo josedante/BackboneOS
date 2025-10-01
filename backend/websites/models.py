@@ -1416,8 +1416,38 @@ class WebInteraction(AbstractConnectorInteraction):
     
     @classmethod
     def _parse_user_agent(cls, user_agent: str) -> dict:
-        """Parse user agent string to extract browser/OS/device info."""
-        # Simple user agent parsing - in production, use ua-parser-python
+        """Parse user agent string using ua-parser library."""
+        try:
+            from ua_parser import user_agent_parser
+            
+            # Parse user agent using ua-parser library
+            parsed_ua = user_agent_parser.Parse(user_agent)
+            
+            return {
+                'browser': {
+                    'family': parsed_ua.browser.family or 'Unknown',
+                    'version': f"{parsed_ua.browser.major}.{parsed_ua.browser.minor}.{parsed_ua.browser.patch}" if parsed_ua.browser.major else 'Unknown'
+                },
+                'os': {
+                    'family': parsed_ua.os.family or 'Unknown',
+                    'version': f"{parsed_ua.os.major}.{parsed_ua.os.minor}.{parsed_ua.os.patch}" if parsed_ua.os.major else 'Unknown'
+                },
+                'device': {
+                    'family': parsed_ua.device.family or 'Other',
+                    'brand': parsed_ua.device.brand or 'Unknown',
+                    'model': parsed_ua.device.model or 'Unknown'
+                }
+            }
+        except ImportError:
+            # Fallback to simple parsing if ua-parser is not available
+            return cls._parse_user_agent_fallback(user_agent)
+        except Exception:
+            # Fallback to simple parsing if parsing fails
+            return cls._parse_user_agent_fallback(user_agent)
+    
+    @classmethod
+    def _parse_user_agent_fallback(cls, user_agent: str) -> dict:
+        """Fallback user agent parsing when ua-parser is not available."""
         user_agent_lower = user_agent.lower()
         
         # Browser detection
@@ -1471,7 +1501,48 @@ class WebInteraction(AbstractConnectorInteraction):
     
     @classmethod
     def _is_bot_user_agent(cls, user_agent: str) -> bool:
-        """Check if user agent indicates a bot/crawler."""
+        """Check if user agent indicates a bot/crawler using ua-parser."""
+        if not user_agent:
+            return False
+        
+        try:
+            from ua_parser import user_agent_parser
+            
+            # Parse user agent using ua-parser library
+            parsed_ua = user_agent_parser.Parse(user_agent)
+            
+            # Check if browser family indicates a bot
+            browser_family = parsed_ua.browser.family or ''
+            if browser_family.lower() in ['bot', 'crawler', 'spider', 'scraper']:
+                return True
+            
+            # Check device family for bot indicators
+            device_family = parsed_ua.device.family or ''
+            if device_family.lower() in ['bot', 'crawler', 'spider', 'scraper']:
+                return True
+            
+            # Fallback to string matching for known bot patterns
+            user_agent_lower = user_agent.lower()
+            bot_indicators = [
+                'bot', 'crawler', 'spider', 'scraper', 'crawling',
+                'googlebot', 'bingbot', 'slurp', 'duckduckbot',
+                'baiduspider', 'yandexbot', 'facebookexternalhit',
+                'twitterbot', 'linkedinbot', 'whatsapp', 'telegram',
+                'applebot', 'crawler', 'spider'
+            ]
+            
+            return any(indicator in user_agent_lower for indicator in bot_indicators)
+            
+        except ImportError:
+            # Fallback to simple string matching if ua-parser is not available
+            return cls._is_bot_user_agent_fallback(user_agent)
+        except Exception:
+            # Fallback to simple string matching if parsing fails
+            return cls._is_bot_user_agent_fallback(user_agent)
+    
+    @classmethod
+    def _is_bot_user_agent_fallback(cls, user_agent: str) -> bool:
+        """Fallback bot detection when ua-parser is not available."""
         if not user_agent:
             return False
         
@@ -1480,7 +1551,8 @@ class WebInteraction(AbstractConnectorInteraction):
             'bot', 'crawler', 'spider', 'scraper', 'crawling',
             'googlebot', 'bingbot', 'slurp', 'duckduckbot',
             'baiduspider', 'yandexbot', 'facebookexternalhit',
-            'twitterbot', 'linkedinbot', 'whatsapp', 'telegram'
+            'twitterbot', 'linkedinbot', 'whatsapp', 'telegram',
+            'applebot', 'crawler', 'spider'
         ]
         
         return any(indicator in user_agent_lower for indicator in bot_indicators)
@@ -1544,6 +1616,58 @@ class WebAgent(Agent):
             return False
         device_family = self.metadata.get('device', {}).get('family', '').lower()
         return device_family in ['mobile', 'smartphone', 'tablet', 'iphone', 'ipad', 'android']
+    
+    def determine_agent_type_from_ua(self) -> str:
+        """Determine agent type from user agent using ua-parser."""
+        if not self.metadata:
+            return 'other'
+        
+        user_agent = self.metadata.get('user_agent', '')
+        if not user_agent:
+            return 'other'
+        
+        try:
+            from ua_parser import user_agent_parser
+            
+            # Parse user agent using ua-parser library
+            parsed_ua = user_agent_parser.Parse(user_agent)
+            
+            # Check if it's a bot based on browser/device family
+            browser_family = (parsed_ua.browser.family or '').lower()
+            device_family = (parsed_ua.device.family or '').lower()
+            
+            if any(bot_indicator in browser_family for bot_indicator in ['bot', 'crawler', 'spider', 'scraper']):
+                return 'bot'
+            elif any(bot_indicator in device_family for bot_indicator in ['bot', 'crawler', 'spider', 'scraper']):
+                return 'bot'
+            
+            # Check if it's a mobile device
+            if device_family in ['mobile', 'smartphone', 'tablet']:
+                return 'device'
+            
+            # Check if it's a webview (mobile app)
+            if 'webview' in browser_family or 'webview' in device_family:
+                return 'device'
+            
+            # Default to browser for regular web browsers
+            return 'browser'
+            
+        except (ImportError, Exception):
+            # Fallback to simple detection
+            user_agent_lower = user_agent.lower()
+            
+            # Check for bot indicators
+            bot_indicators = ['bot', 'crawler', 'spider', 'scraper']
+            if any(indicator in user_agent_lower for indicator in bot_indicators):
+                return 'bot'
+            
+            # Check for mobile indicators
+            mobile_indicators = ['mobile', 'android', 'iphone', 'ipad', 'tablet']
+            if any(indicator in user_agent_lower for indicator in mobile_indicators):
+                return 'device'
+            
+            # Default to browser
+            return 'browser'
     
     @property
     def is_bot(self) -> bool:
