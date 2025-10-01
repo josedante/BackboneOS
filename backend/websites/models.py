@@ -477,29 +477,12 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Create WebInteraction with proper Interaction creation order
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            interaction_payload={
                 'interaction_type': 'page_read',
                 'full_url': event_data.get('full_url', ''),
                 'time_on_page': event_data.get('payload', {}).get('time_on_page'),
@@ -508,12 +491,8 @@ class WebInteraction(AbstractConnectorInteraction):
                 'word_count': event_data.get('payload', {}).get('word_count'),
                 'interactions_count': event_data.get('payload', {}).get('interactions_count')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
@@ -946,6 +925,45 @@ class WebInteraction(AbstractConnectorInteraction):
         
         return [web_interaction]
     
+    @classmethod
+    def _create_web_interaction_with_interaction(cls, event_data: dict, agent, action, interaction_payload: dict, website, **web_interaction_kwargs) -> 'WebInteraction':
+        """
+        Helper method to create WebInteraction with proper Interaction creation order.
+        
+        This method ensures the Interaction is created first, then WebInteraction with the
+        interaction as primary key, avoiding database constraint violations.
+        """
+        from interactions.models import Interaction
+        
+        # Create core Interaction first (required for WebInteraction)
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload=interaction_payload,
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create WebInteraction with the interaction as primary key
+        web_interaction = cls.objects.create(
+            interaction=interaction,  # This is the primary key
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            **web_interaction_kwargs
+        )
+        
+        return web_interaction
+    
     # Helper methods for touchpoint inference
     def _get_channel_code(self) -> str:
         """Get channel code from website's channel or fallback to URL."""
@@ -1163,29 +1181,12 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Create WebInteraction with proper Interaction creation order
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            interaction_payload={
                 'interaction_type': 'page_view',
                 'full_url': event_data.get('full_url', ''),
                 'referrer': event_data.get('referrer', ''),
@@ -1195,12 +1196,8 @@ class WebInteraction(AbstractConnectorInteraction):
                 'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
                 'page_depth': event_data.get('payload', {}).get('page_depth', 1)
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return web_interaction
     
