@@ -35,16 +35,53 @@ class Website(BaseUUIDModelWithActiveStatus):
         ordering = ["name"]
 
     def __str__(self): return f"{self.name} ({self.base_url})"
-
-
-# --------------------------
-# TouchpointType scaffolding
-# --------------------------
-def get_or_create_www_channel() -> Channel:
-    # Ensure a "WWW" (website) channel exists
-    return Channel.objects.get_or_create(code="WWW", defaults={"name": "World Wide Web"})[0]
-
-
+    
+    def save(self, *args, **kwargs):
+        """Override save to automatically create channel for owned websites."""
+        # Create channel if it doesn't exist
+        if not self.channel:
+            self.channel = self._get_or_create_website_channel()
+        
+        super().save(*args, **kwargs)
+    
+    def _get_or_create_website_channel(self):
+        """Get or create a channel for this owned website."""
+        from interactions.models import Channel
+        from urllib.parse import urlparse
+        
+        # Extract domain from base_url for channel code
+        parsed_url = urlparse(self.base_url)
+        domain = parsed_url.netloc or parsed_url.path
+        
+        # Create a channel code from the domain
+        # Remove www. prefix and convert to uppercase for consistency
+        channel_code = domain.replace('www.', '').upper()
+        
+        # Create channel with website-specific parameters
+        channel, created = Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': f"{self.name} Website",
+                'description': f"Owned website channel for {self.name}",
+                'source_type': 'owned',
+                'active': True
+            }
+        )
+        
+        return channel
+    
+    def get_channel_code(self):
+        """Get the channel code for this website."""
+        if self.channel:
+            return self.channel.code
+        return None
+    
+    def ensure_channel(self):
+        """Ensure this website has a channel, creating one if needed."""
+        if not self.channel:
+            self.channel = self._get_or_create_website_channel()
+            self.save(update_fields=['channel'])
+        return self.channel
 
 class WebSession(BaseUUIDModelWithActiveStatus):
     """
@@ -911,7 +948,12 @@ class WebInteraction(AbstractConnectorInteraction):
     
     # Helper methods for touchpoint inference
     def _get_channel_code(self) -> str:
-        """Get channel code from website URL."""
+        """Get channel code from website's channel or fallback to URL."""
+        # Use the website's channel if available
+        if self.website.channel:
+            return self.website.channel.code
+        
+        # Fallback to extracting from URL (for backward compatibility)
         from urllib.parse import urlparse
         parsed_url = urlparse(self.website.base_url)
         return parsed_url.netloc or self.website.base_url
