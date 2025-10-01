@@ -10,7 +10,7 @@ const nextConfig = {
   
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE || 'https://backend.proyecto-opensource.orb.local',
+    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE || 'https://backboneos-backend.onrender.com',
   },
 
   // Image optimization
