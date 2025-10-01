@@ -34,12 +34,26 @@ A comprehensive Django framework for automatic, configurable touchpoint creation
 ```python
 from connectors.resolvers import DefaultTouchpointResolver
 from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.protocols import TouchpointHint
 
 # Initialize resolver
 resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
 
-# Resolve touchpoint
-touchpoint = resolver.resolve(interaction)
+# Create a touchpoint hint with event data
+hint = TouchpointHint(
+    code='web.page_view',
+    channel_code='web',
+    medium_code='organic',
+    touchpoint_type_code='web_page',
+    label='Web Page View'
+)
+
+# Resolve touchpoint (subject-agnostic approach)
+touchpoint = resolver.resolve(
+    hint,
+    connector_type='web',
+    source_identifier='example.com'
+)
 ```
 
 ### 2. Create Mapping Rule
@@ -66,7 +80,7 @@ rule = TouchpointMappingRule.objects.create(
 from connectors.metrics import track_resolution
 
 with track_resolution('web', {'url': 'example.com'}) as tracker:
-    touchpoint = resolver.resolve(interaction)
+    touchpoint = resolver.resolve(hint, connector_type='web', source_identifier='example.com')
     tracker.record_success(cache_hit=False, mapping_applied=True, touchpoint_created=True)
 ```
 
@@ -74,17 +88,22 @@ with track_resolution('web', {'url': 'example.com'}) as tracker:
 
 ### Core Components
 
-- **TouchpointInferenceProtocol**: Interface for inferring touchpoint hints
-- **TouchpointResolverProtocol**: Interface for resolving touchpoints
+- **TouchpointHint**: Dataclass containing hint information for touchpoint resolution
+- **TouchpointResolverProtocol**: Interface for resolving touchpoints from hints
 - **MappingProviderProtocol**: Interface for mapping rule lookup
-- **DefaultTouchpointResolver**: Generic resolution logic
+- **DefaultTouchpointResolver**: Subject-agnostic resolution logic
 - **DatabaseMappingProvider**: Database-backed mapping rule lookup
+- **CachedTouchpointResolver**: Caching resolver for performance optimization
 
-### Resolution Flow
+### Resolution Flow (Simplified Subject-Agnostic Approach)
 
 ```
-Interaction → Touchpoint Hint → Mapping Rule Lookup → Touchpoint Creation
+Event Data → TouchpointHint → Mapping Rule Lookup → Touchpoint Creation
+     ↓             ↓                    ↓                     ↓
+  (Raw)      (Structured)         (Transforms)          (Creates)
 ```
+
+**Key Architectural Change**: The system no longer requires connector objects to implement `TouchpointInferenceProtocol`. Instead, hints are built directly from raw event data, and resolvers accept explicit parameters (`hint`, `connector_type`, `source_identifier`), making the system more flexible and easier to test.
 
 ### Supported Connectors
 
@@ -97,12 +116,14 @@ Interaction → Touchpoint Hint → Mapping Rule Lookup → Touchpoint Creation
 
 ### Comprehensive Guides
 
+- **[Architecture v2.0](ARCHITECTURE_v2.md)**: ⭐ **NEW** - Subject-agnostic architecture overview
+- **[Migration Guide](MIGRATION_GUIDE.md)**: ⭐ **NEW** - Migrating from v1.0 to v2.0
+- **[Usage Examples](USAGE_EXAMPLES.md)**: ✅ **UPDATED** - Practical, real-world usage scenarios
+- **[Quick Reference](QUICK_REFERENCE.md)**: ✅ **UPDATED** - Quick reference guide
 - **[API Documentation](API_DOCUMENTATION.md)**: Complete API reference with examples
-- **[Usage Examples](USAGE_EXAMPLES.md)**: Practical, real-world usage scenarios
-- **[Quick Reference](QUICK_REFERENCE.md)**: Quick reference guide for developers
-- **[Implementation Plan](IMPLEMENTATION_PLAN.md)**: Detailed implementation roadmap
-- **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)**: Current implementation status
 - **[Admin Interface Guide](ADMIN_INTERFACE_GUIDE.md)**: Admin interface documentation
+- **[Implementation Plan](IMPLEMENTATION_PLAN.md)**: Historical implementation roadmap (v1.0)
+- **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)**: Historical implementation status (v1.0)
 
 ### Test Documentation
 
@@ -110,64 +131,90 @@ Interaction → Touchpoint Hint → Mapping Rule Lookup → Touchpoint Creation
 
 ## 💡 Usage Examples
 
-### Web Connector (Multi-Interaction Approach)
+### Web Connector (Event Processing Approach)
 
 ```python
 from websites.models import WebInteraction
-from connectors.extended_resolvers import ExtendedTouchpointResolver
-from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
+from connectors.resolvers import DefaultTouchpointResolver
+from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.protocols import TouchpointHint
 
-# Create web interaction
-web_interaction = WebInteraction.objects.create(
-    url='https://example.com/products/laptop',
-    event_type='web.page_view',
-    person=person,
-    occurred_at=timezone.now()
-)
+# Event data from browser
+event_data = {
+    'event_type': 'page_view',
+    'website_base': 'https://example.com',
+    'full_url': 'https://example.com/products/laptop',
+    'utm_source': 'google',
+    'utm_medium': 'organic',
+    'referrer': 'https://google.com/search',
+    'user_agent': 'Mozilla/5.0...'
+}
 
-# Use extended resolver for multi-interaction approach
-resolver = ExtendedTouchpointResolver(ExtendedDatabaseMappingProvider())
-
-# Resolve multiple touchpoints (page view, referrer click, session start)
-touchpoints = resolver.resolve_batch(web_interaction)
-print(f"Created {len(touchpoints)} touchpoints: {[tp.name for tp in touchpoints]}")
+# Process event (creates Interaction and WebInteraction with touchpoint resolved)
+interactions = WebInteraction.process_page_view_event(event_data)
+print(f"Created {len(interactions)} interactions")
 ```
 
-### Email Connector
+### Direct Touchpoint Resolution
 
 ```python
-from email_connector.models import EmailInteraction
+from connectors.resolvers import DefaultTouchpointResolver
+from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.protocols import TouchpointHint
 
-# Create email interaction
-email_interaction = EmailInteraction.objects.create(
-    email_address='user@example.com',
-    event_type='email.open',
-    person=person,
-    occurred_at=timezone.now()
+resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+
+# Build hint directly from event data
+hint = TouchpointHint(
+    code='web.form_submit',
+    channel_code='web',
+    medium_code='paid',
+    touchpoint_type_code='web_form',
+    label='Contact Form Submit',
+    metadata={'form_type': 'contact', 'utm_campaign': 'summer2024'}
 )
 
 # Resolve touchpoint
-touchpoint = resolver.resolve(email_interaction)
-print(f"Email touchpoint: {touchpoint.name}")
+touchpoint = resolver.resolve(
+    hint,
+    connector_type='web',
+    source_identifier='example.com'
+)
+print(f"Touchpoint: {touchpoint.name}")
 ```
 
-### Custom Connector
+### Custom Event Processing
 
 ```python
-from connectors.protocols import TouchpointInferenceProtocol
+from connectors.protocols import TouchpointHint
+from connectors.resolvers import DefaultTouchpointResolver
+from connectors.mapping_providers import DatabaseMappingProvider
 
-class CustomInteraction(TouchpointInferenceProtocol):
-    def infer_touchpoint_hint(self):
-        return {
-            'connector_type': 'custom',
-            'source_identifier': 'mobile_app',
-            'event_code': 'mobile.screen_view',
-            'metadata': {'screen': 'product_detail'}
+def process_mobile_event(event_data: dict):
+    """Process custom mobile app events."""
+    
+    # Build hint from raw event data
+    hint = TouchpointHint(
+        code=f"mobile.{event_data['screen_name']}",
+        channel_code='mobile_app',
+        medium_code='app',
+        touchpoint_type_code='mobile_screen',
+        label=f"Mobile {event_data['screen_name'].title()}",
+        metadata={
+            'device_id': event_data.get('device_id'),
+            'app_version': event_data.get('app_version'),
         }
-
-# Use custom interaction
-custom_interaction = CustomInteraction()
-touchpoint = resolver.resolve(custom_interaction)
+    )
+    
+    # Resolve touchpoint
+    resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+    touchpoint = resolver.resolve(
+        hint,
+        connector_type='mobile',
+        source_identifier=event_data.get('app_id', 'mobile_app')
+    )
+    
+    return touchpoint
 ```
 
 ## 🛠️ Management Commands
@@ -417,21 +464,37 @@ python manage.py shell
 
 ```python
 # Use select_related for database efficiency
-interactions = Interaction.objects.select_related('touchpoint', 'action', 'person')
+interactions = Interaction.objects.select_related('touchpoint', 'action', 'agent')
 
-# Batch processing
-def process_in_batches(queryset, batch_size=100):
-    for i in range(0, queryset.count(), batch_size):
-        batch = queryset[i:i + batch_size]
-        process_batch(batch)
+# Batch processing with pre-creation touchpoint resolution
+def process_events_in_batches(events, batch_size=100):
+    """Process events efficiently with touchpoint resolution before creation."""
+    from connectors.resolvers import DefaultTouchpointResolver
+    from connectors.mapping_providers import DatabaseMappingProvider
+    
+    resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+    
+    for i in range(0, len(events), batch_size):
+        batch = events[i:i + batch_size]
+        for event in batch:
+            # Build hint from event
+            hint = build_hint_from_event(event)
+            # Resolve touchpoint BEFORE creating interaction
+            touchpoint = resolver.resolve(
+                hint,
+                connector_type=event['connector_type'],
+                source_identifier=event.get('source_id', '')
+            )
+            # Create interaction with touchpoint already assigned
+            create_interaction_with_touchpoint(event, touchpoint)
 
-# Caching
-from django.core.cache import cache
-cache_key = f"touchpoint:{interaction.id}"
-touchpoint = cache.get(cache_key)
-if not touchpoint:
-    touchpoint = resolver.resolve(interaction)
-    cache.set(cache_key, touchpoint, 3600)
+# Caching touchpoints by hint signature
+from connectors.resolvers import CachedTouchpointResolver
+from connectors.mapping_providers import CachedMappingProvider
+
+# Use cached resolver for high-volume scenarios
+cached_resolver = CachedTouchpointResolver(CachedMappingProvider())
+touchpoint = cached_resolver.resolve(hint, connector_type='web', source_identifier='example.com')
 ```
 
 ## 🤝 Contributing
@@ -477,13 +540,16 @@ For additional support and documentation:
 
 ### Completed Features
 
-- ✅ Core touchpoint resolution framework
-- ✅ Web connector implementation
+- ✅ Core touchpoint resolution framework (subject-agnostic)
+- ✅ Web connector implementation with pre-creation resolution
 - ✅ Performance monitoring and metrics
 - ✅ Enhanced admin interface
 - ✅ Management commands
-- ✅ Integration tests
+- ✅ Integration tests (35/35 core tests passing)
 - ✅ Comprehensive documentation
+- ✅ **NEW**: Subject-agnostic architecture (no more `TouchpointInferenceProtocol`)
+- ✅ **NEW**: Pre-creation touchpoint resolution
+- ✅ **NEW**: Direct hint building from raw event data
 
 ### Future Enhancements
 
@@ -493,6 +559,7 @@ For additional support and documentation:
 - 🔄 Machine learning-based touchpoint optimization
 - 🔄 Real-time dashboard
 - 🔄 API rate limiting and throttling
+- 🔄 Update remaining integration tests for new architecture
 
 ## 📊 System Status
 

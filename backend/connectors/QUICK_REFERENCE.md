@@ -1,14 +1,37 @@
 # Touchpoint Resolution System - Quick Reference
 
+## ⚡ Architecture Update (2025)
+
+**The system now uses a simplified subject-agnostic approach:**
+- ✅ No more `TouchpointInferenceProtocol` required
+- ✅ Build `TouchpointHint` directly from raw event data
+- ✅ Resolvers accept explicit parameters (`hint`, `connector_type`, `source_identifier`)
+- ✅ Touchpoints resolved **before** creating Interaction/WebInteraction objects
+
 ## Quick Start
 
-### 1. Basic Resolution
+### 1. Basic Resolution (New Approach)
 ```python
 from connectors.resolvers import DefaultTouchpointResolver
 from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.protocols import TouchpointHint
 
+# Create hint from event data
+hint = TouchpointHint(
+    code='web.page_view',
+    channel_code='web',
+    medium_code='organic',
+    touchpoint_type_code='web_page',
+    label='Web Page View'
+)
+
+# Resolve touchpoint with explicit parameters
 resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-touchpoint = resolver.resolve(interaction)
+touchpoint = resolver.resolve(
+    hint,
+    connector_type='web',
+    source_identifier='example.com'
+)
 ```
 
 ### 2. Create Mapping Rule
@@ -23,6 +46,7 @@ rule = TouchpointMappingRule.objects.create(
     touchpoint_label='Home Page View',
     channel_code='web',
     medium_code='organic',
+    touchpoint_type_code='web_page',
     priority=100,
     is_active=True
 )
@@ -33,7 +57,7 @@ rule = TouchpointMappingRule.objects.create(
 from connectors.metrics import track_resolution
 
 with track_resolution('web', {'url': 'example.com'}) as tracker:
-    touchpoint = resolver.resolve(interaction)
+    touchpoint = resolver.resolve(hint, connector_type='web', source_identifier='example.com')
     tracker.record_success(cache_hit=False, mapping_applied=True, touchpoint_created=True)
 ```
 
@@ -50,55 +74,71 @@ with track_resolution('web', {'url': 'example.com'}) as tracker:
 
 ## Common Patterns
 
-### Web Connector
+### Web Connector (Event Processing)
 ```python
-# Page view
-WebInteraction.objects.create(
-    url='https://example.com/products/laptop',
-    event_type='web.page_view',
-    person=person
-)
+from websites.models import WebInteraction
 
-# Form submission
-WebInteraction.objects.create(
-    url='https://example.com/contact/',
-    event_type='web.form_submit',
-    person=person
-)
+# Page view event (from browser)
+event_data = {
+    'event_type': 'page_view',
+    'website_base': 'https://example.com',
+    'full_url': 'https://example.com/products/laptop',
+    'utm_source': 'google',
+    'utm_medium': 'organic',
+    'user_agent': 'Mozilla/5.0...'
+}
+
+# Process event (creates Interaction + WebInteraction with touchpoint)
+interactions = WebInteraction.process_page_view_event(event_data)
+
+# Form submission event
+form_event_data = {
+    'event_type': 'form_submit',
+    'website_base': 'https://example.com',
+    'full_url': 'https://example.com/contact/',
+    'payload': {'form_type': 'contact'},
+    'user_agent': 'Mozilla/5.0...'
+}
+interactions = WebInteraction.process_form_submit_event(form_event_data)
 ```
 
-### Email Connector
+### Direct Touchpoint Resolution
 ```python
-# Email open
-EmailInteraction.objects.create(
-    email_address='user@example.com',
-    event_type='email.open',
-    person=person
+from connectors.protocols import TouchpointHint
+from connectors.resolvers import DefaultTouchpointResolver
+from connectors.mapping_providers import DatabaseMappingProvider
+
+# Build hint from raw data
+hint = TouchpointHint(
+    code='email.open',
+    channel_code='email',
+    medium_code='email',
+    touchpoint_type_code='email_open',
+    label='Email Open',
+    metadata={'campaign_id': 'newsletter_001'}
 )
 
-# Email click
-EmailInteraction.objects.create(
-    email_address='user@example.com',
-    event_type='email.click',
-    person=person
-)
+# Resolve
+resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+touchpoint = resolver.resolve(hint, connector_type='email', source_identifier='campaign_001')
 ```
 
-### WhatsApp Connector
+### Custom Connector Pattern
 ```python
-# Message received
-WhatsAppInteraction.objects.create(
-    phone_number='+1234567890',
-    event_type='whatsapp.message_received',
-    person=person
-)
+def build_hint_from_custom_event(event_data: dict) -> TouchpointHint:
+    """Build hint from custom event structure."""
+    return TouchpointHint(
+        code=f"mobile.{event_data['action']}",
+        channel_code='mobile_app',
+        medium_code='app',
+        touchpoint_type_code='mobile_action',
+        label=f"Mobile {event_data['action'].title()}",
+        metadata=event_data.get('metadata', {})
+    )
 
-# Media received
-WhatsAppInteraction.objects.create(
-    phone_number='+1234567890',
-    event_type='whatsapp.media_received',
-    person=person
-)
+# Usage
+hint = build_hint_from_custom_event({'action': 'purchase', 'amount': 99.99})
+touchpoint = resolver.resolve(hint, connector_type='mobile', source_identifier='ios_app')
 ```
 
 ## Mapping Rule Priorities
