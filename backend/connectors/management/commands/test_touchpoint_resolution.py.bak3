@@ -139,7 +139,7 @@ class Command(BaseCommand):
             )
             
             # MockConnector no longer needed - using hint directly
-            touchpoint = resolver.resolve(hint, connector_type="test", source_identifier="")
+            touchpoint = resolver.resolve(mock_connector)
             
             if touchpoint.code == 'test.mapped':
                 self.stdout.write("✅ Mapping rule applied correctly")
@@ -190,8 +190,8 @@ class Command(BaseCommand):
         ]
         
         for scenario in scenarios:
-            # MockConnector no longer needed - use hint directly
-            touchpoint = resolver.resolve(scenario['hint'], connector_type='web', source_identifier='')
+            # MockConnector no longer needed
+            touchpoint = resolver.resolve(mock_connector)
             
             self.stdout.write(f"✅ {scenario['name']}: {touchpoint.code}")
             if verbose:
@@ -226,8 +226,8 @@ class Command(BaseCommand):
         ]
         
         for scenario in scenarios:
-            # MockConnector no longer needed - use hint directly
-            touchpoint = resolver.resolve(scenario['hint'], connector_type='email', source_identifier='')
+            mock_connector = MockConnector(scenario['hint'], 'email')
+            touchpoint = resolver.resolve(mock_connector)
             
             self.stdout.write(f"✅ {scenario['name']}: {touchpoint.code}")
             if verbose:
@@ -261,8 +261,8 @@ class Command(BaseCommand):
         ]
         
         for scenario in scenarios:
-            # MockConnector no longer needed - use hint directly
-            touchpoint = resolver.resolve(scenario['hint'], connector_type='whatsapp', source_identifier='')
+            mock_connector = MockConnector(scenario['hint'], 'whatsapp')
+            touchpoint = resolver.resolve(mock_connector)
             
             self.stdout.write(f"✅ {scenario['name']}: {touchpoint.code}")
             if verbose:

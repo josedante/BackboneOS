@@ -398,13 +398,13 @@ class WebInteraction(AbstractConnectorInteraction):
     
     def save(self, *args, **kwargs):
         """
-        Override save to ensure touchpoint resolution.
+        Save the WebInteraction instance.
         
-        Automatically resolves and assigns a touchpoint when the
-        web interaction is saved.
+        Note: Touchpoint resolution is now handled before object creation
+        in the event processing methods. This save() method no longer
+        automatically resolves touchpoints.
         """
         super().save(*args, **kwargs)
-        self._ensure_touchpoint()
     
     @classmethod
     def process_page_view_event(cls, event_data: dict) -> list:

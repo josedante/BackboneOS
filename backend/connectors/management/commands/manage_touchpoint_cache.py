@@ -14,18 +14,7 @@ import time
 from connectors.models import TouchpointMappingRule
 from connectors.mapping_providers import DatabaseMappingProvider, CachedMappingProvider
 from connectors.resolvers import DefaultTouchpointResolver, CachedTouchpointResolver
-from connectors.protocols import TouchpointHint, TouchpointInferenceProtocol
-
-
-class MockConnector(TouchpointInferenceProtocol):
-    """Mock connector for cache testing."""
-    
-    def __init__(self, hint: TouchpointHint, connector_type: str = "test"):
-        self.hint = hint
-        self.connector_type = connector_type
-    
-    def infer_touchpoint_hint(self) -> TouchpointHint:
-        return self.hint
+from connectors.protocols import TouchpointHint
 
 
 class Command(BaseCommand):
@@ -263,8 +252,7 @@ class Command(BaseCommand):
             
             for i in range(iterations):
                 hint = test_hints[i % len(test_hints)]
-                mock_connector = MockConnector(hint)
-                resolver.resolve(mock_connector)
+                resolver.resolve(hint, connector_type='test', source_identifier='')
             
             end_time = time.time()
             results['without_cache'] = {
@@ -286,8 +274,7 @@ class Command(BaseCommand):
             
             for i in range(iterations):
                 hint = test_hints[i % len(test_hints)]
-                mock_connector = MockConnector(hint)
-                resolver.resolve(mock_connector)
+                resolver.resolve(hint, connector_type='test', source_identifier='')
             
             end_time = time.time()
             results['with_cache'] = {
