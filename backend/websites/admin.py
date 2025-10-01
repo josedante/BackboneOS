@@ -77,18 +77,18 @@ class WebSessionAdmin(admin.ModelAdmin):
 @admin.register(WebInteraction)
 class WebInteractionAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'website', 'session_id_short', 'visitor_cookie_short', 
-        'event_type', 'utm_source', 'utm_medium', 'is_bot', 'created_at'
+        'interaction_id', 'website', 'session_id_short', 'visitor_cookie_short', 
+        'utm_source', 'utm_medium', 'is_bot', 'created_at'
     ]
     list_filter = [
         'is_bot', 'website', 'utm_source', 'utm_medium', 'utm_campaign', 
-        'created_at', 'occurred_at'
+        'created_at'
     ]
     search_fields = [
         'session_id', 'visitor_cookie', 'utm_source', 'utm_medium', 
         'utm_campaign', 'element', 'user_agent'
     ]
-    readonly_fields = ['created_at', 'occurred_at']
+    readonly_fields = ['interaction', 'created_at']
     date_hierarchy = 'created_at'
     
     fieldsets = (
@@ -96,7 +96,7 @@ class WebInteractionAdmin(admin.ModelAdmin):
             'fields': ('website', 'session_id', 'visitor_cookie', 'user_agent', 'ip')
         }),
         ('Event Details', {
-            'fields': ('event_type', 'element', 'payload', 'is_bot')
+            'fields': ('element', 'payload', 'is_bot')
         }),
         ('Attribution', {
             'fields': ('utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term')
@@ -105,9 +105,15 @@ class WebInteractionAdmin(admin.ModelAdmin):
             'fields': ('client_hints',)
         }),
         ('Timing', {
-            'fields': ('occurred_at', 'created_at')
+            'fields': ('interaction', 'created_at')
         }),
     )
+    
+    def interaction_id(self, obj):
+        if obj.interaction:
+            return str(obj.interaction.pk)[:8]
+        return "N/A"
+    interaction_id.short_description = 'Interaction ID'
     
     def session_id_short(self, obj):
         return f"{obj.session_id[:8]}..." if obj.session_id else "N/A"
@@ -125,7 +131,7 @@ class WebAgentAdmin(admin.ModelAdmin):
         'os_family', 'device_family', 'is_mobile', 'is_bot', 'created_at'
     ]
     list_filter = [
-        'agent_type', 'is_mobile', 'is_bot', 'created_at'
+        'agent_type', 'created_at'
     ]
     search_fields = ['identifier', 'name', 'user_agent']
     readonly_fields = [

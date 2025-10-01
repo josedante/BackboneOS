@@ -8,7 +8,7 @@ multi-interaction approach, session-aware resolution, and batch processing.
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from django.core.cache import cache
 
-from .protocols import TouchpointInferenceProtocol, TouchpointHint
+from .protocols import TouchpointHint
 from .extended_protocols import (
     MultiTouchpointInferenceProtocol, 
     BatchTouchpointHint,

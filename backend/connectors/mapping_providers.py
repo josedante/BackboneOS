@@ -9,7 +9,7 @@ The providers implement the priority-based rule resolution system.
 from typing import Optional, TYPE_CHECKING
 from django.core.cache import cache
 
-from .protocols import TouchpointInferenceProtocol, TouchpointHint, MappingProviderProtocol
+from .protocols import TouchpointHint, MappingProviderProtocol
 
 if TYPE_CHECKING:
     from .models import TouchpointMappingRule
@@ -40,12 +40,14 @@ class DatabaseMappingProvider:
         self.use_cache = use_cache
     
     def lookup_mapping(
-        self, 
-        subject: TouchpointInferenceProtocol, 
+        self,
+        *,
+        connector_type: str,
+        source_identifier: str,
         hint: TouchpointHint
     ) -> Optional['TouchpointMappingRule']:
         """
-        Look up mapping rule for the given subject and hint.
+        Look up mapping rule using explicit parameters.
         
         This method implements the priority-based resolution system:
         1. Try specific source + event code
@@ -53,18 +55,15 @@ class DatabaseMappingProvider:
         3. Try generic event code only
         
         Args:
-            subject: The connector interaction requesting touchpoint resolution
-            hint: The touchpoint hint from the connector's inference
+            connector_type: Type of connector (e.g., 'web', 'email', 'whatsapp')
+            source_identifier: Source identifier (e.g., website URL, email domain)
+            hint: The touchpoint hint containing event code
             
         Returns:
             TouchpointMappingRule or None: The applicable mapping rule, if any
         """
         if not hint.code:
             return None
-        
-        # Get connector type and source identifier from subject
-        connector_type = self._get_connector_type(subject)
-        source_identifier = self._get_source_identifier(subject)
         
         # Try specific source first (highest priority)
         if source_identifier:
@@ -135,47 +134,6 @@ class DatabaseMappingProvider:
         
         return rule
     
-    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
-        """
-        Extract connector type from subject class name.
-        
-        Args:
-            subject: The connector interaction
-            
-        Returns:
-            str: The connector type identifier
-        """
-        class_name = subject.__class__.__name__.lower()
-        
-        # Map class names to connector types
-        if class_name.startswith('web'):
-            return 'web'
-        elif class_name.startswith('email'):
-            return 'email'
-        elif class_name.startswith('whatsapp'):
-            return 'whatsapp'
-        elif class_name.startswith('chat'):
-            return 'chat'
-        elif class_name.startswith('social'):
-            return 'social'
-        else:
-            return 'generic'
-    
-    def _get_source_identifier(self, subject: TouchpointInferenceProtocol) -> str:
-        """
-        Extract source identifier from subject.
-        
-        This method provides a generic implementation that can be overridden
-        by connector-specific providers.
-        
-        Args:
-            subject: The connector interaction
-            
-        Returns:
-            str: The source identifier, or empty string if not available
-        """
-        # Generic implementation - connector-specific providers should override
-        return ''
 
 
 class CachedMappingProvider(DatabaseMappingProvider):
@@ -279,25 +237,25 @@ class FileMappingProvider:
             pass
     
     def lookup_mapping(
-        self, 
-        subject: TouchpointInferenceProtocol, 
+        self,
+        *,
+        connector_type: str,
+        source_identifier: str,
         hint: TouchpointHint
     ) -> Optional['TouchpointMappingRule']:
         """
         Look up mapping rule from file configuration.
         
         Args:
-            subject: The connector interaction requesting touchpoint resolution
-            hint: The touchpoint hint from the connector's inference
+            connector_type: Type of connector (e.g., 'web', 'email', 'whatsapp')
+            source_identifier: Source identifier (e.g., website URL, email domain)
+            hint: The touchpoint hint containing event code
             
         Returns:
             TouchpointMappingRule or None: The applicable mapping rule, if any
         """
         if not hint.code:
             return None
-        
-        connector_type = self._get_connector_type(subject)
-        source_identifier = self._get_source_identifier(subject)
         
         # Try specific source first
         if source_identifier:
@@ -322,20 +280,3 @@ class FileMappingProvider:
         # This would create a mock rule object or use a different approach
         # depending on the specific implementation needs
         pass
-    
-    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
-        """Extract connector type from subject class name."""
-        class_name = subject.__class__.__name__.lower()
-        
-        if class_name.startswith('web'):
-            return 'web'
-        elif class_name.startswith('email'):
-            return 'email'
-        elif class_name.startswith('whatsapp'):
-            return 'whatsapp'
-        else:
-            return 'generic'
-    
-    def _get_source_identifier(self, subject: TouchpointInferenceProtocol) -> str:
-        """Extract source identifier from subject."""
-        return ''

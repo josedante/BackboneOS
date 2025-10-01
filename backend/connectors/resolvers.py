@@ -2,16 +2,15 @@
 Generic touchpoint resolution framework.
 
 This module provides the core touchpoint resolution logic that works with any
-connector type. It implements the strategy pattern where specialized logic
-is delegated to connector-specific adapters while maintaining a consistent
-interface for all connector types.
+connector type. It uses a subject-agnostic approach where touchpoint hints
+are provided directly, without requiring a connector interaction object.
 """
 
 from django.db import transaction
 from typing import Optional, TYPE_CHECKING
 
 from interactions.models import Touchpoint, TouchpointType, Channel, Medium
-from .protocols import TouchpointInferenceProtocol, TouchpointResolverProtocol, TouchpointHint
+from .protocols import TouchpointHint
 from .metrics import track_resolution
 
 if TYPE_CHECKING:
@@ -20,16 +19,15 @@ if TYPE_CHECKING:
 
 class DefaultTouchpointResolver:
     """
-    Generic touchpoint resolver that works with any connector type.
+    Generic touchpoint resolver using subject-agnostic approach.
     
     This resolver implements the core touchpoint resolution strategy:
-    1. Get hint from connector-specific inference
+    1. Accept a TouchpointHint with explicit parameters
     2. Apply configurable mapping overrides
-    3. Fallback to connector-specific defaults
-    4. Create or get touchpoint with proper relationships
+    3. Create or get touchpoint with proper three-dimensional classification
     
-    The resolver delegates specialized logic to connector-specific adapters
-    while providing a consistent interface for all connector types.
+    The resolver works directly with hints and explicit parameters,
+    eliminating the need for connector interaction objects.
     """
     
     def __init__(self, mapping_provider: 'MappingProviderProtocol'):
@@ -42,42 +40,44 @@ class DefaultTouchpointResolver:
         self.mapping_provider = mapping_provider
     
     @transaction.atomic
-    def resolve(self, subject: TouchpointInferenceProtocol) -> Touchpoint:
+    def resolve(
+        self,
+        hint: TouchpointHint,
+        *,
+        connector_type: str,
+        source_identifier: str = ''
+    ) -> Touchpoint:
         """
-        Resolve touchpoint for any connector type.
+        Resolve touchpoint from a hint with explicit parameters.
         
         This method implements the core resolution strategy:
-        1. Get hint from connector-specific inference
+        1. Accept TouchpointHint and explicit parameters
         2. Apply configurable mapping overrides
-        3. Fallback to connector-specific defaults
-        4. Create or get touchpoint
+        3. Create or get touchpoint with three-dimensional classification
         
         Args:
-            subject: A connector interaction that implements TouchpointInferenceProtocol
+            hint: TouchpointHint containing touchpoint information
+            connector_type: Type of connector (e.g., 'web', 'email', 'whatsapp')
+            source_identifier: Source identifier (e.g., website URL, email domain)
             
         Returns:
             Touchpoint: The resolved touchpoint object
         """
-        # Get connector type for metrics
-        connector_type = self._get_connector_type(subject)
-        
         # Track resolution with metrics
-        with track_resolution(connector_type, {'subject_class': subject.__class__.__name__}) as tracker:
+        with track_resolution(connector_type, {'hint_code': hint.code}) as tracker:
             try:
-                # Step 1: Get hint from connector-specific inference
-                hint = subject.infer_touchpoint_hint()
-                
-                # Step 2: Apply mapping overrides
-                mapping_rule = self.mapping_provider.lookup_mapping(subject, hint)
+                # Step 1: Apply mapping overrides
+                mapping_rule = self.mapping_provider.lookup_mapping(
+                    connector_type=connector_type,
+                    source_identifier=source_identifier,
+                    hint=hint
+                )
                 mapping_applied = mapping_rule is not None
                 if mapping_rule:
                     hint = self._apply_mapping_rule(hint, mapping_rule)
                 
-                # Step 3: Ensure we have required fields
-                final_hint = self._ensure_required_fields(subject, hint)
-                
-                # Step 4: Create or get touchpoint
-                touchpoint = self._get_or_create_touchpoint(final_hint)
+                # Step 2: Create or get touchpoint with taxonomy
+                touchpoint = self._get_or_create_touchpoint(hint)
                 
                 # Record successful resolution
                 tracker.record_success(
@@ -112,23 +112,6 @@ class DefaultTouchpointResolver:
             label=rule.touchpoint_label or hint.label,
             metadata={**hint.metadata, **rule.metadata}
         )
-    
-    def _ensure_required_fields(self, subject: TouchpointInferenceProtocol, hint: TouchpointHint) -> TouchpointHint:
-        """
-        Ensure hint has required fields, using connector-specific defaults.
-        
-        This method can be overridden by connector-specific resolvers to provide
-        specialized defaults for their connector type.
-        
-        Args:
-            subject: The connector interaction
-            hint: The touchpoint hint to validate
-            
-        Returns:
-            TouchpointHint: The hint with required fields ensured
-        """
-        # Default implementation - connector-specific resolvers should override
-        return hint
     
     def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
         """
@@ -195,25 +178,14 @@ class DefaultTouchpointResolver:
         )
         
         return touchpoint
-    
-    def _get_connector_type(self, subject: TouchpointInferenceProtocol) -> str:
-        """Extract connector type from subject class name."""
-        class_name = subject.__class__.__name__.lower()
-        if class_name.startswith('web'):
-            return 'web'
-        elif class_name.startswith('email'):
-            return 'email'
-        elif class_name.startswith('whatsapp'):
-            return 'whatsapp'
-        return 'generic'
 
 
 class CachedTouchpointResolver(DefaultTouchpointResolver):
     """
     Cached version of the touchpoint resolver for improved performance.
     
-    This resolver adds caching to the touchpoint resolution process to avoid
-    repeated database queries for the same touchpoint codes.
+    This resolver adds in-memory caching to the touchpoint resolution process
+    to avoid repeated database queries for the same touchpoint codes.
     """
     
     def __init__(self, mapping_provider: 'MappingProviderProtocol', cache_timeout: int = 3600, use_cache: bool = True):
@@ -229,13 +201,10 @@ class CachedTouchpointResolver(DefaultTouchpointResolver):
         self.cache_timeout = cache_timeout
         self.use_cache = use_cache
         self._touchpoint_cache = {}
-        self._channel_cache = {}
-        self._medium_cache = {}
-        self._touchpoint_type_cache = {}
     
     def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
         """
-        Create or get touchpoint with caching.
+        Create or get touchpoint with in-memory caching.
         
         Args:
             hint: The touchpoint hint containing all necessary information
@@ -243,6 +212,9 @@ class CachedTouchpointResolver(DefaultTouchpointResolver):
         Returns:
             Touchpoint: The created or existing touchpoint
         """
+        if not self.use_cache:
+            return super()._get_or_create_touchpoint(hint)
+        
         # Check cache first
         touchpoint_code = hint.code or f"generic.{hint.channel_code or 'unknown'}"
         if touchpoint_code in self._touchpoint_cache:

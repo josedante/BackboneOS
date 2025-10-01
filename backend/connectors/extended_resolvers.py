@@ -10,7 +10,7 @@ from django.db import transaction
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 
 from interactions.models import Touchpoint, TouchpointType, Channel, Medium
-from .protocols import TouchpointInferenceProtocol, TouchpointHint
+from .protocols import TouchpointHint
 from .extended_protocols import (
     MultiTouchpointInferenceProtocol, 
     BatchTouchpointHint, 

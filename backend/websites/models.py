@@ -11,7 +11,7 @@ from datetime import timedelta
 from interactions.models import TouchpointType, Touchpoint, Channel, Agent
 from products.models import Product  # optional
 from connectors.base import AbstractConnectorInteraction
-from connectors.protocols import TouchpointInferenceProtocol, TouchpointHint
+from connectors.protocols import TouchpointHint
 # from offers.models import ProductOffering  # optional
 
 # --------------------------
@@ -498,8 +498,14 @@ class WebInteraction(AbstractConnectorInteraction):
     
     @classmethod
     def process_click_event(cls, event_data: dict) -> list:
-        """Process a click event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a click event using the simplified creation flow.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -515,42 +521,37 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=website.base_url
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for click
+        # Step 4: Get or create Action
         action, _ = Action.objects.get_or_create(
             code='click',
             defaults={
                 'name': 'Click',
                 'description': 'User clicked on an element',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Step 5: Create Interaction and WebInteraction with touchpoint
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            touchpoint=touchpoint,
+            interaction_payload={
                 'interaction_type': 'click',
                 'full_url': event_data.get('full_url', ''),
                 'clicked_element': event_data.get('payload', {}).get('clicked_element'),
@@ -560,12 +561,8 @@ class WebInteraction(AbstractConnectorInteraction):
                 'target_url': event_data.get('payload', {}).get('target_url'),
                 'text_content': event_data.get('payload', {}).get('text_content')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
@@ -926,19 +923,100 @@ class WebInteraction(AbstractConnectorInteraction):
         return [web_interaction]
     
     @classmethod
-    def _create_web_interaction_with_interaction(cls, event_data: dict, agent, action, interaction_payload: dict, website, **web_interaction_kwargs) -> 'WebInteraction':
+    def build_touchpoint_hint_from_event_data(cls, event_data: dict, website) -> 'TouchpointHint':
         """
-        Helper method to create WebInteraction with proper Interaction creation order.
+        Build a TouchpointHint from raw event data without requiring a WebInteraction instance.
         
-        This method ensures the Interaction is created first, then WebInteraction with the
-        interaction as primary key, avoiding database constraint violations.
+        This method extracts all the necessary touchpoint information from the event payload,
+        allowing touchpoint resolution before creating the Interaction and WebInteraction.
+        
+        Args:
+            event_data: Event data dictionary from client
+            website: Website instance
+            
+        Returns:
+            TouchpointHint: Hint for touchpoint resolution
+        """
+        from connectors.protocols import TouchpointHint
+        
+        # Determine channel code
+        channel_code = website.channel.code if website.channel else cls._extract_domain(website.base_url)
+        
+        # Determine medium code from UTM or referrer
+        medium_code = event_data.get('utm_medium')
+        if not medium_code:
+            referrer = event_data.get('referrer', '')
+            medium_code = cls._analyze_referrer_medium(referrer)
+        
+        # Determine touchpoint type from event type
+        event_type = event_data.get('event_type', 'page_view')
+        touchpoint_type_map = {
+            'page_view': 'web_page',
+            'page_read': 'web_page',
+            'form_submit': 'web_form',
+            'click': 'web_button',
+            'download': 'web_download',
+            'video_play': 'web_video',
+            'search': 'web_search',
+            'newsletter_signup': 'web_signup',
+        }
+        touchpoint_type_code = touchpoint_type_map.get(event_type, 'web_page')
+        
+        return TouchpointHint(
+            code=f"web.{event_type}",
+            channel_code=channel_code,
+            medium_code=medium_code,
+            touchpoint_type_code=touchpoint_type_code,
+            label=f"Web {event_type.replace('_', ' ').title()}",
+            metadata={
+                'website': website.base_url,
+                'session_id': event_data.get('session_id', ''),
+                'visitor_cookie': event_data.get('visitor_cookie', ''),
+                'utm_source': event_data.get('utm_source', ''),
+                'utm_medium': event_data.get('utm_medium', ''),
+                'utm_campaign': event_data.get('utm_campaign', ''),
+                'payload': event_data.get('payload', {}),
+            }
+        )
+    
+    @classmethod
+    def _create_web_interaction_with_interaction(
+        cls, 
+        event_data: dict, 
+        agent, 
+        action, 
+        interaction_payload: dict, 
+        website, 
+        touchpoint=None,
+        **web_interaction_kwargs
+    ) -> 'WebInteraction':
+        """
+        Helper method to create WebInteraction with proper creation order.
+        
+        This method follows the simplified flow:
+        1. Touchpoint (with Channel, Medium, TouchpointType) - created before calling this method
+        2. Interaction - created with touchpoint already assigned
+        3. WebInteraction - created with interaction as primary key
+        
+        Args:
+            event_data: Event data dictionary
+            agent: Agent instance
+            action: Action instance
+            interaction_payload: Payload for the Interaction
+            website: Website instance
+            touchpoint: Optional pre-resolved Touchpoint instance
+            **web_interaction_kwargs: Additional kwargs for WebInteraction
+            
+        Returns:
+            WebInteraction: The created web interaction
         """
         from interactions.models import Interaction
         
-        # Create core Interaction first (required for WebInteraction)
+        # Create core Interaction with touchpoint (if provided)
         interaction = Interaction.objects.create(
             agent=agent,
             action=action,
+            touchpoint=touchpoint,  # Touchpoint resolved before creation
             payload=interaction_payload,
             occurred_at=event_data.get('occurred_at')
         )
@@ -1182,6 +1260,7 @@ class WebInteraction(AbstractConnectorInteraction):
         )
         
         # Create WebInteraction with proper Interaction creation order
+        # Note: touchpoint resolution is handled by the multi-interaction approach
         web_interaction = cls._create_web_interaction_with_interaction(
             event_data=event_data,
             agent=agent,
@@ -1196,7 +1275,8 @@ class WebInteraction(AbstractConnectorInteraction):
                 'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
                 'page_depth': event_data.get('payload', {}).get('page_depth', 1)
             },
-            website=website
+            website=website,
+            resolve_touchpoint=False  # Handled by multi-interaction approach
         )
         
         return web_interaction
