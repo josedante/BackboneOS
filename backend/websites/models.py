@@ -408,6 +408,507 @@ class WebInteraction(AbstractConnectorInteraction):
         
         return interactions
     
+    @classmethod
+    def process_page_read_event(cls, event_data: dict) -> list:
+        """Process a page read event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for page read interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for page read
+        action, _ = Action.objects.get_or_create(
+            code='page_read',
+            defaults={
+                'name': 'Page Read',
+                'description': 'User meaningfully engaged with page content',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'page_read',
+                'full_url': event_data.get('full_url', ''),
+                'time_on_page': event_data.get('payload', {}).get('time_on_page'),
+                'scroll_depth': event_data.get('payload', {}).get('scroll_depth'),
+                'read_criteria_met': event_data.get('payload', {}).get('read_criteria_met'),
+                'word_count': event_data.get('payload', {}).get('word_count'),
+                'interactions_count': event_data.get('payload', {}).get('interactions_count')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
+    @classmethod
+    def process_click_event(cls, event_data: dict) -> list:
+        """Process a click event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for click interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for click
+        action, _ = Action.objects.get_or_create(
+            code='click',
+            defaults={
+                'name': 'Click',
+                'description': 'User clicked on an element',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'click',
+                'full_url': event_data.get('full_url', ''),
+                'clicked_element': event_data.get('payload', {}).get('clicked_element'),
+                'element_id': event_data.get('payload', {}).get('element_id'),
+                'element_class': event_data.get('payload', {}).get('element_class'),
+                'click_position': event_data.get('payload', {}).get('click_position'),
+                'target_url': event_data.get('payload', {}).get('target_url'),
+                'text_content': event_data.get('payload', {}).get('text_content')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
+    @classmethod
+    def process_form_submit_event(cls, event_data: dict) -> list:
+        """Process a form submission event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for form submission interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for form submission
+        action, _ = Action.objects.get_or_create(
+            code='form_submit',
+            defaults={
+                'name': 'Form Submit',
+                'description': 'User submitted a form',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'form_submit',
+                'full_url': event_data.get('full_url', ''),
+                'form_id': event_data.get('payload', {}).get('form_id'),
+                'form_type': event_data.get('payload', {}).get('form_type'),
+                'fields_submitted': event_data.get('payload', {}).get('fields_submitted'),
+                'form_data': event_data.get('payload', {}).get('form_data')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
+    @classmethod
+    def process_download_event(cls, event_data: dict) -> list:
+        """Process a download event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for download interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for download
+        action, _ = Action.objects.get_or_create(
+            code='download',
+            defaults={
+                'name': 'Download',
+                'description': 'User downloaded a file',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'download',
+                'full_url': event_data.get('full_url', ''),
+                'file_name': event_data.get('payload', {}).get('file_name'),
+                'file_type': event_data.get('payload', {}).get('file_type'),
+                'file_size': event_data.get('payload', {}).get('file_size'),
+                'download_url': event_data.get('payload', {}).get('download_url')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
+    @classmethod
+    def process_video_play_event(cls, event_data: dict) -> list:
+        """Process a video play event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for video play interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for video play
+        action, _ = Action.objects.get_or_create(
+            code='video_play',
+            defaults={
+                'name': 'Video Play',
+                'description': 'User played a video',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'video_play',
+                'full_url': event_data.get('full_url', ''),
+                'video_id': event_data.get('payload', {}).get('video_id'),
+                'video_title': event_data.get('payload', {}).get('video_title'),
+                'video_duration': event_data.get('payload', {}).get('video_duration'),
+                'video_source': event_data.get('payload', {}).get('video_source'),
+                'play_position': event_data.get('payload', {}).get('play_position')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
+    @classmethod
+    def process_search_event(cls, event_data: dict) -> list:
+        """Process a search event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for search interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for search
+        action, _ = Action.objects.get_or_create(
+            code='search',
+            defaults={
+                'name': 'Search',
+                'description': 'User performed a search',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'search',
+                'full_url': event_data.get('full_url', ''),
+                'search_query': event_data.get('payload', {}).get('search_query'),
+                'search_results_count': event_data.get('payload', {}).get('search_results_count'),
+                'search_category': event_data.get('payload', {}).get('search_category'),
+                'filters_applied': event_data.get('payload', {}).get('filters_applied')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
+    @classmethod
+    def process_newsletter_signup_event(cls, event_data: dict) -> list:
+        """Process a newsletter signup event and create a single interaction."""
+        from interactions.models import Interaction, Action
+        
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for newsletter signup interaction")
+        
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
+        
+        # Get or create Agent
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
+        
+        # Get or create Action for newsletter signup
+        action, _ = Action.objects.get_or_create(
+            code='newsletter_signup',
+            defaults={
+                'name': 'Newsletter Signup',
+                'description': 'User signed up for newsletter',
+                'action_type': 'digital'
+            }
+        )
+        
+        # Create WebInteraction
+        web_interaction = cls.objects.create(
+            website=website,
+            session_id=event_data.get('session_id', ''),
+            visitor_cookie=event_data.get('visitor_cookie', ''),
+            user_agent=event_data.get('user_agent', ''),
+            ip=event_data.get('ip_address'),
+            utm_source=event_data.get('utm_source', ''),
+            utm_medium=event_data.get('utm_medium', ''),
+            utm_campaign=event_data.get('utm_campaign', ''),
+            utm_content=event_data.get('utm_content', ''),
+            utm_term=event_data.get('utm_term', ''),
+            element=event_data.get('element', ''),
+            payload=event_data.get('payload', {}),
+            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
+            occurred_at=event_data.get('occurred_at')
+        )
+        
+        # Create core Interaction
+        interaction = Interaction.objects.create(
+            agent=agent,
+            action=action,
+            payload={
+                'interaction_type': 'newsletter_signup',
+                'full_url': event_data.get('full_url', ''),
+                'email': event_data.get('payload', {}).get('email'),
+                'newsletter_type': event_data.get('payload', {}).get('newsletter_type'),
+                'interests': event_data.get('payload', {}).get('interests'),
+                'source_page': event_data.get('payload', {}).get('source_page')
+            },
+            occurred_at=web_interaction.occurred_at
+        )
+        
+        # Link the interactions
+        web_interaction.interaction = interaction
+        web_interaction.save()
+        
+        return [web_interaction]
+    
     # Helper methods for touchpoint inference
     def _get_channel_code(self) -> str:
         """Get channel code from website URL."""

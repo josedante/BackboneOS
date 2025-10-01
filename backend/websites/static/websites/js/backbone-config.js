@@ -7,7 +7,7 @@
 
 window.BackboneConfig = {
     // API Configuration
-    apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
+    baseApiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/',
     
     // Session Configuration
     sessionTimeout: 30 * 60 * 1000, // 30 minutes in milliseconds
@@ -20,7 +20,6 @@ window.BackboneConfig = {
     shortContentThreshold: 10 * 1000, // 10 seconds for short content
     
     // Performance Configuration
-    batchSize: 10, // Number of events to batch together
     retryAttempts: 3, // Number of retry attempts for failed requests
     retryDelay: 1000, // Base delay between retries in milliseconds
     

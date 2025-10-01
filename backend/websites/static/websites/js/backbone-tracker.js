@@ -23,13 +23,12 @@
 
     // Configuration
     const CONFIG = {
-        apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
+        baseApiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/',
         sessionTimeout: 30 * 60 * 1000, // 30 minutes
         engagementThreshold: 30 * 1000, // 30 seconds
         scrollThreshold: 50, // 50% scroll depth
         wordCountThreshold: 200,
         shortContentThreshold: 10 * 1000, // 10 seconds
-        batchSize: 10,
         retryAttempts: 3,
         retryDelay: 1000
     };
@@ -43,8 +42,6 @@
     let engagementTimer = null;
     let hasUserInteraction = false;
     let interactionCount = 0;
-    let eventQueue = [];
-    let isProcessing = false;
 
     /**
      * Initialize the BackboneOS tracker
@@ -63,9 +60,6 @@
             
             // Setup event listeners
             setupEventListeners();
-            
-            // Setup batch processing
-            setupBatchProcessing();
             
             console.log('BackboneOS Tracker initialized successfully');
         } catch (error) {
@@ -239,18 +233,6 @@
         });
     }
 
-    /**
-     * Setup batch processing for events
-     */
-    function setupBatchProcessing() {
-        // Process queued events every 5 seconds
-        setInterval(processEventQueue, 5000);
-        
-        // Process queued events on page unload
-        window.addEventListener('beforeunload', function() {
-            processEventQueue(true);
-        });
-    }
 
     /**
      * Update scroll depth
@@ -488,41 +470,44 @@
     }
 
     /**
-     * Send event to API
+     * Send event to API immediately
      */
     function sendEvent(eventData) {
-        // Add to queue for batch processing
-        eventQueue.push(eventData);
+        const eventType = eventData.event_type;
+        const endpoint = getEndpointForEventType(eventType);
         
-        // Process queue if it's getting large
-        if (eventQueue.length >= CONFIG.batchSize) {
-            processEventQueue();
-        }
+        sendEventToAPI(endpoint, eventData);
     }
 
     /**
-     * Process event queue
+     * Get the appropriate endpoint for an event type
      */
-    function processEventQueue(force = false) {
-        if (isProcessing && !force) return;
-        if (eventQueue.length === 0) return;
-
-        isProcessing = true;
-        const events = eventQueue.splice(0, CONFIG.batchSize);
+    function getEndpointForEventType(eventType) {
+        const eventTypeMap = {
+            'page_view': 'page-view/',
+            'page_read': 'page-read/',
+            'click': 'click/',
+            'form_submit': 'form-submit/',
+            'download': 'download/',
+            'video_play': 'video-play/',
+            'search': 'search/',
+            'newsletter_signup': 'newsletter-signup/'
+        };
         
-        // Send events to API
-        events.forEach(event => {
-            sendEventToAPI(event);
-        });
+        const endpoint = eventTypeMap[eventType];
+        if (!endpoint) {
+            console.warn(`Unknown event type: ${eventType}, using page-view endpoint`);
+            return CONFIG.baseApiEndpoint + 'page-view/';
+        }
         
-        isProcessing = false;
+        return CONFIG.baseApiEndpoint + endpoint;
     }
 
     /**
      * Send event to API with retry logic
      */
-    function sendEventToAPI(eventData, attempt = 1) {
-        fetch(CONFIG.apiEndpoint, {
+    function sendEventToAPI(endpoint, eventData, attempt = 1) {
+        fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -545,7 +530,7 @@
             // Retry if attempts remaining
             if (attempt < CONFIG.retryAttempts) {
                 setTimeout(() => {
-                    sendEventToAPI(eventData, attempt + 1);
+                    sendEventToAPI(endpoint, eventData, attempt + 1);
                 }, CONFIG.retryDelay * attempt);
             }
         });
