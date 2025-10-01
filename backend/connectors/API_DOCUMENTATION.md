@@ -1,137 +1,570 @@
-# Touchpoint Resolution System - API Documentation
+# Touchpoint Resolution System - API Documentation v2.0
+
+> **Version**: 2.0 (Subject-Agnostic Architecture)  
+> **Last Updated**: January 2025  
+> **Migration Guide**: See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for v1.0 → v2.0 migration
 
 ## Overview
 
-The Touchpoint Resolution System provides a comprehensive API for automatic touchpoint creation and management across multiple communication channels. This system enables automatic, configurable touchpoint creation for various connector types including web, email, and WhatsApp.
+The Touchpoint Resolution System provides a comprehensive API for automatic touchpoint creation and management. The v2.0 architecture uses a **subject-agnostic** approach where touchpoints are resolved from hints built directly from raw event data, rather than requiring objects to implement specific protocols.
 
 ## Table of Contents
 
 1. [Core Concepts](#core-concepts)
-2. [API Endpoints](#api-endpoints)
-3. [Management Commands](#management-commands)
-4. [Usage Examples](#usage-examples)
-5. [Error Handling](#error-handling)
-6. [Performance Monitoring](#performance-monitoring)
-7. [Best Practices](#best-practices)
+2. [Core API](#core-api)
+3. [Protocols](#protocols)
+4. [Resolvers](#resolvers)
+5. [Mapping Providers](#mapping-providers)
+6. [Models](#models)
+7. [Management Commands](#management-commands)
+8. [Performance Monitoring](#performance-monitoring)
+9. [Error Handling](#error-handling)
+10. [Best Practices](#best-practices)
 
 ## Core Concepts
 
-### Touchpoint Resolution Flow
+### Resolution Flow (v2.0)
 
 ```
-Interaction → Touchpoint Hint → Mapping Rule Lookup → Touchpoint Creation
+Raw Event Data → TouchpointHint → Resolver → Touchpoint
+                      ↓              ↓
+                 (Structured)   (Mapping Rules)
 ```
 
 ### Key Components
 
-- **TouchpointInferenceProtocol**: Interface for inferring touchpoint hints
-- **TouchpointResolverProtocol**: Interface for resolving touchpoints
-- **MappingProviderProtocol**: Interface for mapping rule lookup
-- **TouchpointMappingRule**: Admin-configurable rules for touchpoint creation
-- **DefaultTouchpointResolver**: Generic resolution logic
-- **DatabaseMappingProvider**: Database-backed mapping rule lookup
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **TouchpointHint** | Dataclass containing touchpoint metadata | ✅ Core |
+| **TouchpointResolverProtocol** | Interface for touchpoint resolution | ✅ Core |
+| **MappingProviderProtocol** | Interface for mapping rule lookup | ✅ Core |
+| **DefaultTouchpointResolver** | Subject-agnostic resolution logic | ✅ Core |
+| **CachedTouchpointResolver** | Caching resolver for performance | ✅ Core |
+| **DatabaseMappingProvider** | Database-backed mapping rules | ✅ Core |
+| **CachedMappingProvider** | Cached mapping provider | ✅ Core |
+| **TouchpointMappingRule** | Admin-configurable mapping rules | ✅ Model |
 
-## API Endpoints
+### ~~Removed Components~~ (v1.0)
 
-### 1. Touchpoint Resolution
+- ❌ **TouchpointInferenceProtocol**: No longer required (v2.0 uses explicit parameters)
+- ❌ **Subject-dependent resolution**: Replaced with hint-based resolution
 
-#### Resolve Touchpoint (Single Interaction)
+## Core API
+
+### TouchpointHint
+
+Dataclass representing touchpoint metadata extracted from raw events.
+
+#### Definition
+
+```python
+from dataclasses import dataclass, field
+from typing import Optional
+
+@dataclass(frozen=True)
+class TouchpointHint:
+    """Immutable hint for touchpoint resolution."""
+    
+    code: Optional[str] = None
+    channel_code: Optional[str] = None
+    medium_code: Optional[str] = None
+    touchpoint_type_code: Optional[str] = None
+    label: Optional[str] = None
+    metadata: dict = field(default_factory=dict)
+```
+
+#### Usage
+
+```python
+from connectors.protocols import TouchpointHint
+
+# Create a hint
+hint = TouchpointHint(
+    code='web.page_view',
+    channel_code='web',
+    medium_code='organic',
+    touchpoint_type_code='web_page',
+    label='Web Page View',
+    metadata={'url': '/products', 'utm_campaign': 'summer_sale'}
+)
+
+# Hints are immutable
+# hint.code = 'new_code'  # Raises AttributeError
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `code` | `str` | No | Unique touchpoint code (e.g., 'web.page_view') |
+| `channel_code` | `str` | No | Channel identifier (WHERE: 'web', 'email', etc.) |
+| `medium_code` | `str` | No | Medium identifier (HOW: 'organic', 'cpc', etc.) |
+| `touchpoint_type_code` | `str` | No | Touchpoint type (WHAT: 'web_page', 'email_open', etc.) |
+| `label` | `str` | No | Human-readable label |
+| `metadata` | `dict` | No | Additional metadata (defaults to empty dict) |
+
+## Protocols
+
+### TouchpointResolverProtocol
+
+Interface for touchpoint resolvers.
+
+```python
+from typing import Protocol
+from connectors.protocols import TouchpointHint
+from interactions.models import Touchpoint
+
+class TouchpointResolverProtocol(Protocol):
+    def resolve(
+        self,
+        hint: TouchpointHint,
+        *,
+        connector_type: str,
+        source_identifier: str = ''
+    ) -> Touchpoint:
+        """
+        Resolve a touchpoint from a hint.
+        
+        Args:
+            hint: TouchpointHint with touchpoint metadata
+            connector_type: Type of connector ('web', 'email', 'mobile', etc.)
+            source_identifier: Source-specific identifier (domain, app_id, etc.)
+        
+        Returns:
+            Touchpoint: Created or existing touchpoint
+        """
+        ...
+```
+
+### MappingProviderProtocol
+
+Interface for mapping rule providers.
+
+```python
+from typing import Protocol, Optional
+from connectors.models import TouchpointMappingRule
+
+class MappingProviderProtocol(Protocol):
+    def lookup_mapping(
+        self,
+        *,
+        connector_type: str,
+        source_identifier: str,
+        hint: TouchpointHint
+    ) -> Optional[TouchpointMappingRule]:
+        """
+        Look up a mapping rule for the given parameters.
+        
+        Args:
+            connector_type: Type of connector
+            source_identifier: Source-specific identifier
+            hint: TouchpointHint to match against
+        
+        Returns:
+            TouchpointMappingRule or None if no match found
+        """
+        ...
+```
+
+## Resolvers
+
+### DefaultTouchpointResolver
+
+Standard touchpoint resolver with subject-agnostic API.
+
+#### Initialization
+
 ```python
 from connectors.resolvers import DefaultTouchpointResolver
 from connectors.mapping_providers import DatabaseMappingProvider
 
-# Initialize resolver
-resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-
-# Resolve single touchpoint
-touchpoint = resolver.resolve(subject)
+resolver = DefaultTouchpointResolver(
+    mapping_provider=DatabaseMappingProvider()
+)
 ```
 
-#### Resolve Multiple Touchpoints (Multi-Interaction)
+#### resolve()
+
 ```python
-from connectors.extended_resolvers import ExtendedTouchpointResolver
-from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
-
-# Initialize extended resolver
-resolver = ExtendedTouchpointResolver(ExtendedDatabaseMappingProvider())
-
-# Resolve multiple touchpoints for batch processing
-touchpoints = resolver.resolve_batch(subject)
-
-# Resolve with session context
-touchpoints = resolver.resolve_with_session_context(subject, session_context)
+def resolve(
+    self,
+    hint: TouchpointHint,
+    *,
+    connector_type: str,
+    source_identifier: str = ''
+) -> Touchpoint
 ```
 
 **Parameters:**
-- `subject`: Object implementing `TouchpointInferenceProtocol`
+- `hint` (TouchpointHint): Touchpoint metadata
+- `connector_type` (str, keyword-only): Connector type identifier
+- `source_identifier` (str, keyword-only, optional): Source-specific identifier
 
 **Returns:**
-- `Touchpoint`: Created or existing touchpoint object
+- `Touchpoint`: Created or existing touchpoint
 
 **Example:**
-```python
-# Web interaction example
-from websites.models import WebInteraction
 
-web_interaction = WebInteraction.objects.get(id=123)
-touchpoint = resolver.resolve(web_interaction)
+```python
+from connectors.resolvers import DefaultTouchpointResolver
+from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.protocols import TouchpointHint
+
+resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+
+hint = TouchpointHint(
+    code='web.form_submit',
+    channel_code='web',
+    medium_code='cpc',
+    touchpoint_type_code='web_form',
+    label='Contact Form Submit'
+)
+
+touchpoint = resolver.resolve(
+    hint,
+    connector_type='web',
+    source_identifier='example.com'
+)
+
+print(f"Touchpoint: {touchpoint.code}")
+print(f"Channel: {touchpoint.channel.code if touchpoint.channel else 'N/A'}")
+print(f"Medium: {touchpoint.medium.code if touchpoint.medium else 'N/A'}")
 ```
 
-### 2. Mapping Rule Management
+### CachedTouchpointResolver
 
-#### Create Mapping Rule
+Resolver with built-in caching for high-performance scenarios.
+
+#### Initialization
+
+```python
+from connectors.resolvers import CachedTouchpointResolver
+from connectors.mapping_providers import CachedMappingProvider
+
+resolver = CachedTouchpointResolver(
+    mapping_provider=CachedMappingProvider(),
+    cache_timeout=3600,  # 1 hour
+    use_cache=True
+)
+```
+
+#### Usage
+
+```python
+# Same API as DefaultTouchpointResolver
+touchpoint = resolver.resolve(
+    hint,
+    connector_type='web',
+    source_identifier='example.com'
+)
+
+# Cache is automatically managed
+```
+
+#### Configuration
+
+```python
+# Disable caching
+resolver.use_cache = False
+
+# Change cache timeout
+resolver.cache_timeout = 7200  # 2 hours
+```
+
+## Mapping Providers
+
+### DatabaseMappingProvider
+
+Standard database-backed mapping rule provider.
+
+#### Initialization
+
+```python
+from connectors.mapping_providers import DatabaseMappingProvider
+
+provider = DatabaseMappingProvider(
+    cache_timeout=3600,
+    use_cache=True
+)
+```
+
+#### lookup_mapping()
+
+```python
+def lookup_mapping(
+    self,
+    *,
+    connector_type: str,
+    source_identifier: str,
+    hint: TouchpointHint
+) -> Optional[TouchpointMappingRule]
+```
+
+**Priority Resolution:**
+1. Specific source + event code match
+2. Connector type + event code match
+3. Global event code match
+
+**Example:**
+
+```python
+from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.protocols import TouchpointHint
+
+provider = DatabaseMappingProvider()
+
+hint = TouchpointHint(code='web.page_view')
+
+# Look up mapping rule
+rule = provider.lookup_mapping(
+    connector_type='web',
+    source_identifier='shop.example.com',
+    hint=hint
+)
+
+if rule:
+    print(f"Matched rule: {rule.touchpoint_code}")
+    print(f"Priority: {rule.priority}")
+else:
+    print("No matching rule found")
+```
+
+### CachedMappingProvider
+
+Database provider with caching.
+
+```python
+from connectors.mapping_providers import CachedMappingProvider
+
+provider = CachedMappingProvider()
+
+# Warm cache for better performance
+provider.warm_cache()
+
+# Use normally
+rule = provider.lookup_mapping(
+    connector_type='web',
+    source_identifier='example.com',
+    hint=hint
+)
+```
+
+## Models
+
+### TouchpointMappingRule
+
+Model for admin-configurable mapping rules.
+
+#### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `connector_type` | `CharField` | Yes | Connector type ('web', 'email', etc.) |
+| `source_identifier` | `CharField` | No | Source-specific identifier |
+| `event_code` | `CharField` | Yes | Event code to match |
+| `touchpoint_code` | `CharField` | Yes | Target touchpoint code |
+| `touchpoint_label` | `CharField` | No | Target touchpoint label |
+| `channel_code` | `CharField` | No | Target channel code |
+| `medium_code` | `CharField` | No | Target medium code |
+| `touchpoint_type_code` | `CharField` | No | Target touchpoint type |
+| `priority` | `IntegerField` | No | Rule priority (higher = more specific) |
+| `is_active` | `BooleanField` | No | Whether rule is active |
+| `metadata` | `JSONField` | No | Additional metadata |
+
+#### Create Rule
+
 ```python
 from connectors.models import TouchpointMappingRule
 
 rule = TouchpointMappingRule.objects.create(
     connector_type='web',
-    source_identifier='example.com',
+    source_identifier='shop.example.com',
     event_code='web.page_view',
-    touchpoint_code='web.home_page_view',
-    touchpoint_label='Home Page View',
+    touchpoint_code='web.product_page',
+    touchpoint_label='Product Page View',
     channel_code='web',
     medium_code='organic',
-    priority=100,
+    touchpoint_type_code='web_page',
+    priority=200,
     is_active=True,
-    metadata={'campaign': 'summer_sale'}
+    metadata={'category': 'ecommerce'}
 )
 ```
 
-#### Update Mapping Rule
+#### Query Rules
+
+```python
+# Active rules for web connector
+web_rules = TouchpointMappingRule.objects.filter(
+    connector_type='web',
+    is_active=True
+)
+
+# High priority rules
+priority_rules = TouchpointMappingRule.objects.filter(
+    priority__gte=150
+).order_by('-priority')
+
+# Rules for specific source
+source_rules = TouchpointMappingRule.objects.filter(
+    source_identifier='example.com'
+)
+```
+
+#### Update Rule
+
 ```python
 rule = TouchpointMappingRule.objects.get(id=rule_id)
-rule.priority = 150
-rule.metadata['campaign'] = 'winter_sale'
+rule.priority = 250
+rule.metadata['updated'] = True
 rule.save()
 ```
 
-#### Delete Mapping Rule
+#### Delete Rule
+
 ```python
 rule = TouchpointMappingRule.objects.get(id=rule_id)
 rule.delete()
+
+# Or soft delete (deactivate)
+rule.is_active = False
+rule.save()
 ```
 
-#### List Mapping Rules
-```python
-# Get all active rules
-active_rules = TouchpointMappingRule.objects.filter(is_active=True)
+## Management Commands
 
-# Get rules for specific connector
-web_rules = TouchpointMappingRule.objects.filter(connector_type='web')
+### test_touchpoint_resolution
 
-# Get rules with specific priority
-high_priority_rules = TouchpointMappingRule.objects.filter(priority__gte=100)
+Test the touchpoint resolution system.
+
+```bash
+# Basic test
+python manage.py test_touchpoint_resolution
+
+# Test specific scenario
+python manage.py test_touchpoint_resolution --scenario=web
+
+# Verbose output
+python manage.py test_touchpoint_resolution --verbose
+
+# Create sample mapping rules
+python manage.py test_touchpoint_resolution --create-mapping-rules
 ```
 
-### 3. Performance Monitoring
+**Scenarios:**
+- `basic`: Basic touchpoint creation
+- `mapping`: Mapping rule application
+- `web`: Web-specific scenarios
+- `email`: Email-specific scenarios
+- `whatsapp`: WhatsApp-specific scenarios
+- `all`: All scenarios
 
-#### Track Resolution Performance
+### manage_mapping_rules
+
+Manage touchpoint mapping rules.
+
+```bash
+# List all rules
+python manage.py manage_mapping_rules list
+
+# List web rules only
+python manage.py manage_mapping_rules list --connector-type=web
+
+# Create new rule
+python manage.py manage_mapping_rules create \
+    --connector-type=web \
+    --source-identifier=example.com \
+    --event-code=web.page_view \
+    --touchpoint-code=web.home_page \
+    --touchpoint-label="Home Page View" \
+    --channel-code=web \
+    --medium-code=organic \
+    --priority=150
+
+# Update rule
+python manage.py manage_mapping_rules update --id=123 --priority=200
+
+# Delete rule
+python manage.py manage_mapping_rules delete --id=123
+
+# Activate/deactivate rule
+python manage.py manage_mapping_rules activate --id=123
+python manage.py manage_mapping_rules deactivate --id=123
+```
+
+### manage_touchpoint_cache
+
+Manage touchpoint resolution cache.
+
+```bash
+# Show cache stats
+python manage.py manage_touchpoint_cache stats
+
+# Clear cache
+python manage.py manage_touchpoint_cache clear
+
+# Warm cache
+python manage.py manage_touchpoint_cache warm
+
+# Performance test
+python manage.py manage_touchpoint_cache test-performance --iterations=1000
+```
+
+### monitor_touchpoint_system
+
+Monitor system health and metrics.
+
+```bash
+# System health check
+python manage.py monitor_touchpoint_system health
+
+# View metrics
+python manage.py monitor_touchpoint_system metrics
+
+# Metrics for specific period
+python manage.py monitor_touchpoint_system metrics --hours=24
+
+# Export metrics
+python manage.py monitor_touchpoint_system metrics --export=metrics.json
+```
+
+### backfill_touchpoints
+
+Backfill missing touchpoints for existing interactions.
+
+```bash
+# Backfill all
+python manage.py backfill_touchpoints
+
+# Specific connector type
+python manage.py backfill_touchpoints --connector-type=web
+
+# With batch size
+python manage.py backfill_touchpoints --batch-size=100
+
+# Limit number of records
+python manage.py backfill_touchpoints --limit=1000
+
+# Dry run
+python manage.py backfill_touchpoints --dry-run
+```
+
+## Performance Monitoring
+
+### Track Resolution
+
 ```python
 from connectors.metrics import track_resolution
 
-with track_resolution(connector_type='web', metadata={'url': 'example.com'}) as tracker:
-    # Your resolution logic here
-    touchpoint = resolver.resolve(subject)
+with track_resolution('web', {'url': 'example.com'}) as tracker:
+    # Your resolution logic
+    touchpoint = resolver.resolve(
+        hint,
+        connector_type='web',
+        source_identifier='example.com'
+    )
+    
+    # Record success
     tracker.record_success(
         cache_hit=False,
         mapping_applied=True,
@@ -139,567 +572,176 @@ with track_resolution(connector_type='web', metadata={'url': 'example.com'}) as 
     )
 ```
 
-#### Get System Metrics
+### Get Metrics
+
 ```python
 from connectors.monitoring_models import TouchpointResolutionMetrics
+from datetime import datetime, timedelta
 
-# Get latest metrics
-latest_metrics = TouchpointResolutionMetrics.objects.latest('period_start')
+# Latest metrics
+latest = TouchpointResolutionMetrics.objects.latest('period_start')
 
-# Get metrics for specific period
-from datetime import date, timedelta
-yesterday = date.today() - timedelta(days=1)
-daily_metrics = TouchpointResolutionMetrics.objects.filter(
-    period_type='daily',
-    period_start=yesterday
-)
-```
-
-#### Alert Management
-```python
-from connectors.alerting import alert_manager
-
-# Trigger alert
-alert_manager.trigger_alert(
-    alert_type='high_error_rate',
-    severity='critical',
-    title='High Error Rate Detected',
-    message='Error rate for web connector exceeded 10%',
-    connector_type='web',
-    threshold_value=0.1,
-    actual_value=0.15
+# Metrics for last 24 hours
+yesterday = datetime.now() - timedelta(days=1)
+recent_metrics = TouchpointResolutionMetrics.objects.filter(
+    period_start__gte=yesterday
 )
 
-# Acknowledge alert
-alert = TouchpointAlert.objects.get(id=alert_id)
-alert.acknowledge()
-
-# Resolve alert
-alert.resolve()
+# Calculate success rate
+for metric in recent_metrics:
+    success_rate = (metric.successful_resolutions / metric.total_resolutions * 100
+                   if metric.total_resolutions > 0 else 0)
+    print(f"{metric.connector_type}: {success_rate:.2f}% success rate")
 ```
 
-## Management Commands
-
-### 1. Backfill Touchpoints
-
-```bash
-# Backfill all interactions
-python manage.py backfill_touchpoints
-
-# Backfill with specific options
-python manage.py backfill_touchpoints \
-    --batch-size=50 \
-    --connector-type=web \
-    --limit=1000 \
-    --verbose
-
-# Dry run to see what would be processed
-python manage.py backfill_touchpoints --dry-run
-```
-
-### 2. Test Touchpoint Resolution
-
-```bash
-# Test web connector
-python manage.py test_touchpoint_resolution \
-    --connector-type=web \
-    --event-code=web.page_view
-
-# Test with custom data
-python manage.py test_touchpoint_resolution \
-    --connector-type=email \
-    --event-code=email.open \
-    --metadata='{"campaign": "newsletter"}'
-```
-
-### 3. Manage Mapping Rules
-
-```bash
-# List all rules
-python manage.py manage_mapping_rules list
-
-# Create new rule
-python manage.py manage_mapping_rules create \
-    --connector-type=web \
-    --event-code=web.form_submit \
-    --touchpoint-code=web.contact_form \
-    --priority=100
-
-# Update existing rule
-python manage.py manage_mapping_rules update \
-    --id=123 \
-    --priority=150
-
-# Delete rule
-python manage.py manage_mapping_rules delete --id=123
-```
-
-### 4. Cache Management
-
-```bash
-# Clear cache
-python manage.py manage_touchpoint_cache clear
-
-# Warm cache
-python manage.py manage_touchpoint_cache warm
-
-# Get cache statistics
-python manage.py manage_touchpoint_cache stats
-
-# Test cache performance
-python manage.py manage_touchpoint_cache test
-```
-
-### 5. System Monitoring
-
-```bash
-# Get system health report
-python manage.py monitor_touchpoint_system
-
-# Get metrics for specific period
-python manage.py monitor_touchpoint_system --period=hour
-
-# Check system health
-python manage.py monitor_touchpoint_system --health-check
-```
-
-### 6. Data Cleanup
-
-```bash
-# Clean up old events
-python manage.py cleanup_touchpoint_events
-
-# Clean up with custom retention
-python manage.py cleanup_touchpoint_events \
-    --retention-days=30 \
-    --dry-run
-```
-
-## Usage Examples
-
-### Example 1: Web Page View Resolution
+### Get Events
 
 ```python
-from websites.models import WebInteraction
-from connectors.resolvers import DefaultTouchpointResolver
-from connectors.mapping_providers import DatabaseMappingProvider
+from connectors.monitoring_models import TouchpointResolutionEvent
 
-# Create web interaction
-web_interaction = WebInteraction.objects.create(
-    url='https://example.com/products/laptop',
-    event_type='web.page_view',
-    person=person,
-    occurred_at=timezone.now()
-)
+# Recent events
+recent = TouchpointResolutionEvent.objects.filter(
+    occurred_at__gte=datetime.now() - timedelta(hours=1)
+).order_by('-occurred_at')
 
-# Resolve touchpoint
-resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-touchpoint = resolver.resolve(web_interaction)
+# Errors only
+errors = TouchpointResolutionEvent.objects.filter(
+    error_occurred=True
+).order_by('-occurred_at')[:10]
 
-print(f"Created touchpoint: {touchpoint.name}")
-print(f"Channel: {touchpoint.channel.name}")
-print(f"Code: {touchpoint.code}")
-```
-
-### Example 2: Custom Mapping Rule
-
-```python
-from connectors.models import TouchpointMappingRule
-
-# Create custom mapping for product pages
-rule = TouchpointMappingRule.objects.create(
-    connector_type='web',
-    source_identifier='example.com/products/',
-    event_code='web.page_view',
-    touchpoint_code='web.product_page_view',
-    touchpoint_label='Product Page View',
-    channel_code='web',
-    medium_code='organic',
-    priority=200,  # High priority
-    is_active=True,
-    metadata={
-        'category': 'product',
-        'funnel_stage': 'think'
-    }
-)
-
-# Now all product page views will use this mapping
-```
-
-### Example 3: Batch Processing
-
-```python
-from django.db import transaction
-from connectors.resolvers import DefaultTouchpointResolver
-from connectors.mapping_providers import DatabaseMappingProvider
-
-def process_interactions_batch(interactions):
-    resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-    
-    with transaction.atomic():
-        for interaction in interactions:
-            try:
-                touchpoint = resolver.resolve(interaction)
-                print(f"Processed interaction {interaction.id}")
-            except Exception as e:
-                print(f"Error processing interaction {interaction.id}: {e}")
-                # Continue with next interaction
-                continue
-
-# Usage
-interactions = WebInteraction.objects.filter(touchpoint__isnull=True)[:100]
-process_interactions_batch(interactions)
-```
-
-### Example 4: Performance Monitoring
-
-```python
-from connectors.metrics import track_resolution
-from connectors.alerting import alert_manager
-import time
-
-def monitored_resolution(subject):
-    start_time = time.time()
-    
-    with track_resolution(
-        connector_type='web',
-        metadata={'url': getattr(subject, 'url', 'unknown')}
-    ) as tracker:
-        try:
-            touchpoint = resolver.resolve(subject)
-            
-            # Check performance
-            resolution_time = time.time() - start_time
-            if resolution_time > 1.0:  # 1 second threshold
-                alert_manager.trigger_alert(
-                    alert_type='slow_resolution',
-                    severity='warning',
-                    title='Slow Resolution Time',
-                    message=f'Resolution took {resolution_time:.2f}s',
-                    connector_type='web',
-                    threshold_value=1.0,
-                    actual_value=resolution_time
-                )
-            
-            tracker.record_success(
-                cache_hit=False,
-                mapping_applied=True,
-                touchpoint_created=True
-            )
-            
-            return touchpoint
-            
-        except Exception as e:
-            tracker.record_error(str(e), type(e).__name__)
-            raise
-```
-
-### Example 5: Custom Connector Integration
-
-```python
-from connectors.protocols import TouchpointInferenceProtocol
-from connectors.resolvers import DefaultTouchpointResolver
-from connectors.mapping_providers import DatabaseMappingProvider
-
-class CustomInteraction(TouchpointInferenceProtocol):
-    def __init__(self, source, event_type, metadata=None):
-        self.source = source
-        self.event_type = event_type
-        self.metadata = metadata or {}
-        self.occurred_at = timezone.now()
-    
-    def infer_touchpoint_hint(self):
-        return {
-            'connector_type': 'custom',
-            'source_identifier': self.source,
-            'event_code': self.event_type,
-            'metadata': self.metadata
-        }
-    
-    def get_person(self):
-        # Return person if available
-        return None
-    
-    def get_occurred_at(self):
-        return self.occurred_at
-
-# Usage
-custom_interaction = CustomInteraction(
-    source='mobile_app',
-    event_type='app.screen_view',
-    metadata={'screen': 'product_detail'}
-)
-
-resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-touchpoint = resolver.resolve(custom_interaction)
+# Slow resolutions
+slow = TouchpointResolutionEvent.objects.filter(
+    resolution_time_ms__gte=1000  # > 1 second
+).order_by('-resolution_time_ms')
 ```
 
 ## Error Handling
 
 ### Common Exceptions
 
-#### TouchpointResolutionError
 ```python
-from connectors.exceptions import TouchpointResolutionError
+from connectors.resolvers import DefaultTouchpointResolver
+from connectors.mapping_providers import DatabaseMappingProvider
+from django.core.exceptions import ValidationError
+
+resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
 
 try:
-    touchpoint = resolver.resolve(subject)
-except TouchpointResolutionError as e:
-    print(f"Resolution failed: {e.message}")
-    print(f"Error type: {e.error_type}")
+    touchpoint = resolver.resolve(
+        hint,
+        connector_type='web',
+        source_identifier='example.com'
+    )
+except ValidationError as e:
+    # Handle validation errors
+    print(f"Validation error: {e}")
+except Exception as e:
+    # Handle other errors
+    print(f"Resolution error: {e}")
 ```
 
-#### MappingRuleNotFound
-```python
-from connectors.exceptions import MappingRuleNotFound
-
-try:
-    rule = mapping_provider.lookup_mapping(subject, hint)
-except MappingRuleNotFound:
-    # Use default resolution
-    touchpoint = create_default_touchpoint(hint)
-```
-
-### Error Recovery Strategies
+### Error Tracking
 
 ```python
-def robust_resolution(subject, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            return resolver.resolve(subject)
-        except Exception as e:
-            if attempt == max_retries - 1:
-                # Last attempt failed, create fallback
-                return create_fallback_touchpoint(subject)
-            
-            # Wait before retry
-            time.sleep(0.1 * (2 ** attempt))  # Exponential backoff
-```
+from connectors.metrics import track_resolution
 
-## Performance Monitoring
-
-### Metrics Collection
-
-```python
-from connectors.monitoring_models import TouchpointResolutionEvent
-
-# Get recent events
-recent_events = TouchpointResolutionEvent.objects.filter(
-    occurred_at__gte=timezone.now() - timedelta(hours=1)
-)
-
-# Calculate success rate
-total_events = recent_events.count()
-successful_events = recent_events.filter(error_occurred=False).count()
-success_rate = successful_events / total_events if total_events > 0 else 0
-
-# Get average resolution time
-avg_time = recent_events.aggregate(
-    avg_time=models.Avg('resolution_time_ms')
-)['avg_time']
-```
-
-### Health Checks
-
-```python
-from connectors.monitoring_models import TouchpointSystemHealth
-
-def check_system_health():
-    latest_health = TouchpointSystemHealth.objects.latest('recorded_at')
-    
-    if latest_health.health_status == 'healthy':
-        return True
-    elif latest_health.health_status == 'degraded':
-        # Log warning
-        logger.warning("System health is degraded")
-        return True
-    else:
-        # System is unhealthy
-        logger.error("System health is critical")
-        return False
+with track_resolution('web', {'url': 'example.com'}) as tracker:
+    try:
+        touchpoint = resolver.resolve(hint, connector_type='web', source_identifier='example.com')
+        tracker.record_success(cache_hit=False, mapping_applied=True, touchpoint_created=True)
+    except Exception as e:
+        # Automatically recorded as error
+        tracker.record_error(str(e))
+        raise
 ```
 
 ## Best Practices
 
-### 1. Mapping Rule Design
+### 1. Build Hints from Raw Data
 
 ```python
-# Good: Specific and descriptive
-rule = TouchpointMappingRule.objects.create(
-    connector_type='web',
-    source_identifier='shop.example.com/products/',
-    event_code='web.page_view',
-    touchpoint_code='web.product_page_view',
-    touchpoint_label='Product Page View',
-    channel_code='web',
-    medium_code='organic',
-    priority=100,
-    metadata={
-        'category': 'product',
-        'funnel_stage': 'think',
-        'campaign': 'product_catalog'
-    }
-)
+# ✅ Good: Build hint from raw event data
+def build_hint_from_event(event_data: dict, website) -> TouchpointHint:
+    return TouchpointHint(
+        code=f"web.{event_data['event_type']}",
+        channel_code=website.channel.code if website.channel else 'web',
+        medium_code=event_data.get('utm_medium', 'organic'),
+        touchpoint_type_code='web_page',
+        label=f"Web {event_data['event_type'].title()}",
+        metadata={'url': event_data['full_url']}
+    )
 
-# Avoid: Too generic
-rule = TouchpointMappingRule.objects.create(
-    connector_type='web',
-    source_identifier='example.com',
-    event_code='web.page_view',
-    touchpoint_code='web.page_view',
-    # ... too generic, will match everything
-)
+# ❌ Avoid: Hardcoding values
+hint = TouchpointHint(code='web.page_view', channel_code='web')  # Too generic
 ```
 
-### 2. Performance Optimization
+### 2. Resolve Before Creating Interactions
 
 ```python
-# Use select_related for database efficiency
-interactions = Interaction.objects.select_related(
-    'touchpoint', 'action', 'person'
-).filter(touchpoint__isnull=True)
+# ✅ Good: Pre-creation resolution
+hint = build_hint_from_event(event_data, website)
+touchpoint = resolver.resolve(hint, connector_type='web', source_identifier=website.base_url)
+interaction = Interaction.objects.create(touchpoint=touchpoint, ...)
 
-# Batch processing
-def process_in_batches(queryset, batch_size=100):
-    for i in range(0, queryset.count(), batch_size):
-        batch = queryset[i:i + batch_size]
-        process_batch(batch)
+# ❌ Avoid: Post-creation resolution (v1.0 pattern, no longer supported)
+interaction = Interaction.objects.create(...)
+touchpoint = resolver.resolve(interaction)  # Won't work in v2.0
 ```
 
-### 3. Error Handling
+### 3. Use Caching for High Volume
 
 ```python
-# Always use try-catch for resolution
-try:
-    touchpoint = resolver.resolve(subject)
-except Exception as e:
-    logger.error(f"Resolution failed for {subject}: {e}")
-    # Create fallback or skip
-    continue
+# ✅ Good: Use cached resolver for high-volume scenarios
+from connectors.resolvers import CachedTouchpointResolver
+from connectors.mapping_providers import CachedMappingProvider
+
+cached_provider = CachedMappingProvider()
+cached_provider.warm_cache()
+resolver = CachedTouchpointResolver(cached_provider)
+
+# Process many events efficiently
+for event in events:
+    hint = build_hint(event)
+    touchpoint = resolver.resolve(hint, connector_type='web', source_identifier='example.com')
+    # ... create interaction
 ```
 
-### 4. Monitoring Integration
+### 4. Use Event Processing Methods
 
 ```python
-# Always track resolution performance
-with track_resolution(connector_type, metadata) as tracker:
-    try:
-        touchpoint = resolver.resolve(subject)
-        tracker.record_success(cache_hit=False, mapping_applied=True, touchpoint_created=True)
-    except Exception as e:
-        tracker.record_error(str(e), type(e).__name__)
-        raise
+# ✅ Good: Use built-in event processing
+from websites.models import WebInteraction
+
+interactions = WebInteraction.process_page_view_event(event_data)
+
+# ❌ Avoid: Manual creation without proper flow
+web_interaction = WebInteraction.objects.create(...)  # Missing touchpoint resolution!
 ```
 
-### 5. Testing
+### 5. Monitor Performance
 
 ```python
-# Test with various scenarios
-def test_resolution_scenarios():
-    # Test with mapping rule
-    subject_with_mapping = create_test_subject_with_mapping()
-    touchpoint1 = resolver.resolve(subject_with_mapping)
-    assert touchpoint1.code == 'expected_code'
-    
-    # Test without mapping rule
-    subject_without_mapping = create_test_subject_without_mapping()
-    touchpoint2 = resolver.resolve(subject_without_mapping)
-    assert touchpoint2.code == 'default_code'
-    
-    # Test error handling
-    invalid_subject = create_invalid_subject()
-    with pytest.raises(TouchpointResolutionError):
-        resolver.resolve(invalid_subject)
+# ✅ Good: Track resolution performance
+from connectors.metrics import track_resolution
+
+with track_resolution('web', metadata) as tracker:
+    touchpoint = resolver.resolve(hint, connector_type='web', source_identifier='example.com')
+    tracker.record_success(cache_hit=False, mapping_applied=True, touchpoint_created=True)
+
+# Review metrics regularly
 ```
 
-## Configuration
+## API Version History
 
-### Settings
+| Version | Date | Major Changes |
+|---------|------|---------------|
+| **2.0** | 2025-01 | Subject-agnostic architecture, pre-creation resolution, explicit parameters |
+| **1.0** | 2024-12 | Original subject-dependent architecture with TouchpointInferenceProtocol |
 
-```python
-# settings.py
+## See Also
 
-# Touchpoint Resolution Settings
-TOUCHPOINT_RESOLUTION = {
-    'DEFAULT_CACHE_TTL': 3600,  # 1 hour
-    'MAX_RESOLUTION_TIME_MS': 1000,  # 1 second
-    'ENABLE_MONITORING': True,
-    'RETENTION_DAYS': {
-        'detailed_events': 90,
-        'aggregated_metrics': 365,
-    }
-}
-
-# Monitoring Settings
-TOUCHPOINT_MONITORING = {
-    'ENABLE_ALERTS': True,
-    'ALERT_THRESHOLDS': {
-        'error_rate': 0.05,  # 5%
-        'resolution_time_ms': 1000,  # 1 second
-    }
-}
-```
-
-### Environment Variables
-
-```bash
-# .env
-TOUCHPOINT_CACHE_TTL=3600
-TOUCHPOINT_MONITORING_ENABLED=true
-TOUCHPOINT_ALERT_EMAIL=admin@example.com
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Resolution Timeout**
-   - Check system performance
-   - Review mapping rule complexity
-   - Consider caching strategies
-
-2. **Mapping Rule Not Applied**
-   - Verify rule priority
-   - Check source_identifier matching
-   - Ensure rule is active
-
-3. **High Error Rate**
-   - Review error logs
-   - Check data quality
-   - Validate mapping rules
-
-4. **Cache Issues**
-   - Clear cache: `python manage.py manage_touchpoint_cache clear`
-   - Check cache configuration
-   - Monitor cache hit rates
-
-### Debug Commands
-
-```bash
-# Test resolution
-python manage.py test_touchpoint_resolution --connector-type=web --verbose
-
-# Check system health
-python manage.py monitor_touchpoint_system --health-check
-
-# View recent events
-python manage.py shell
->>> from connectors.monitoring_models import TouchpointResolutionEvent
->>> TouchpointResolutionEvent.objects.filter(error_occurred=True).order_by('-occurred_at')[:10]
-```
-
-## Support
-
-For additional support and documentation:
-
-- **Implementation Guide**: `IMPLEMENTATION_PLAN.md`
-- **Architecture Overview**: `IMPLEMENTATION_SUMMARY.md`
-- **Admin Interface Guide**: `ADMIN_INTERFACE_GUIDE.md`
-- **Integration Tests Guide**: `tests/INTEGRATION_TESTS_GUIDE.md`
-
-## Version History
-
-- **v1.0.0**: Initial implementation with web connector
-- **v1.1.0**: Added performance monitoring and metrics
-- **v1.2.0**: Enhanced admin interface and management commands
-- **v1.3.0**: Added integration tests and comprehensive documentation
+- **[ARCHITECTURE_v2.md](ARCHITECTURE_v2.md)** - Architecture overview
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - v1.0 → v2.0 migration
+- **[USAGE_EXAMPLES.md](USAGE_EXAMPLES.md)** - Practical examples
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Quick patterns
+- **[README.md](README.md)** - Main documentation

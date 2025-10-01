@@ -1275,8 +1275,7 @@ class WebInteraction(AbstractConnectorInteraction):
                 'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
                 'page_depth': event_data.get('payload', {}).get('page_depth', 1)
             },
-            website=website,
-            resolve_touchpoint=False  # Handled by multi-interaction approach
+            website=website
         )
         
         return web_interaction
@@ -1437,13 +1436,19 @@ class WebInteraction(AbstractConnectorInteraction):
     @classmethod
     def _get_default_division(cls):
         """Get or create a default division for websites."""
-        from our_institution.models import Division
+        from our_institution.models import Division, OurOrganization
+        
+        # Get or create default organization first
+        organization, _ = OurOrganization.objects.get_or_create(
+            name="Default Organization"
+        )
         
         division, _ = Division.objects.get_or_create(
             name="Default Division",
             defaults={
-                'description': 'Default division for website interactions',
-                'active': True
+                'organization': organization,
+                'code': 'DEFAULT',
+                'is_active': True
             }
         )
         return division
