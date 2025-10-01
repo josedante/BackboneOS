@@ -307,95 +307,6 @@ class WebInteraction(AbstractConnectorInteraction):
             models.Index(fields=["utm_source", "utm_medium", "utm_campaign"]),
         ]
     
-    def infer_touchpoint_hint(self) -> TouchpointHint:
-        """
-        Implement TouchpointInferenceProtocol.
-        
-        Provides basic touchpoint inference for backward compatibility.
-        For multi-interaction processing, use infer_multi_touchpoint_hints().
-        
-        Returns:
-            TouchpointHint: The inferred touchpoint information
-        """
-        # Basic touchpoint inference for single interaction
-        channel_code = self._get_channel_code()
-        medium_code = self._get_medium_code()
-        touchpoint_type_code = self._get_touchpoint_type_code()
-        
-        return TouchpointHint(
-            code=f"web.{self.event_type}",
-            channel_code=channel_code,
-            medium_code=medium_code,
-            touchpoint_type_code=touchpoint_type_code,
-            label=self._generate_touchpoint_label(),
-            metadata=self._extract_metadata()
-        )
-    
-    def infer_multi_touchpoint_hints(self):
-        """
-        Implement MultiTouchpointInferenceProtocol.
-        
-        Provides multi-interaction touchpoint inference for the websites app's
-        multi-interaction approach (page view, referrer click, session start).
-        
-        Returns:
-            BatchTouchpointHint: Multiple touchpoint hints for coordinated resolution
-        """
-        from connectors.extended_protocols import BatchTouchpointHint, MultiTouchpointHint
-        
-        hints = []
-        
-        # 1. Page View Interaction (always created)
-        page_view_hint = self._create_page_view_hint()
-        hints.append(page_view_hint)
-        
-        # 2. Referrer Click Interaction (if external referrer exists)
-        if self._has_external_referrer():
-            referrer_hint = self._create_referrer_click_hint()
-            hints.append(referrer_hint)
-        
-        # 3. Session Start Interaction (if new session criteria met)
-        if self._is_new_session():
-            session_hint = self._create_session_start_hint()
-            hints.append(session_hint)
-        
-        return BatchTouchpointHint(
-            hints=hints,
-            session_id=self.session_id,
-            event_data=self._get_event_data(),
-            coordination_metadata=self._get_coordination_metadata()
-        )
-    
-    def _ensure_touchpoint(self):
-        """
-        Ensure this web interaction has a proper touchpoint.
-        
-        Uses the extended connectors framework for touchpoint resolution.
-        """
-        from connectors.extended_resolvers import ExtendedTouchpointResolver
-        from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
-        
-        # Use extended framework for touchpoint resolution
-        resolver = ExtendedTouchpointResolver(ExtendedDatabaseMappingProvider())
-        
-        # For single interaction, use basic resolution
-        if not hasattr(self, 'event_type') or self.event_type != 'page_view':
-            # Use basic resolution for non-page-view events
-            from connectors.resolvers import DefaultTouchpointResolver
-            from connectors.mapping_providers import DatabaseMappingProvider
-            
-            basic_resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-            touchpoint = basic_resolver.resolve(self)
-            self.interaction.touchpoint = touchpoint
-            self.interaction.save()
-        else:
-            # Use batch resolution for page view events
-            touchpoints = resolver.resolve_batch(self)
-            if touchpoints:
-                # Assign the first touchpoint (page view) to this interaction
-                self.interaction.touchpoint = touchpoints[0]
-                self.interaction.save()
-    
     def save(self, *args, **kwargs):
         """
         Save the WebInteraction instance.
@@ -409,46 +320,183 @@ class WebInteraction(AbstractConnectorInteraction):
     @classmethod
     def process_page_view_event(cls, event_data: dict) -> list:
         """
-        Process a page view event and create up to 3 interactions.
+        Process a page view event and create up to 3 interactions using v2.0 pattern.
         
         Implements the multi-interaction approach where a single page view event
-        creates multiple WebInteraction instances with coordinated touchpoint resolution.
+        can create up to 3 WebInteraction instances with coordinated touchpoint resolution:
+        1. Page view interaction (always created)
+        2. Referrer click interaction (if referrer exists)
+        3. Session start interaction (if first page of session)
         
         Args:
             event_data: Dictionary containing the page view event data
             
         Returns:
-            list: List of created WebInteraction instances
+            list: List of created WebInteraction instances (1-3 items)
         """
-        from connectors.extended_resolvers import ExtendedTouchpointResolver
-        from connectors.extended_mapping_providers import ExtendedDatabaseMappingProvider
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
-        # Create the primary page view interaction
-        page_view_interaction = cls._create_page_view_interaction(event_data)
+        # Get or create Website
+        website_base = event_data.get('website_base')
+        if not website_base:
+            raise ValueError("website_base is required for page view interaction")
         
-        # Use extended framework for batch resolution
-        resolver = ExtendedTouchpointResolver(ExtendedDatabaseMappingProvider())
-        touchpoints = resolver.resolve_batch(page_view_interaction)
+        website, _ = Website.objects.get_or_create(
+            base_url=website_base,
+            defaults={
+                'name': cls._extract_domain(website_base),
+                'division': cls._get_default_division(),
+                'active': True
+            }
+        )
         
-        # Create additional interactions based on touchpoints
-        interactions = [page_view_interaction]
+        # Initialize resolver
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Create referrer click interaction if needed
-        if len(touchpoints) > 1:
-            referrer_interaction = cls._create_referrer_click_interaction(event_data, touchpoints[1])
+        interactions = []
+        
+        # ═══════════════════════════════════════════════════════════════
+        # INTERACTION 1: Page View (always created)
+        # ═══════════════════════════════════════════════════════════════
+        hint_page_view = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        touchpoint_page_view = resolver.resolve(
+            hint_page_view,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        action_page_view, _ = Action.objects.get_or_create(
+            code='page_view',
+            defaults={
+                'name': 'Page View',
+                'description': 'User viewed a page',
+                'action_type': None
+            }
+        )
+        
+        page_view_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
+            agent=agent,
+            action=action_page_view,
+            touchpoint=touchpoint_page_view,
+            interaction_payload={
+                'interaction_type': 'page_view',
+                'full_url': event_data.get('full_url', ''),
+                'referrer': event_data.get('referrer', ''),
+                'page_title': event_data.get('payload', {}).get('page_title', ''),
+                'page_category': event_data.get('payload', {}).get('page_category', ''),
+                'load_time': event_data.get('payload', {}).get('load_time'),
+                'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
+                'page_depth': event_data.get('payload', {}).get('page_depth', 1)
+            },
+            website=website
+        )
+        interactions.append(page_view_interaction)
+        
+        # ═══════════════════════════════════════════════════════════════
+        # INTERACTION 2: Referrer Click (if referrer exists)
+        # ═══════════════════════════════════════════════════════════════
+        referrer = event_data.get('referrer', '')
+        if referrer and referrer != website_base:
+            # Build hint for referrer interaction
+            hint_referrer = TouchpointHint(
+                code='web.referrer_click',
+                channel_code=cls._extract_referrer_channel(referrer),
+                medium_code='referral',
+                touchpoint_type_code='web_referral',
+                label='Referrer Click',
+                metadata={'referrer_url': referrer}
+            )
+            
+            touchpoint_referrer = resolver.resolve(
+                hint_referrer,
+                connector_type='web',
+                source_identifier=cls._extract_domain(website.base_url)
+            )
+            
+            action_referrer, _ = Action.objects.get_or_create(
+                code='referrer_click',
+                defaults={
+                    'name': 'Referrer Click',
+                    'description': 'Inferred click on external referrer',
+                    'action_type': None  # Inferred action
+                }
+            )
+            
+            referrer_interaction = cls._create_web_interaction_with_interaction(
+                event_data=event_data,
+                agent=agent,
+                action=action_referrer,
+                touchpoint=touchpoint_referrer,
+                interaction_payload={
+                    'interaction_type': 'referrer_click',
+                    'full_url': referrer,
+                    'referrer': referrer,
+                    'inferred': True
+                },
+                website=website
+            )
             interactions.append(referrer_interaction)
         
-        # Create session start interaction if needed
-        if len(touchpoints) > 2:
-            session_interaction = cls._create_session_start_interaction(event_data, touchpoints[2])
+        # ═══════════════════════════════════════════════════════════════
+        # INTERACTION 3: Session Start (if landing page)
+        # ═══════════════════════════════════════════════════════════════
+        is_landing_page = event_data.get('payload', {}).get('is_landing_page', False)
+        if is_landing_page:
+            hint_session = TouchpointHint(
+                code='web.session_start',
+                channel_code=website.channel.code if hasattr(website, 'channel') and website.channel else website_base.upper().replace('.', '_'),
+                medium_code='direct',
+                touchpoint_type_code='web_session',
+                label='Session Start',
+                metadata={'session_id': event_data.get('session_id', '')}
+            )
+            
+            touchpoint_session = resolver.resolve(
+                hint_session,
+                connector_type='web',
+                source_identifier=cls._extract_domain(website.base_url)
+            )
+            
+            action_session, _ = Action.objects.get_or_create(
+                code='session_start',
+                defaults={
+                    'name': 'Session Start',
+                    'description': 'User started a new session',
+                    'action_type': None  # System action
+                }
+            )
+            
+            session_interaction = cls._create_web_interaction_with_interaction(
+                event_data=event_data,
+                agent=agent,
+                action=action_session,
+                touchpoint=touchpoint_session,
+                interaction_payload={
+                    'interaction_type': 'session_start',
+                    'full_url': event_data.get('full_url', ''),
+                    'session_id': event_data.get('session_id', ''),
+                    'inferred': True
+                },
+                website=website
+            )
             interactions.append(session_interaction)
         
         return interactions
     
     @classmethod
     def process_page_read_event(cls, event_data: dict) -> list:
-        """Process a page read event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a page read event using the v2.0 pattern.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -464,24 +512,36 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for page read
+        # Step 4: Get or create Action for page read
         action, _ = Action.objects.get_or_create(
             code='page_read',
             defaults={
                 'name': 'Page Read',
                 'description': 'User meaningfully engaged with page content',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction with proper Interaction creation order
+        # Step 5: Create Interaction and WebInteraction with touchpoint
         web_interaction = cls._create_web_interaction_with_interaction(
             event_data=event_data,
             agent=agent,
             action=action,
+            touchpoint=touchpoint,
             interaction_payload={
                 'interaction_type': 'page_read',
                 'full_url': event_data.get('full_url', ''),
@@ -529,7 +589,7 @@ class WebInteraction(AbstractConnectorInteraction):
         touchpoint = resolver.resolve(
             hint,
             connector_type='web',
-            source_identifier=website.base_url
+            source_identifier=cls._extract_domain(website.base_url)
         )
         
         # Step 3: Get or create Agent
@@ -568,8 +628,14 @@ class WebInteraction(AbstractConnectorInteraction):
     
     @classmethod
     def process_form_submit_event(cls, event_data: dict) -> list:
-        """Process a form submission event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a form submission event using the v2.0 pattern.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -585,42 +651,37 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for form submission
+        # Step 4: Get or create Action for form submission
         action, _ = Action.objects.get_or_create(
             code='form_submit',
             defaults={
                 'name': 'Form Submit',
                 'description': 'User submitted a form',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Step 5: Create Interaction and WebInteraction with touchpoint
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            touchpoint=touchpoint,
+            interaction_payload={
                 'interaction_type': 'form_submit',
                 'full_url': event_data.get('full_url', ''),
                 'form_id': event_data.get('payload', {}).get('form_id'),
@@ -628,19 +689,21 @@ class WebInteraction(AbstractConnectorInteraction):
                 'fields_submitted': event_data.get('payload', {}).get('fields_submitted'),
                 'form_data': event_data.get('payload', {}).get('form_data')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
     @classmethod
     def process_download_event(cls, event_data: dict) -> list:
-        """Process a download event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a download event using the v2.0 pattern.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -656,42 +719,37 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for download
+        # Step 4: Get or create Action for download
         action, _ = Action.objects.get_or_create(
             code='download',
             defaults={
                 'name': 'Download',
                 'description': 'User downloaded a file',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Step 5: Create Interaction and WebInteraction with touchpoint
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            touchpoint=touchpoint,
+            interaction_payload={
                 'interaction_type': 'download',
                 'full_url': event_data.get('full_url', ''),
                 'file_name': event_data.get('payload', {}).get('file_name'),
@@ -699,19 +757,21 @@ class WebInteraction(AbstractConnectorInteraction):
                 'file_size': event_data.get('payload', {}).get('file_size'),
                 'download_url': event_data.get('payload', {}).get('download_url')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
     @classmethod
     def process_video_play_event(cls, event_data: dict) -> list:
-        """Process a video play event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a video play event using the v2.0 pattern.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -727,42 +787,37 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for video play
+        # Step 4: Get or create Action for video play
         action, _ = Action.objects.get_or_create(
             code='video_play',
             defaults={
                 'name': 'Video Play',
                 'description': 'User played a video',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Step 5: Create Interaction and WebInteraction with touchpoint
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            touchpoint=touchpoint,
+            interaction_payload={
                 'interaction_type': 'video_play',
                 'full_url': event_data.get('full_url', ''),
                 'video_id': event_data.get('payload', {}).get('video_id'),
@@ -771,19 +826,21 @@ class WebInteraction(AbstractConnectorInteraction):
                 'video_source': event_data.get('payload', {}).get('video_source'),
                 'play_position': event_data.get('payload', {}).get('play_position')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
     @classmethod
     def process_search_event(cls, event_data: dict) -> list:
-        """Process a search event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a search event using the v2.0 pattern.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -799,42 +856,37 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for search
+        # Step 4: Get or create Action for search
         action, _ = Action.objects.get_or_create(
             code='search',
             defaults={
                 'name': 'Search',
                 'description': 'User performed a search',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Step 5: Create Interaction and WebInteraction with touchpoint
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            touchpoint=touchpoint,
+            interaction_payload={
                 'interaction_type': 'search',
                 'full_url': event_data.get('full_url', ''),
                 'search_query': event_data.get('payload', {}).get('search_query'),
@@ -842,19 +894,21 @@ class WebInteraction(AbstractConnectorInteraction):
                 'search_category': event_data.get('payload', {}).get('search_category'),
                 'filters_applied': event_data.get('payload', {}).get('filters_applied')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
     @classmethod
     def process_newsletter_signup_event(cls, event_data: dict) -> list:
-        """Process a newsletter signup event and create a single interaction."""
-        from interactions.models import Interaction, Action
+        """
+        Process a newsletter signup event using the v2.0 pattern.
+        
+        Flow: Channel/Medium/TouchpointType → Touchpoint → Action → Interaction → WebInteraction
+        """
+        from interactions.models import Action
+        from connectors.resolvers import DefaultTouchpointResolver
+        from connectors.mapping_providers import DatabaseMappingProvider
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -870,42 +924,37 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Get or create Agent
+        # Step 1: Build TouchpointHint from event data
+        hint = cls.build_touchpoint_hint_from_event_data(event_data, website)
+        
+        # Step 2: Resolve Touchpoint (creates Channel, Medium, TouchpointType if needed)
+        resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
+        touchpoint = resolver.resolve(
+            hint,
+            connector_type='web',
+            source_identifier=cls._extract_domain(website.base_url)
+        )
+        
+        # Step 3: Get or create Agent
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
-        # Get or create Action for newsletter signup
+        # Step 4: Get or create Action for newsletter signup
         action, _ = Action.objects.get_or_create(
             code='newsletter_signup',
             defaults={
                 'name': 'Newsletter Signup',
                 'description': 'User signed up for newsletter',
-                'action_type': 'digital'
+                'action_type': None
             }
         )
         
-        # Create WebInteraction
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload=event_data.get('payload', {}),
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
+        # Step 5: Create Interaction and WebInteraction with touchpoint
+        web_interaction = cls._create_web_interaction_with_interaction(
+            event_data=event_data,
             agent=agent,
             action=action,
-            payload={
+            touchpoint=touchpoint,
+            interaction_payload={
                 'interaction_type': 'newsletter_signup',
                 'full_url': event_data.get('full_url', ''),
                 'email': event_data.get('payload', {}).get('email'),
@@ -913,12 +962,8 @@ class WebInteraction(AbstractConnectorInteraction):
                 'interests': event_data.get('payload', {}).get('interests'),
                 'source_page': event_data.get('payload', {}).get('source_page')
             },
-            occurred_at=web_interaction.occurred_at
+            website=website
         )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
         
         return [web_interaction]
     
@@ -1042,160 +1087,6 @@ class WebInteraction(AbstractConnectorInteraction):
         
         return web_interaction
     
-    # Helper methods for touchpoint inference
-    def _get_channel_code(self) -> str:
-        """Get channel code from website's channel or fallback to URL."""
-        # Use the website's channel if available
-        if self.website.channel:
-            return self.website.channel.code
-        
-        # Fallback to extracting from URL (for backward compatibility)
-        from urllib.parse import urlparse
-        parsed_url = urlparse(self.website.base_url)
-        return parsed_url.netloc or self.website.base_url
-    
-    def _get_medium_code(self) -> str:
-        """Get medium code from UTM parameters or referrer analysis."""
-        # UTM parameters take precedence
-        if self.utm_medium:
-            return self.utm_medium
-        
-        # Analyze referrer if no UTM
-        if self.payload.get('referrer'):
-            return self._analyze_referrer_medium(self.payload['referrer'])
-        
-        return 'direct'
-    
-    def _get_touchpoint_type_code(self) -> str:
-        """Get touchpoint type code based on event type."""
-        event_type_map = {
-            'page_view': 'web_page',
-            'page_read': 'web_page',
-            'form_submit': 'web_form',
-            'click': 'web_button',
-            'download': 'web_download',
-            'video_play': 'web_video'
-        }
-        return event_type_map.get(self.event_type, 'web_page')
-    
-    def _generate_touchpoint_label(self) -> str:
-        """Generate human-friendly touchpoint label."""
-        event_type = getattr(self, 'event_type', 'interaction')
-        return f"Web {event_type.replace('_', ' ').title()}"
-    
-    def _extract_metadata(self) -> dict:
-        """Extract metadata for touchpoint hint."""
-        return {
-            'website': self.website.base_url,
-            'session_id': self.session_id,
-            'visitor_cookie': self.visitor_cookie,
-            'utm_source': self.utm_source,
-            'utm_medium': self.utm_medium,
-            'utm_campaign': self.utm_campaign,
-            'payload': self.payload
-        }
-    
-    def _has_external_referrer(self) -> bool:
-        """Check if there's an external referrer."""
-        referrer = self.payload.get('referrer', '')
-        if not referrer:
-            return False
-        
-        from urllib.parse import urlparse
-        referrer_domain = urlparse(referrer).netloc
-        website_domain = urlparse(self.website.base_url).netloc
-        
-        return referrer_domain and referrer_domain != website_domain
-    
-    def _is_new_session(self) -> bool:
-        """
-        Check if this interaction represents a new session.
-        
-        Simple logic: new session if no existing session within 30 minutes.
-        """
-        # If we already have a session, check if it's new
-        if self.session:
-            # Check if this is the first interaction in the session
-            return self.session.interactions.count() == 0
-        
-        # If no session yet, we need to infer one
-        # This will be called during the inference process
-        # For now, assume new session if no session_id
-        return not self.session_id
-    
-    def _get_event_data(self) -> dict:
-        """Get event data for batch processing."""
-        return {
-            'event_type': getattr(self, 'event_type', 'page_view'),
-            'website_base': self.website.base_url,
-            'session_id': self.session_id,
-            'visitor_cookie': self.visitor_cookie,
-            'payload': self.payload
-        }
-    
-    def _get_coordination_metadata(self) -> dict:
-        """Get coordination metadata for batch processing."""
-        return {
-            'session_id': self.session_id,
-            'visitor_cookie': self.visitor_cookie,
-            'website': self.website.base_url,
-            'utm_source': self.utm_source,
-            'utm_medium': self.utm_medium,
-            'utm_campaign': self.utm_campaign
-        }
-    
-    def _create_page_view_hint(self):
-        """Create touchpoint hint for page view interaction."""
-        from connectors.extended_protocols import MultiTouchpointHint
-        
-        return MultiTouchpointHint(
-            interaction_type='page_view',
-            hint=self.infer_touchpoint_hint(),
-            session_context={'interaction_type': 'page_view'},
-            metadata={'always_created': True}
-        )
-    
-    def _create_referrer_click_hint(self):
-        """Create touchpoint hint for referrer click interaction."""
-        from connectors.extended_protocols import MultiTouchpointHint, TouchpointHint
-        
-        # Analyze referrer for channel and medium
-        referrer = self.payload.get('referrer', '')
-        referrer_domain = self._extract_domain(referrer)
-        referrer_medium = self._analyze_referrer_medium(referrer)
-        
-        return MultiTouchpointHint(
-            interaction_type='referrer_click',
-            hint=TouchpointHint(
-                code='web.referrer_click',
-                channel_code=referrer_domain,
-                medium_code=referrer_medium,
-                touchpoint_type_code='web_referrer',
-                label='Referrer Click',
-                metadata={'referrer': referrer}
-            ),
-            session_context={'interaction_type': 'referrer_click'},
-            metadata={'conditionally_created': True}
-        )
-    
-    def _create_session_start_hint(self):
-        """Create touchpoint hint for session start interaction."""
-        from connectors.extended_protocols import MultiTouchpointHint, TouchpointHint
-        
-        return MultiTouchpointHint(
-            interaction_type='session_start',
-            hint=TouchpointHint(
-                code='web.session_start',
-                channel_code=self._get_channel_code(),
-                medium_code=self._get_medium_code(),
-                touchpoint_type_code='web_session',
-                label='Session Start',
-                metadata={'session_id': self.session_id}
-            ),
-            session_context={'interaction_type': 'session_start'},
-            metadata={'conditionally_created': True}
-        )
-    
     def _analyze_referrer_medium(self, referrer: str) -> str:
         """Analyze referrer to determine medium."""
         if not referrer:
@@ -1225,213 +1116,13 @@ class WebInteraction(AbstractConnectorInteraction):
         return parsed.netloc or 'unknown'
     
     @classmethod
-    def _create_page_view_interaction(cls, event_data: dict) -> 'WebInteraction':
-        """Create page view interaction from event data."""
-        from interactions.models import Interaction, Action
-        from interactions.models import Agent
+    def _extract_referrer_channel(cls, referrer_url: str) -> str:
+        """Extract channel code from referrer URL."""
         from urllib.parse import urlparse
-        import uuid
-        
-        # Get or create Website
-        website_base = event_data.get('website_base')
-        if not website_base:
-            raise ValueError("website_base is required for page view interaction")
-        
-        website, _ = Website.objects.get_or_create(
-            base_url=website_base,
-            defaults={
-                'name': urlparse(website_base).netloc or website_base,
-                'division': cls._get_default_division(),
-                'active': True
-            }
-        )
-        
-        # Get or create Agent from user agent
-        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
-        
-        # Get or create Action
-        action, _ = Action.objects.get_or_create(
-            code='no_action',
-            defaults={
-                'name': 'No Action',
-                'description': 'Inferred event with no specific action',
-                'action_type': None  # System action
-            }
-        )
-        
-        # Create WebInteraction with proper Interaction creation order
-        # Note: touchpoint resolution is handled by the multi-interaction approach
-        web_interaction = cls._create_web_interaction_with_interaction(
-            event_data=event_data,
-            agent=agent,
-            action=action,
-            interaction_payload={
-                'interaction_type': 'page_view',
-                'full_url': event_data.get('full_url', ''),
-                'referrer': event_data.get('referrer', ''),
-                'page_title': event_data.get('payload', {}).get('page_title', ''),
-                'page_category': event_data.get('payload', {}).get('page_category', ''),
-                'load_time': event_data.get('payload', {}).get('load_time'),
-                'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
-                'page_depth': event_data.get('payload', {}).get('page_depth', 1)
-            },
-            website=website
-        )
-        
-        return web_interaction
-    
-    @classmethod
-    def _create_referrer_click_interaction(cls, event_data: dict, touchpoint) -> 'WebInteraction':
-        """Create referrer click interaction from event data."""
-        from interactions.models import Interaction, Action
-        from urllib.parse import urlparse
-        
-        # Get or create Website (same as page view)
-        website_base = event_data.get('website_base')
-        website, _ = Website.objects.get_or_create(
-            base_url=website_base,
-            defaults={
-                'name': urlparse(website_base).netloc or website_base,
-                'division': cls._get_default_division(),
-                'active': True
-            }
-        )
-        
-        # Get or create Agent (same as page view)
-        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
-        
-        # Get or create Action for external click
-        action, _ = Action.objects.get_or_create(
-            code='external_click',
-            defaults={
-                'name': 'External Click',
-                'description': 'Click from external referrer',
-                'action_type': 'digital'
-            }
-        )
-        
-        # Create WebInteraction for referrer click
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload={
-                **event_data.get('payload', {}),
-                'referrer_url': event_data.get('referrer', ''),
-                'referrer_domain': cls._extract_domain(event_data.get('referrer', '')),
-                'interaction_type': 'referrer_click'
-            },
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
-            agent=agent,
-            action=action,
-            touchpoint=touchpoint,
-            payload={
-                'interaction_type': 'referrer_click',
-                'referrer_url': event_data.get('referrer', ''),
-                'referrer_domain': cls._extract_domain(event_data.get('referrer', '')),
-                'referrer_title': event_data.get('payload', {}).get('referrer_title', ''),
-                'referrer_description': event_data.get('payload', {}).get('referrer_description', ''),
-                'click_source': 'external'
-            },
-            occurred_at=web_interaction.occurred_at
-        )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
-        
-        return web_interaction
-    
-    @classmethod
-    def _create_session_start_interaction(cls, event_data: dict, touchpoint) -> 'WebInteraction':
-        """Create session start interaction from event data."""
-        from interactions.models import Interaction, Action
-        from urllib.parse import urlparse
-        
-        # Get or create Website (same as page view)
-        website_base = event_data.get('website_base')
-        website, _ = Website.objects.get_or_create(
-            base_url=website_base,
-            defaults={
-                'name': urlparse(website_base).netloc or website_base,
-                'division': cls._get_default_division(),
-                'active': True
-            }
-        )
-        
-        # Get or create Agent (same as page view)
-        agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
-        
-        # Get or create Action for session start
-        action, _ = Action.objects.get_or_create(
-            code='session_start',
-            defaults={
-                'name': 'Session Start',
-                'description': 'Beginning of a new session',
-                'action_type': None  # System action
-            }
-        )
-        
-        # Create WebInteraction for session start
-        web_interaction = cls.objects.create(
-            website=website,
-            session_id=event_data.get('session_id', ''),
-            visitor_cookie=event_data.get('visitor_cookie', ''),
-            user_agent=event_data.get('user_agent', ''),
-            ip=event_data.get('ip_address'),
-            utm_source=event_data.get('utm_source', ''),
-            utm_medium=event_data.get('utm_medium', ''),
-            utm_campaign=event_data.get('utm_campaign', ''),
-            utm_content=event_data.get('utm_content', ''),
-            utm_term=event_data.get('utm_term', ''),
-            element=event_data.get('element', ''),
-            payload={
-                **event_data.get('payload', {}),
-                'session_start': True,
-                'landing_page': event_data.get('full_url', ''),
-                'interaction_type': 'session_start'
-            },
-            is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
-            occurred_at=event_data.get('occurred_at')
-        )
-        
-        # Create core Interaction
-        interaction = Interaction.objects.create(
-            agent=agent,
-            action=action,
-            touchpoint=touchpoint,
-            payload={
-                'interaction_type': 'session_start',
-                'session_id': event_data.get('session_id', ''),
-                'visitor_cookie': event_data.get('visitor_cookie', ''),
-                'landing_page': event_data.get('full_url', ''),
-                'referrer': event_data.get('referrer', ''),
-                'utm_source': event_data.get('utm_source', ''),
-                'utm_medium': event_data.get('utm_medium', ''),
-                'utm_campaign': event_data.get('utm_campaign', ''),
-                'session_start': True
-            },
-            occurred_at=web_interaction.occurred_at
-        )
-        
-        # Link the interactions
-        web_interaction.interaction = interaction
-        web_interaction.save()
-        
-        return web_interaction
+        parsed = urlparse(referrer_url)
+        domain = parsed.netloc or 'unknown'
+        # Convert domain to uppercase channel code (e.g., 'google.com' -> 'GOOGLE_COM')
+        return domain.upper().replace('.', '_')
     
     @classmethod
     def _get_default_division(cls):
