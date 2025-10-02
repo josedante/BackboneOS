@@ -1266,20 +1266,29 @@ class WebInteraction(AbstractConnectorInteraction):
         return web_interaction
     
     @classmethod
-    def _analyze_referrer_medium(cls, referrer: str) -> str:
+    def _analyze_referrer_medium(cls, referrer: str, target_url: str = '') -> str:
         """
         Analyze referrer URL to determine the traffic medium.
         
         Returns medium code based on referrer domain analysis.
         Checks for search engines, social media, email, and other known traffic sources.
+        
+        Args:
+            referrer: The referrer URL (source)
+            target_url: The target/landing page URL (for detecting ad click IDs)
         """
         if not referrer:
             return 'direct'
         
         referrer_lower = referrer.lower()
+        target_url_lower = target_url.lower() if target_url else ''
         
-        # Check for paid traffic indicators in URL parameters
-        if any(param in referrer_lower for param in ['gclid=', 'fbclid=', 'msclkid=', 'utm_medium=cpc', 'utm_medium=ppc']):
+        # Check for paid traffic indicators in target URL (ad platforms append these)
+        if any(param in target_url_lower for param in ['gclid=', 'fbclid=', 'msclkid=']):
+            return 'cpc'
+        
+        # Also check utm_medium in target URL as backup signal
+        if 'utm_medium=cpc' in target_url_lower or 'utm_medium=ppc' in target_url_lower:
             return 'cpc'
         
         # Search engines (organic)
@@ -1356,7 +1365,8 @@ class WebInteraction(AbstractConnectorInteraction):
         # Determine medium from UTM or referrer analysis
         medium_code = event_data.get('utm_medium')
         if not medium_code:
-            medium_code = cls._analyze_referrer_medium(referrer) if referrer else 'direct'
+            target_url = event_data.get('full_url', '')
+            medium_code = cls._analyze_referrer_medium(referrer, target_url) if referrer else 'direct'
         
         # Collect UTM metadata
         utm_metadata = {
