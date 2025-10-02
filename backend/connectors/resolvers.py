@@ -132,9 +132,9 @@ class DefaultTouchpointResolver:
             channel, _ = Channel.objects.get_or_create(
                 code=hint.channel_code,
                 defaults={
-                    'name': hint.channel_code.title(),
+                    'name': self._format_code_as_name(hint.channel_code),
                     'description': f"Auto-generated channel for {hint.channel_code}",
-                    'source_type': 'external'  # Default source type
+                    'source_type': 'external'
                 }
             )
         
@@ -144,9 +144,9 @@ class DefaultTouchpointResolver:
             medium, _ = Medium.objects.get_or_create(
                 code=hint.medium_code,
                 defaults={
-                    'name': hint.medium_code.title(),
+                    'name': self._format_code_as_name(hint.medium_code),
                     'description': f"Auto-generated medium for {hint.medium_code}",
-                    'communication_type': 'asynchronous'  # Default communication type
+                    'communication_type': 'asynchronous'
                 }
             )
         
@@ -156,7 +156,7 @@ class DefaultTouchpointResolver:
             touchpoint_type, _ = TouchpointType.objects.get_or_create(
                 code=hint.touchpoint_type_code,
                 defaults={
-                    'name': hint.touchpoint_type_code.title(),
+                    'name': self._format_code_as_name(hint.touchpoint_type_code),
                     'description': f"Auto-generated touchpoint type for {hint.touchpoint_type_code}"
                 }
             )
@@ -178,6 +178,32 @@ class DefaultTouchpointResolver:
         )
         
         return touchpoint
+    
+    def _format_code_as_name(self, code: str) -> str:
+        """
+        Format a code string into a human-readable name.
+        
+        Handles various code formats:
+        - snake_case: 'organic_search' → 'Organic Search'
+        - SCREAMING_SNAKE: 'GOOGLE_COM' → 'Google Com'
+        - kebab-case: 'paid-search' → 'Paid Search'
+        
+        Args:
+            code: The code string to format
+            
+        Returns:
+            str: Formatted human-readable name
+        """
+        if not code:
+            return ''
+        
+        # Replace underscores and hyphens with spaces
+        formatted = code.replace('_', ' ').replace('-', ' ')
+        
+        # Title case each word
+        formatted = ' '.join(word.capitalize() for word in formatted.split())
+        
+        return formatted
 
 
 class CachedTouchpointResolver(DefaultTouchpointResolver):

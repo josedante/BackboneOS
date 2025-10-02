@@ -967,7 +967,7 @@ class WebInteraction(AbstractConnectorInteraction):
         cls, 
         event_data: dict, 
         website, 
-        hint_type: str = 'page_view'
+        hint_type: str = 'internal'
     ) -> 'TouchpointHint':
         """
         Build a TouchpointHint from raw event data without requiring a WebInteraction instance.
@@ -983,47 +983,139 @@ class WebInteraction(AbstractConnectorInteraction):
         Args:
             event_data: Event data dictionary from client
             website: Website instance
-            hint_type: Type of hint to build ('page_view', 'referrer', 'session')
+            hint_type: Type of hint to build ('referrer', 'session', 'internal')
             
         Returns:
             TouchpointHint: Hint for touchpoint resolution
         """
         from connectors.protocols import TouchpointHint
         
-        # Handle special hint types for multi-interaction approach
+        # ========================================================================
+        # REFERRER INTERACTIONS: Attribution tracking (uses UTM or referrer analysis)
+        # ========================================================================
         if hint_type == 'referrer':
+            from interactions.models import Channel, Medium, TouchpointType
+            
             referrer = event_data.get('referrer', '')
+            referrer_channel_code = cls._extract_referrer_channel(referrer)
+            referrer_domain = cls._extract_domain(referrer) if referrer else 'Unknown'
+            
+            # Determine medium: UTM parameters take precedence, then referrer analysis
+            medium_code = event_data.get('utm_medium')
+            if not medium_code:
+                medium_code = cls._analyze_referrer_medium(referrer)
+            
+            # Determine touchpoint type based on medium
+            touchpoint_type_code = cls._get_referrer_touchpoint_type(medium_code)
+            
+            # Pre-create Channel
+            Channel.objects.get_or_create(
+                code=referrer_channel_code,
+                defaults={
+                    'name': referrer_domain,
+                    'description': f"External traffic from {referrer_domain}",
+                    'source_type': 'external'
+                }
+            )
+            
+            # Pre-create Medium
+            medium_metadata = cls._get_medium_metadata(medium_code)
+            Medium.objects.get_or_create(
+                code=medium_code,
+                defaults={
+                    'name': medium_metadata['name'],
+                    'description': medium_metadata['description'],
+                    'communication_type': medium_metadata['communication_type']
+                }
+            )
+            
+            # Pre-create TouchpointType
+            touchpoint_type_metadata = cls._get_referrer_touchpoint_type_metadata(touchpoint_type_code)
+            TouchpointType.objects.get_or_create(
+                code=touchpoint_type_code,
+                defaults={
+                    'name': touchpoint_type_metadata['name'],
+                    'description': touchpoint_type_metadata['description']
+                }
+            )
+            
             return TouchpointHint(
                 code='web.referrer_click',
-                channel_code=cls._extract_referrer_channel(referrer),
-                medium_code='referral',
-                touchpoint_type_code='web_referral',
+                channel_code=referrer_channel_code,
+                medium_code=medium_code,
+                touchpoint_type_code=touchpoint_type_code,
                 label='Referrer Click',
                 metadata={'referrer_url': referrer}
             )
         
+        # ========================================================================
+        # SESSION INTERACTIONS: Session lifecycle tracking (uses UTM or defaults to direct)
+        # ========================================================================
         if hint_type == 'session':
-            channel_code = website.channel.code if hasattr(website, 'channel') and website.channel else website.base_url.upper().replace('.', '_')
+            from interactions.models import Channel, Medium, TouchpointType
+            
+            channel_code = website.channel.code if hasattr(website, 'channel') and website.channel else cls._extract_domain(website.base_url)
+            website_name = website.name if hasattr(website, 'name') and website.name else cls._extract_domain(website.base_url)
+            
+            # Determine medium: UTM parameters take precedence, then default to 'direct'
+            medium_code = event_data.get('utm_medium')
+            if not medium_code:
+                referrer = event_data.get('referrer', '')
+                medium_code = cls._analyze_referrer_medium(referrer) if referrer else 'direct'
+            
+            # Pre-create Channel
+            Channel.objects.get_or_create(
+                code=channel_code,
+                defaults={
+                    'name': website_name,
+                    'description': f"Website: {website_name}",
+                    'source_type': 'owned'
+                }
+            )
+            
+            # Pre-create Medium
+            medium_metadata = cls._get_medium_metadata(medium_code)
+            Medium.objects.get_or_create(
+                code=medium_code,
+                defaults={
+                    'name': medium_metadata['name'],
+                    'description': medium_metadata['description'],
+                    'communication_type': medium_metadata['communication_type']
+                }
+            )
+            
+            # Pre-create TouchpointType (always web_session)
+            TouchpointType.objects.get_or_create(
+                code='web_session',
+                defaults={
+                    'name': 'Web Session',
+                    'description': 'Beginning of a new user session on the website'
+                }
+            )
+            
             return TouchpointHint(
                 code='web.session_start',
                 channel_code=channel_code,
-                medium_code='direct',
+                medium_code=medium_code,
                 touchpoint_type_code='web_session',
                 label='Session Start',
                 metadata={'session_id': event_data.get('session_id', '')}
             )
         
-        # Default: Standard event-based hint (page_view and all other event types)
-        # Determine channel code
+        # ========================================================================
+        # INTERNAL INTERACTIONS: Website activity (ignores UTM, uses website structure)
+        # ========================================================================
+        from interactions.models import Channel, Medium, TouchpointType
+        
+        # Channel: Always the owned website
         channel_code = website.channel.code if website.channel else cls._extract_domain(website.base_url)
+        website_name = website.name if hasattr(website, 'name') and website.name else cls._extract_domain(website.base_url)
         
-        # Determine medium code from UTM or referrer
-        medium_code = event_data.get('utm_medium')
-        if not medium_code:
-            referrer = event_data.get('referrer', '')
-            medium_code = cls._analyze_referrer_medium(referrer)
+        # Medium: Determined from website structure/context, NOT from UTM
+        # For internal interactions, medium represents the interaction context
+        medium_code = 'web_interaction'  # Default for internal website interactions
         
-        # Determine touchpoint type from event type
+        # TouchpointType: Determined from event type
         event_type = event_data.get('event_type', 'page_view')
         touchpoint_type_map = {
             'page_view': 'web_page',
@@ -1037,6 +1129,37 @@ class WebInteraction(AbstractConnectorInteraction):
         }
         touchpoint_type_code = touchpoint_type_map.get(event_type, 'web_page')
         
+        # Pre-create Channel
+        Channel.objects.get_or_create(
+            code=channel_code,
+            defaults={
+                'name': website_name,
+                'description': f"Website: {website_name}",
+                'source_type': 'owned'
+            }
+        )
+        
+        # Pre-create Medium
+        medium_metadata = cls._get_medium_metadata(medium_code)
+        Medium.objects.get_or_create(
+            code=medium_code,
+            defaults={
+                'name': medium_metadata['name'],
+                'description': medium_metadata['description'],
+                'communication_type': medium_metadata['communication_type']
+            }
+        )
+        
+        # Pre-create TouchpointType
+        touchpoint_type_metadata = cls._get_touchpoint_type_metadata(touchpoint_type_code, event_type)
+        TouchpointType.objects.get_or_create(
+            code=touchpoint_type_code,
+            defaults={
+                'name': touchpoint_type_metadata['name'],
+                'description': touchpoint_type_metadata['description']
+            }
+        )
+        
         return TouchpointHint(
             code=f"web.{event_type}",
             channel_code=channel_code,
@@ -1045,11 +1168,10 @@ class WebInteraction(AbstractConnectorInteraction):
             label=f"Web {event_type.replace('_', ' ').title()}",
             metadata={
                 'website': website.base_url,
+                'full_url': event_data.get('full_url', ''),
+                'element': event_data.get('element', ''),
                 'session_id': event_data.get('session_id', ''),
                 'visitor_cookie': event_data.get('visitor_cookie', ''),
-                'utm_source': event_data.get('utm_source', ''),
-                'utm_medium': event_data.get('utm_medium', ''),
-                'utm_campaign': event_data.get('utm_campaign', ''),
                 'payload': event_data.get('payload', {}),
             }
         )
@@ -1137,6 +1259,193 @@ class WebInteraction(AbstractConnectorInteraction):
             return 'email'
         
         return 'referral'
+    
+    @classmethod
+    def _get_medium_metadata(cls, medium_code: str) -> dict:
+        """
+        Get quality metadata for a medium based on its code.
+        
+        Returns a dict with name, description, and communication_type
+        for creating Medium entities.
+        """
+        medium_definitions = {
+            'organic_search': {
+                'name': 'Organic Search',
+                'description': 'Unpaid search engine traffic',
+                'communication_type': 'asynchronous',
+            },
+            'organic': {
+                'name': 'Organic',
+                'description': 'Unpaid traffic from search engines or direct',
+                'communication_type': 'asynchronous',
+            },
+            'cpc': {
+                'name': 'Cost Per Click',
+                'description': 'Paid search advertising traffic',
+                'communication_type': 'asynchronous',
+            },
+            'paid': {
+                'name': 'Paid Advertising',
+                'description': 'Paid advertising campaigns',
+                'communication_type': 'asynchronous',
+            },
+            'social_media': {
+                'name': 'Social Media',
+                'description': 'Traffic from social media platforms',
+                'communication_type': 'asynchronous',
+            },
+            'social': {
+                'name': 'Social',
+                'description': 'Social media traffic',
+                'communication_type': 'asynchronous',
+            },
+            'email': {
+                'name': 'Email',
+                'description': 'Email campaign traffic',
+                'communication_type': 'asynchronous',
+            },
+            'referral': {
+                'name': 'Referral',
+                'description': 'Traffic from external website referrals',
+                'communication_type': 'asynchronous',
+            },
+            'direct': {
+                'name': 'Direct',
+                'description': 'Direct traffic or sessions without clear attribution',
+                'communication_type': 'synchronous',
+            },
+            'display': {
+                'name': 'Display Advertising',
+                'description': 'Banner and display advertising',
+                'communication_type': 'asynchronous',
+            },
+            'affiliate': {
+                'name': 'Affiliate',
+                'description': 'Traffic from affiliate marketing partners',
+                'communication_type': 'asynchronous',
+            },
+            'web_interaction': {
+                'name': 'Web Interaction',
+                'description': 'Internal website interaction context',
+                'communication_type': 'synchronous',
+            },
+        }
+        
+        return medium_definitions.get(medium_code, {
+            'name': medium_code.replace('_', ' ').title() if medium_code else 'Unknown',
+            'description': f"Traffic from {medium_code}" if medium_code else 'Unknown traffic source',
+            'communication_type': 'asynchronous',
+        })
+    
+    @classmethod
+    def _get_touchpoint_type_metadata(cls, touchpoint_type_code: str, event_type: str) -> dict:
+        """
+        Get quality metadata for a touchpoint type based on its code.
+        
+        Returns a dict with name and description for creating TouchpointType entities.
+        """
+        touchpoint_type_definitions = {
+            'web_page': {
+                'name': 'Web Page',
+                'description': 'Website page view or visit',
+            },
+            'web_form': {
+                'name': 'Web Form',
+                'description': 'Form submission on website',
+            },
+            'web_button': {
+                'name': 'Web Button',
+                'description': 'Button or link click on website',
+            },
+            'web_download': {
+                'name': 'Web File',
+                'description': 'File download from website',
+            },
+            'web_video': {
+                'name': 'Web Video',
+                'description': 'Video play interaction on website',
+            },
+            'web_search': {
+                'name': 'Web Search',
+                'description': 'Search functionality usage on website',
+            },
+            'web_signup': {
+                'name': 'Web Signup',
+                'description': 'Newsletter or signup form submission',
+            },
+            'web_referral': {
+                'name': 'Web Referral',
+                'description': 'External website that referred traffic to our site',
+            },
+            'web_session': {
+                'name': 'Web Session',
+                'description': 'Beginning of a new user session on the website',
+            },
+        }
+        
+        return touchpoint_type_definitions.get(touchpoint_type_code, {
+            'name': touchpoint_type_code.replace('_', ' ').title() if touchpoint_type_code else 'Unknown',
+            'description': f"Web {event_type.replace('_', ' ')} interaction" if event_type else 'Unknown web interaction',
+        })
+    
+    @classmethod
+    def _get_referrer_touchpoint_type(cls, medium_code: str) -> str:
+        """
+        Map medium code to appropriate referrer touchpoint type.
+        
+        Differentiates referrer touchpoint types based on traffic source.
+        """
+        medium_to_touchpoint_type = {
+            'organic_search': 'web_search_referral',
+            'social_media': 'web_social_referral',
+            'social': 'web_social_referral',
+            'email': 'web_email_referral',
+            'referral': 'web_site_referral',
+            'cpc': 'web_paid_referral',
+            'paid': 'web_paid_referral',
+            'display': 'web_display_referral',
+        }
+        
+        return medium_to_touchpoint_type.get(medium_code, 'web_site_referral')
+    
+    @classmethod
+    def _get_referrer_touchpoint_type_metadata(cls, touchpoint_type_code: str) -> dict:
+        """
+        Get quality metadata for referrer touchpoint types.
+        
+        Returns a dict with name and description for creating TouchpointType entities.
+        """
+        referrer_touchpoint_definitions = {
+            'web_search_referral': {
+                'name': 'Web Search Referral',
+                'description': 'Traffic from search engines (Google, Bing, Yahoo, etc.)',
+            },
+            'web_social_referral': {
+                'name': 'Web Social Referral',
+                'description': 'Traffic from social media platforms (Facebook, LinkedIn, Twitter, etc.)',
+            },
+            'web_email_referral': {
+                'name': 'Web Email Referral',
+                'description': 'Traffic from email clients or webmail services',
+            },
+            'web_site_referral': {
+                'name': 'Web Site Referral',
+                'description': 'Traffic from external website referrals',
+            },
+            'web_paid_referral': {
+                'name': 'Web Paid Referral',
+                'description': 'Traffic from paid advertising campaigns',
+            },
+            'web_display_referral': {
+                'name': 'Web Display Referral',
+                'description': 'Traffic from display advertising and banner ads',
+            },
+        }
+        
+        return referrer_touchpoint_definitions.get(touchpoint_type_code, {
+            'name': touchpoint_type_code.replace('_', ' ').title() if touchpoint_type_code else 'Unknown Referral',
+            'description': 'External referral source',
+        })
     
     @classmethod
     def _extract_domain(cls, url: str) -> str:
