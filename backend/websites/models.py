@@ -997,23 +997,28 @@ class WebInteraction(AbstractConnectorInteraction):
             from interactions.models import Channel, Medium, TouchpointType
             
             referrer = event_data.get('referrer', '')
-            referrer_channel_code = cls._extract_referrer_channel(referrer)
-            referrer_domain = cls._extract_domain(referrer) if referrer else 'Unknown'
             
-            # Determine medium: UTM parameters take precedence, then referrer analysis
-            medium_code = event_data.get('utm_medium')
-            if not medium_code:
-                medium_code = cls._analyze_referrer_medium(referrer)
+            # Parse UTM parameters with fallback to referrer domain
+            fallback_channel_code = cls._extract_referrer_channel(referrer)
+            fallback_channel_name = cls._extract_domain(referrer) if referrer else 'Unknown'
             
-            # Determine touchpoint type based on medium
-            touchpoint_type_code = cls._get_referrer_touchpoint_type(medium_code)
+            utm_parsed = cls._parse_utm_for_attribution(
+                event_data,
+                referrer=referrer,
+                fallback_channel_code=fallback_channel_code,
+                fallback_channel_name=fallback_channel_name
+            )
+            
+            referrer_channel_code = utm_parsed['channel_code']
+            referrer_channel_name = utm_parsed['channel_name']
+            medium_code = utm_parsed['medium_code']
             
             # Pre-create Channel
             Channel.objects.get_or_create(
                 code=referrer_channel_code,
                 defaults={
-                    'name': referrer_domain,
-                    'description': f"External traffic from {referrer_domain}",
+                    'name': referrer_channel_name,
+                    'description': f"External traffic from {referrer_channel_name}",
                     'source_type': 'external'
                 }
             )
@@ -1029,8 +1034,12 @@ class WebInteraction(AbstractConnectorInteraction):
                 }
             )
             
+            # Determine touchpoint type based on medium
+            tp_info = cls._resolve_referrer_touchpoint_type(medium_code)
+            touchpoint_type_code = tp_info['code']
+            
             # Pre-create TouchpointType
-            touchpoint_type_metadata = cls._get_referrer_touchpoint_type_metadata(touchpoint_type_code)
+            touchpoint_type_metadata = {'name': tp_info['name'], 'description': tp_info['description']}
             TouchpointType.objects.get_or_create(
                 code=touchpoint_type_code,
                 defaults={
@@ -1045,7 +1054,10 @@ class WebInteraction(AbstractConnectorInteraction):
                 medium_code=medium_code,
                 touchpoint_type_code=touchpoint_type_code,
                 label='Referrer Click',
-                metadata={'referrer_url': referrer}
+                metadata={
+                    'referrer_url': referrer,
+                    **utm_parsed['utm_metadata']
+                }
             )
         
         # ========================================================================
@@ -1054,22 +1066,33 @@ class WebInteraction(AbstractConnectorInteraction):
         if hint_type == 'session':
             from interactions.models import Channel, Medium, TouchpointType
             
-            channel_code = website.channel.code if hasattr(website, 'channel') and website.channel else cls._extract_domain(website.base_url)
-            website_name = website.name if hasattr(website, 'name') and website.name else cls._extract_domain(website.base_url)
+            referrer = event_data.get('referrer', '')
             
-            # Determine medium: UTM parameters take precedence, then default to 'direct'
-            medium_code = event_data.get('utm_medium')
-            if not medium_code:
-                referrer = event_data.get('referrer', '')
-                medium_code = cls._analyze_referrer_medium(referrer) if referrer else 'direct'
+            # Parse UTM parameters with fallback to website channel/domain
+            fallback_channel_code = website.channel.code if hasattr(website, 'channel') and website.channel else cls._extract_domain(website.base_url)
+            fallback_channel_name = website.name if hasattr(website, 'name') and website.name else cls._extract_domain(website.base_url)
+            
+            utm_parsed = cls._parse_utm_for_attribution(
+                event_data,
+                referrer=referrer,
+                fallback_channel_code=fallback_channel_code,
+                fallback_channel_name=fallback_channel_name
+            )
+            
+            channel_code = utm_parsed['channel_code']
+            channel_name = utm_parsed['channel_name']
+            medium_code = utm_parsed['medium_code']
+            
+            # Determine source type: UTM implies external campaign, otherwise owned
+            channel_source_type = 'external' if event_data.get('utm_source') else 'owned'
             
             # Pre-create Channel
             Channel.objects.get_or_create(
                 code=channel_code,
                 defaults={
-                    'name': website_name,
-                    'description': f"Website: {website_name}",
-                    'source_type': 'owned'
+                    'name': channel_name,
+                    'description': f"Website: {channel_name}",
+                    'source_type': channel_source_type
                 }
             )
             
@@ -1099,7 +1122,10 @@ class WebInteraction(AbstractConnectorInteraction):
                 medium_code=medium_code,
                 touchpoint_type_code='web_session',
                 label='Session Start',
-                metadata={'session_id': event_data.get('session_id', '')}
+                metadata={
+                    'session_id': event_data.get('session_id', ''),
+                    **utm_parsed['utm_metadata']
+                }
             )
         
         # ========================================================================
@@ -1239,26 +1265,113 @@ class WebInteraction(AbstractConnectorInteraction):
         
         return web_interaction
     
-    def _analyze_referrer_medium(self, referrer: str) -> str:
-        """Analyze referrer to determine medium."""
+    @classmethod
+    def _analyze_referrer_medium(cls, referrer: str) -> str:
+        """
+        Analyze referrer URL to determine the traffic medium.
+        
+        Returns medium code based on referrer domain analysis.
+        Checks for search engines, social media, email, and other known traffic sources.
+        """
         if not referrer:
             return 'direct'
         
         referrer_lower = referrer.lower()
         
-        # Search engines
-        if any(engine in referrer_lower for engine in ['google.com', 'bing.com', 'yahoo.com']):
+        # Check for paid traffic indicators in URL parameters
+        if any(param in referrer_lower for param in ['gclid=', 'fbclid=', 'msclkid=', 'utm_medium=cpc', 'utm_medium=ppc']):
+            return 'cpc'
+        
+        # Search engines (organic)
+        search_engines = [
+            'google.com', 'google.', 'bing.com', 'yahoo.com', 'yandex.', 
+            'baidu.com', 'duckduckgo.com', 'ask.com', 'aol.com', 'search.yahoo',
+            'ecosia.org', 'qwant.com', 'startpage.com', 'brave.com/search'
+        ]
+        if any(engine in referrer_lower for engine in search_engines):
             return 'organic_search'
         
-        # Social media
-        if any(social in referrer_lower for social in ['facebook.com', 'twitter.com', 'linkedin.com']):
+        # Social media platforms
+        social_platforms = [
+            'facebook.com', 'fb.com', 'linkedin.com', 'twitter.com', 'x.com',
+            'instagram.com', 'tiktok.com', 'pinterest.com', 'reddit.com',
+            'youtube.com', 'vimeo.com', 'snapchat.com', 'whatsapp.com',
+            'telegram.org', 't.me', 'discord.com', 'tumblr.com', 'medium.com',
+            'quora.com', 'vk.com', 'weibo.com', 'line.me'
+        ]
+        if any(social in referrer_lower for social in social_platforms):
             return 'social_media'
         
-        # Email
-        if 'mail' in referrer_lower or 'email' in referrer_lower:
+        # Email clients and webmail
+        email_indicators = [
+            'mail.google.com', 'outlook.live.com', 'outlook.office.com',
+            'mail.yahoo.com', 'mail.aol.com', 'mail.proton', 'mail.zoho',
+            'webmail', 'email', 'newsletter', 'mailchimp', 'sendgrid',
+            'constantcontact', 'campaign-archive'
+        ]
+        if any(indicator in referrer_lower for indicator in email_indicators):
             return 'email'
         
+        # Display ad networks
+        display_networks = [
+            'doubleclick.net', 'googlesyndication.com', 'adroll.com',
+            'criteo.com', 'outbrain.com', 'taboola.com', 'adsrvr.org'
+        ]
+        if any(network in referrer_lower for network in display_networks):
+            return 'display'
+        
+        # Affiliate networks
+        affiliate_networks = [
+            'impact.com', 'cj.com', 'shareasale.com', 'awin.com',
+            'rakuten.', 'partnerize.com', 'affiliate', 'aff_id=', 'ref='
+        ]
+        if any(network in referrer_lower for network in affiliate_networks):
+            return 'affiliate'
+        
+        # Default: generic referral
         return 'referral'
+    
+    @classmethod
+    def _parse_utm_for_attribution(cls, event_data: dict, referrer: str = '', fallback_channel_code: str = '', fallback_channel_name: str = '') -> dict:
+        """
+        Parse UTM parameters for attribution tracking (referrer/session interactions).
+        
+        Returns a dict with:
+        - channel_code: Channel code from utm_source or fallback
+        - channel_name: Channel name from utm_source or fallback
+        - medium_code: Medium code from utm_medium or referrer analysis
+        - utm_metadata: Dict of campaign/content/term for metadata storage
+        """
+        # Determine channel from UTM source
+        utm_source = event_data.get('utm_source')
+        if utm_source:
+            # codes lower_snake_case; names Title Case
+            normalized = utm_source.strip().replace('.', ' ').replace('-', ' ').replace('_', ' ')
+            channel_code = '_'.join(normalized.lower().split())
+            channel_name = ' '.join(w.capitalize() for w in normalized.split())
+        else:
+            channel_code = fallback_channel_code
+            channel_name = fallback_channel_name
+        
+        # Determine medium from UTM or referrer analysis
+        medium_code = event_data.get('utm_medium')
+        if not medium_code:
+            medium_code = cls._analyze_referrer_medium(referrer) if referrer else 'direct'
+        
+        # Collect UTM metadata
+        utm_metadata = {
+            'utm_source': event_data.get('utm_source', ''),
+            'utm_campaign': event_data.get('utm_campaign', ''),
+            'utm_content': event_data.get('utm_content', ''),
+            'utm_term': event_data.get('utm_term', ''),
+        }
+        
+        return {
+            'channel_code': channel_code,
+            'channel_name': channel_name,
+            'medium_code': medium_code,
+            'utm_metadata': utm_metadata,
+        }
     
     @classmethod
     def _get_medium_metadata(cls, medium_code: str) -> dict:
@@ -1389,13 +1502,13 @@ class WebInteraction(AbstractConnectorInteraction):
         })
     
     @classmethod
-    def _get_referrer_touchpoint_type(cls, medium_code: str) -> str:
+    def _resolve_referrer_touchpoint_type(cls, medium_code: str) -> dict:
         """
-        Map medium code to appropriate referrer touchpoint type.
+        Resolve referrer touchpoint type information from a medium code.
         
-        Differentiates referrer touchpoint types based on traffic source.
+        Returns a dict with keys: code, name, description.
         """
-        medium_to_touchpoint_type = {
+        medium_to_code = {
             'organic_search': 'web_search_referral',
             'social_media': 'web_social_referral',
             'social': 'web_social_referral',
@@ -1405,17 +1518,9 @@ class WebInteraction(AbstractConnectorInteraction):
             'paid': 'web_paid_referral',
             'display': 'web_display_referral',
         }
+        code = medium_to_code.get(medium_code, 'web_site_referral')
         
-        return medium_to_touchpoint_type.get(medium_code, 'web_site_referral')
-    
-    @classmethod
-    def _get_referrer_touchpoint_type_metadata(cls, touchpoint_type_code: str) -> dict:
-        """
-        Get quality metadata for referrer touchpoint types.
-        
-        Returns a dict with name and description for creating TouchpointType entities.
-        """
-        referrer_touchpoint_definitions = {
+        metadata_by_code = {
             'web_search_referral': {
                 'name': 'Web Search Referral',
                 'description': 'Traffic from search engines (Google, Bing, Yahoo, etc.)',
@@ -1441,11 +1546,16 @@ class WebInteraction(AbstractConnectorInteraction):
                 'description': 'Traffic from display advertising and banner ads',
             },
         }
-        
-        return referrer_touchpoint_definitions.get(touchpoint_type_code, {
-            'name': touchpoint_type_code.replace('_', ' ').title() if touchpoint_type_code else 'Unknown Referral',
+        info = metadata_by_code.get(code, {
+            'name': code.replace('_', ' ').title(),
             'description': 'External referral source',
         })
+        
+        return {
+            'code': code,
+            'name': info['name'],
+            'description': info['description'],
+        }
     
     @classmethod
     def _extract_domain(cls, url: str) -> str:
