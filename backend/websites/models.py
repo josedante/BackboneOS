@@ -1034,8 +1034,8 @@ class WebInteraction(AbstractConnectorInteraction):
                 }
             )
             
-            # Determine touchpoint type based on medium
-            tp_info = cls._resolve_referrer_touchpoint_type(medium_code)
+            # Determine touchpoint type based on medium and referrer context
+            tp_info = cls._resolve_referrer_touchpoint_type(medium_code, website, referrer)
             touchpoint_type_code = tp_info['code']
             
             # Pre-create TouchpointType
@@ -1512,12 +1512,49 @@ class WebInteraction(AbstractConnectorInteraction):
         })
     
     @classmethod
-    def _resolve_referrer_touchpoint_type(cls, medium_code: str) -> dict:
+    def _resolve_referrer_touchpoint_type(cls, medium_code: str, current_website, referrer: str) -> dict:
         """
-        Resolve referrer touchpoint type information from a medium code.
+        Resolve referrer touchpoint type information from medium code and referrer context.
+        
+        Detects special cases:
+        - Self-referral: traffic from the same website
+        - Cross-site owned: traffic from a different owned website
+        
+        Args:
+            medium_code: Already computed from _analyze_referrer_medium
+            current_website: The Website instance where the event was captured
+            referrer: The referrer URL
         
         Returns a dict with keys: code, name, description.
         """
+        # Extract domains for comparison
+        referrer_domain = cls._extract_domain(referrer) if referrer else ''
+        current_domain = cls._extract_domain(current_website.base_url) if current_website else ''
+        
+        # Special case 1: Self-referral (same website)
+        if referrer_domain and current_domain and referrer_domain == current_domain:
+            return {
+                'code': 'web_internal_navigation',
+                'name': 'Web Internal Navigation',
+                'description': 'Internal navigation within the same website',
+            }
+        
+        # Special case 2: Cross-site owned (different owned website)
+        if referrer_domain:
+            # Check if referrer domain belongs to another registered Website
+            from websites.models import Website
+            other_owned_site = Website.objects.filter(
+                base_url__icontains=referrer_domain
+            ).exclude(pk=current_website.pk if current_website else None).first()
+            
+            if other_owned_site:
+                return {
+                    'code': 'web_cross_site_owned',
+                    'name': 'Web Cross-Site Owned',
+                    'description': f'Traffic from another owned website ({other_owned_site.name if hasattr(other_owned_site, "name") else referrer_domain})',
+                }
+        
+        # Standard medium-based mapping for external traffic
         medium_to_code = {
             'organic_search': 'web_search_referral',
             'social_media': 'web_social_referral',
