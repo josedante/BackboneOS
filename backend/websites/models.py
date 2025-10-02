@@ -402,13 +402,10 @@ class WebInteraction(AbstractConnectorInteraction):
         referrer = event_data.get('referrer', '')
         if referrer and referrer != website_base:
             # Build hint for referrer interaction
-            hint_referrer = TouchpointHint(
-                code='web.referrer_click',
-                channel_code=cls._extract_referrer_channel(referrer),
-                medium_code='referral',
-                touchpoint_type_code='web_referral',
-                label='Referrer Click',
-                metadata={'referrer_url': referrer}
+            hint_referrer = cls.build_touchpoint_hint_from_event_data(
+                event_data, 
+                website, 
+                hint_type='referrer'
             )
             
             touchpoint_referrer = resolver.resolve(
@@ -446,13 +443,11 @@ class WebInteraction(AbstractConnectorInteraction):
         # ═══════════════════════════════════════════════════════════════
         is_landing_page = event_data.get('payload', {}).get('is_landing_page', False)
         if is_landing_page:
-            hint_session = TouchpointHint(
-                code='web.session_start',
-                channel_code=website.channel.code if hasattr(website, 'channel') and website.channel else website_base.upper().replace('.', '_'),
-                medium_code='direct',
-                touchpoint_type_code='web_session',
-                label='Session Start',
-                metadata={'session_id': event_data.get('session_id', '')}
+            # Build hint for session start interaction
+            hint_session = cls.build_touchpoint_hint_from_event_data(
+                event_data, 
+                website, 
+                hint_type='session'
             )
             
             touchpoint_session = resolver.resolve(
@@ -968,22 +963,57 @@ class WebInteraction(AbstractConnectorInteraction):
         return [web_interaction]
     
     @classmethod
-    def build_touchpoint_hint_from_event_data(cls, event_data: dict, website) -> 'TouchpointHint':
+    def build_touchpoint_hint_from_event_data(
+        cls, 
+        event_data: dict, 
+        website, 
+        hint_type: str = 'page_view'
+    ) -> 'TouchpointHint':
         """
         Build a TouchpointHint from raw event data without requiring a WebInteraction instance.
         
         This method extracts all the necessary touchpoint information from the event payload,
         allowing touchpoint resolution before creating the Interaction and WebInteraction.
         
+        Supports multiple hint types for the multi-interaction approach:
+        - 'page_view': Standard event-based hint (default)
+        - 'referrer': Referrer click hint for attribution tracking
+        - 'session': Session start hint for journey tracking
+        
         Args:
             event_data: Event data dictionary from client
             website: Website instance
+            hint_type: Type of hint to build ('page_view', 'referrer', 'session')
             
         Returns:
             TouchpointHint: Hint for touchpoint resolution
         """
         from connectors.protocols import TouchpointHint
         
+        # Handle special hint types for multi-interaction approach
+        if hint_type == 'referrer':
+            referrer = event_data.get('referrer', '')
+            return TouchpointHint(
+                code='web.referrer_click',
+                channel_code=cls._extract_referrer_channel(referrer),
+                medium_code='referral',
+                touchpoint_type_code='web_referral',
+                label='Referrer Click',
+                metadata={'referrer_url': referrer}
+            )
+        
+        if hint_type == 'session':
+            channel_code = website.channel.code if hasattr(website, 'channel') and website.channel else website.base_url.upper().replace('.', '_')
+            return TouchpointHint(
+                code='web.session_start',
+                channel_code=channel_code,
+                medium_code='direct',
+                touchpoint_type_code='web_session',
+                label='Session Start',
+                metadata={'session_id': event_data.get('session_id', '')}
+            )
+        
+        # Default: Standard event-based hint (page_view and all other event types)
         # Determine channel code
         channel_code = website.channel.code if website.channel else cls._extract_domain(website.base_url)
         
@@ -1000,7 +1030,7 @@ class WebInteraction(AbstractConnectorInteraction):
             'page_read': 'web_page',
             'form_submit': 'web_form',
             'click': 'web_button',
-            'download': 'web_download',
+            'download': 'web_file',
             'video_play': 'web_video',
             'search': 'web_search',
             'newsletter_signup': 'web_signup',
