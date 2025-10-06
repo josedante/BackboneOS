@@ -164,10 +164,20 @@ class DefaultTouchpointResolver:
         # Handle hierarchical touchpoints: create parent if specified
         parent_touchpoint = None
         if hint.parent_code:
-            # Create parent touchpoint (same taxonomy, but without parent)
-            parent_name = f"{self._format_code_as_name(hint.channel_code or '')} - {self._format_code_as_name(hint.medium_code or '')}"
+            # For page-level parents (code="web_page"), include URL to get the specific page
+            # For campaign-level parents (composite codes), URL is optional/empty
+            if hint.parent_code == "web_page" and hint.url:
+                # Page-level parent: same URL as child (page contains the event)
+                parent_url = hint.url
+                parent_name = hint.metadata.get('page_title', '') or self._format_code_as_name(hint.parent_code)
+            else:
+                # Campaign-level parent: rollup touchpoint without URL
+                parent_url = ''
+                parent_name = f"{self._format_code_as_name(hint.channel_code or '')} - {self._format_code_as_name(hint.medium_code or '')}"
+            
             parent_touchpoint, _ = Touchpoint.objects.get_or_create(
                 code=hint.parent_code,
+                url=parent_url,
                 defaults={
                     'name': parent_name,
                     'channel': channel,

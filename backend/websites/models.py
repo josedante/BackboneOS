@@ -1143,29 +1143,59 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Build hierarchical codes (internal interactions have no UTM, so no hierarchy)
-        codes = cls._build_hierarchical_codes(
-            channel_code,
-            medium_code,
-            touchpoint_type_code,
-            {}  # No UTM metadata for internal interactions
-        )
+        # For internal interactions - Hierarchical structure:
+        # - Page touchpoints (page_view, page_read): code="web_page", no parent
+        # - Event touchpoints (form_submit, click, etc.): code=event_type, parent=web_page
+        # - URL is the primary identifier for all
+        
+        # Get page title for meaningful label
+        page_title = event_data.get('payload', {}).get('page_title', '')
+        full_url = event_data.get('full_url', '')
+        
+        # Determine if this is a page-level event or a child event
+        is_page_event = event_type in ('page_view', 'page_read')
+            
+        # Build meaningful label from page content
+        label = ''
+        if page_title:
+            label = page_title
+        else:
+            # Fallback: extract from URL path
+            from urllib.parse import urlparse
+            path = urlparse(full_url).path.strip('/')
+            if path:
+                label = path.split('/')[-1].replace('-', ' ').replace('_', ' ').title()
+            else:
+                label = website_name
+        
+        if is_page_event:
+            # Page-level touchpoint: the page itself
+            code = "web_page"  # Always "web_page" for pages
+            parent_code = None  # Pages have no parent
+        else:
+            # Event touchpoint: an action that happened on a page
+            code = touchpoint_type_code  # e.g., "web_form", "web_video", "web_button"
+            parent_code = "web_page"  # Parent is the page where this event occurred
+
+            label = f"{label} - {touchpoint_type_metadata['name']}"
         
         return TouchpointHint(
-            code=codes['child_code'],
-            url=event_data.get('full_url', ''),
-            parent_code=codes['parent_code'],  # Will be None for internal (no hierarchy)
+            code=code,  # "web_page" for pages, touchpoint_type for events
+            url=full_url,  # URL identifies the location (same for page and its events)
+            parent_code=parent_code,  # None for pages, "web_page" for events
             channel_code=channel_code,
             medium_code=medium_code,
             touchpoint_type_code=touchpoint_type_code,
-            label=f"Web {event_type.replace('_', ' ').title()}",
+            label=label,
             metadata={
                 'website': website.base_url,
-                'full_url': event_data.get('full_url', ''),
-                'element': event_data.get('element', ''),
+                'full_url': full_url,
+                'page_title': page_title,
+                'element': element if not is_page_event else event_data.get('element', ''),
                 'session_id': event_data.get('session_id', ''),
                 'visitor_cookie': event_data.get('visitor_cookie', ''),
                 'payload': event_data.get('payload', {}),
+                'is_page_event': is_page_event,
             }
         )
     
