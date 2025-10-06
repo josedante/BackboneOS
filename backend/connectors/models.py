@@ -170,6 +170,193 @@ class TouchpointMappingRule(BaseUUIDModelWithActiveStatus):
             )
 
 
+class FailedEvent(BaseUUIDModelWithActiveStatus):
+    """
+    Fallback storage for events that failed to process.
+    
+    This model serves as a safety net to prevent data loss when event processing
+    fails. Events stored here can be retried automatically via background workers
+    or manually reprocessed through the admin interface.
+    
+    Status Flow:
+    pending → processing → (success | failed | abandoned)
+    """
+    
+    # Event identification
+    connector_type = models.CharField(
+        max_length=50,
+        db_index=True,
+        help_text="Type of connector (e.g., 'web', 'email', 'whatsapp')"
+    )
+    event_type = models.CharField(
+        max_length=100,
+        db_index=True,
+        help_text="Type of event (e.g., 'page_view', 'email_open', 'message_received')"
+    )
+    source_identifier = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Source identifier (e.g., website URL, email domain)"
+    )
+    
+    # Raw event data (preserved exactly as received)
+    raw_payload = models.JSONField(
+        help_text="Complete raw event data as received"
+    )
+    
+    # Processing status
+    STATUS_CHOICES = [
+        ('pending', 'Pending Retry'),
+        ('processing', 'Currently Processing'),
+        ('success', 'Successfully Processed'),
+        ('failed', 'Failed (Will Retry)'),
+        ('abandoned', 'Abandoned (Max Retries Exceeded)'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True
+    )
+    
+    # Error tracking
+    error_message = models.TextField(
+        blank=True,
+        help_text="Latest error message"
+    )
+    error_trace = models.TextField(
+        blank=True,
+        help_text="Full stack trace of the error"
+    )
+    retry_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of retry attempts"
+    )
+    
+    # Timing
+    first_failed_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this event first failed"
+    )
+    last_retry_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last retry attempt timestamp"
+    )
+    next_retry_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Scheduled next retry time (exponential backoff)"
+    )
+    processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When successfully processed"
+    )
+    
+    # Result tracking (if successfully processed)
+    interaction_ids = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="IDs of interactions created when successfully processed"
+    )
+    
+    class Meta:
+        ordering = ['-first_failed_at']
+        indexes = [
+            models.Index(fields=['connector_type', 'status']),
+            models.Index(fields=['status', 'next_retry_at']),
+            models.Index(fields=['event_type', 'status']),
+            models.Index(fields=['is_active', 'status']),
+        ]
+        verbose_name = "Failed Event"
+        verbose_name_plural = "Failed Events"
+    
+    def __str__(self):
+        return f"{self.connector_type}.{self.event_type} - {self.status} (retries: {self.retry_count})"
+    
+    def get_max_retries(self) -> int:
+        """
+        Get maximum retry attempts for this event based on connector type.
+        
+        Uses FAILED_EVENT_RETRY_CONFIG from settings to determine max retries
+        per connector type. Falls back to 'default' if connector type not configured.
+        
+        Returns:
+            int: Maximum number of retry attempts
+        """
+        from django.conf import settings
+        
+        config = getattr(settings, 'FAILED_EVENT_RETRY_CONFIG', {'default': 5})
+        return config.get(self.connector_type, config.get('default', 5))
+    
+    def calculate_next_retry(self):
+        """
+        Calculate next retry time using exponential backoff.
+        
+        Retry intervals:
+        - 1st retry: 1 minute
+        - 2nd retry: 5 minutes
+        - 3rd retry: 15 minutes
+        - 4th retry: 1 hour
+        - 5th retry: 6 hours
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        backoff_intervals = [
+            timedelta(minutes=1),   # 1 minute
+            timedelta(minutes=5),   # 5 minutes
+            timedelta(minutes=15),  # 15 minutes
+            timedelta(hours=1),     # 1 hour
+            timedelta(hours=6),     # 6 hours
+        ]
+        
+        if self.retry_count < len(backoff_intervals):
+            interval = backoff_intervals[self.retry_count]
+        else:
+            interval = timedelta(hours=24)  # Daily retries after max backoff
+        
+        return timezone.now() + interval
+    
+    def mark_processing(self):
+        """Mark event as currently being processed."""
+        self.status = 'processing'
+        self.save(update_fields=['status'])
+    
+    def mark_success(self, interaction_ids: list):
+        """Mark event as successfully processed."""
+        from django.utils import timezone
+        
+        self.status = 'success'
+        self.interaction_ids = interaction_ids
+        self.processed_at = timezone.now()
+        self.error_message = ''
+        self.error_trace = ''
+        self.save(update_fields=['status', 'interaction_ids', 'processed_at', 'error_message', 'error_trace'])
+    
+    def mark_failed(self, error_message: str, error_trace: str = ''):
+        """Mark event as failed and schedule next retry."""
+        from django.utils import timezone
+        
+        self.retry_count += 1
+        self.last_retry_at = timezone.now()
+        self.error_message = error_message[:5000]  # Truncate if too long
+        self.error_trace = error_trace[:10000]  # Truncate stack trace
+        
+        max_retries = self.get_max_retries()
+        
+        if self.retry_count >= max_retries:
+            self.status = 'abandoned'
+            self.next_retry_at = None
+        else:
+            self.status = 'failed'
+            self.next_retry_at = self.calculate_next_retry()
+        
+        self.save(update_fields=['retry_count', 'last_retry_at', 'error_message', 'error_trace', 'status', 'next_retry_at'])
+
+
 # Monitoring models are defined in monitoring_models.py
 # They are imported separately to avoid circular imports
 

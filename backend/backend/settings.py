@@ -354,6 +354,19 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
 # Web Session Configuration
 WEB_SESSION_DURATION_SECONDS = config('WEB_SESSION_DURATION_SECONDS', default=1800, cast=int)  # 30 minutes
 
+# =============================================================================
+# FAILED EVENT RETRY CONFIGURATION
+# =============================================================================
+# Maximum retry attempts for failed events by connector type
+FAILED_EVENT_RETRY_CONFIG = {
+    'default': 5,      # Default for unknown connector types
+    'web': 5,          # Web events (page views, clicks, etc.)
+    'email': 10,       # Email events (more retries due to external dependencies)
+    'whatsapp': 8,     # WhatsApp events
+    'sms': 8,          # SMS events
+    'payment': 20,     # Payment events (critical - many retries)
+    'api': 3,          # API webhook events (fail fast)
+}
 
 
 # =============================================================================
