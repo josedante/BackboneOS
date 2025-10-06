@@ -1068,9 +1068,9 @@ class WebInteraction(AbstractConnectorInteraction):
             
             referrer = event_data.get('referrer', '')
             
-            # Parse UTM parameters with fallback to website channel/domain
-            fallback_channel_code = website.channel.code if hasattr(website, 'channel') and website.channel else cls._extract_domain(website.base_url)
-            fallback_channel_name = website.name if hasattr(website, 'name') and website.name else cls._extract_domain(website.base_url)
+            # Parse UTM parameters with fallback to referrer domain (same as referrer interactions)
+            fallback_channel_code = cls._extract_referrer_channel(referrer) if referrer else 'direct'
+            fallback_channel_name = cls._extract_domain(referrer) if referrer else 'Direct'
             
             utm_parsed = cls._parse_utm_for_attribution(
                 event_data,
@@ -1617,8 +1617,8 @@ class WebInteraction(AbstractConnectorInteraction):
         from urllib.parse import urlparse
         parsed = urlparse(referrer_url)
         domain = parsed.netloc or 'unknown'
-        # Convert domain to uppercase channel code (e.g., 'google.com' -> 'GOOGLE_COM')
-        return domain.upper().replace('.', '_')
+        # Convert domain to lowercase channel code (e.g., 'google.com' -> 'google_com')
+        return domain.lower().replace('.', '_')
     
     @classmethod
     def _get_default_division(cls):
