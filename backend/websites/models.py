@@ -324,9 +324,12 @@ class WebInteraction(AbstractConnectorInteraction):
         
         Implements the multi-interaction approach where a single page view event
         can create up to 3 WebInteraction instances with coordinated touchpoint resolution:
-        1. Page view interaction (always created)
-        2. Referrer click interaction (if referrer exists)
-        3. Session start interaction (if first page of session)
+        1. Page view interaction (always created - CRITICAL)
+        2. Referrer click interaction (if referrer exists - OPTIONAL)
+        3. Session start interaction (if first page of session - OPTIONAL)
+        
+        Uses graceful degradation: Core page view always succeeds, optional interactions
+        (referrer, session) fail gracefully without breaking the request.
         
         Args:
             event_data: Dictionary containing the page view event data
@@ -334,9 +337,13 @@ class WebInteraction(AbstractConnectorInteraction):
         Returns:
             list: List of created WebInteraction instances (1-3 items)
         """
+        import logging
+        from django.db import transaction
         from interactions.models import Action
         from connectors.resolvers import DefaultTouchpointResolver
         from connectors.mapping_providers import DatabaseMappingProvider
+        
+        logger = logging.getLogger(__name__)
         
         # Get or create Website
         website_base = event_data.get('website_base')
@@ -352,133 +359,161 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
-        # Initialize resolver
+        # Initialize resolver and agent (shared across all interactions)
         resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
         agent = cls._get_or_create_agent(event_data.get('user_agent', ''))
         
         interactions = []
         
         # ═══════════════════════════════════════════════════════════════
-        # INTERACTION 1: Page View (always created)
+        # INTERACTION 1: Page View (CRITICAL - must succeed)
         # ═══════════════════════════════════════════════════════════════
-        hint_page_view = cls.build_touchpoint_hint_from_event_data(event_data, website)
-        touchpoint_page_view = resolver.resolve(
-            hint_page_view,
-            connector_type='web',
-            source_identifier=cls._extract_domain(website.base_url)
-        )
-        
-        action_page_view, _ = Action.objects.get_or_create(
-            code='page_view',
-            defaults={
-                'name': 'Page View',
-                'description': 'User viewed a page',
-                'action_type': None
-            }
-        )
-        
-        page_view_interaction = cls._create_web_interaction_with_interaction(
-            event_data=event_data,
-            agent=agent,
-            action=action_page_view,
-            touchpoint=touchpoint_page_view,
-            interaction_payload={
-                'interaction_type': 'page_view',
-                'full_url': event_data.get('full_url', ''),
-                'referrer': event_data.get('referrer', ''),
-                'page_title': event_data.get('payload', {}).get('page_title', ''),
-                'page_category': event_data.get('payload', {}).get('page_category', ''),
-                'load_time': event_data.get('payload', {}).get('load_time'),
-                'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
-                'page_depth': event_data.get('payload', {}).get('page_depth', 1)
-            },
-            website=website
-        )
-        interactions.append(page_view_interaction)
+        try:
+            with transaction.atomic():
+                hint_page_view = cls.build_touchpoint_hint_from_event_data(event_data, website)
+                touchpoint_page_view = resolver.resolve(
+                    hint_page_view,
+                    connector_type='web',
+                    source_identifier=cls._extract_domain(website.base_url)
+                )
+                
+                action_page_view, _ = Action.objects.get_or_create(
+                    code='page_view',
+                    defaults={
+                        'name': 'Page View',
+                        'description': 'User viewed a page',
+                        'action_type': None
+                    }
+                )
+                
+                page_view_interaction = cls._create_web_interaction_with_interaction(
+                    event_data=event_data,
+                    agent=agent,
+                    action=action_page_view,
+                    touchpoint=touchpoint_page_view,
+                    interaction_payload={
+                        'interaction_type': 'page_view',
+                        'full_url': event_data.get('full_url', ''),
+                        'referrer': event_data.get('referrer', ''),
+                        'page_title': event_data.get('payload', {}).get('page_title', ''),
+                        'page_category': event_data.get('payload', {}).get('page_category', ''),
+                        'load_time': event_data.get('payload', {}).get('load_time'),
+                        'is_landing_page': event_data.get('payload', {}).get('is_landing_page', False),
+                        'page_depth': event_data.get('payload', {}).get('page_depth', 1)
+                    },
+                    website=website
+                )
+                interactions.append(page_view_interaction)
+                logger.debug(f"Created page view interaction for {event_data.get('full_url')}")
+        except Exception as e:
+            # Page view is critical - re-raise to fail the entire request
+            logger.error(
+                f"CRITICAL: Failed to create page view interaction for {event_data.get('full_url', 'unknown')}: {str(e)}",
+                exc_info=True
+            )
+            raise
         
         # ═══════════════════════════════════════════════════════════════
-        # INTERACTION 2: Referrer Click (if referrer exists)
+        # INTERACTION 2: Referrer Click (OPTIONAL - fails gracefully)
         # ═══════════════════════════════════════════════════════════════
         referrer = event_data.get('referrer', '')
         if referrer and referrer != website_base:
-            # Build hint for referrer interaction
-            hint_referrer = cls.build_touchpoint_hint_from_event_data(
-                event_data, 
-                website, 
-                hint_type='referrer'
-            )
-            
-            touchpoint_referrer = resolver.resolve(
-                hint_referrer,
-                connector_type='web',
-                source_identifier=cls._extract_domain(website.base_url)
-            )
-            
-            action_referrer, _ = Action.objects.get_or_create(
-                code='referrer_click',
-                defaults={
-                    'name': 'Referrer Click',
-                    'description': 'Inferred click on external referrer',
-                    'action_type': None  # Inferred action
-                }
-            )
-            
-            referrer_interaction = cls._create_web_interaction_with_interaction(
-                event_data=event_data,
-                agent=agent,
-                action=action_referrer,
-                touchpoint=touchpoint_referrer,
-                interaction_payload={
-                    'interaction_type': 'referrer_click',
-                    'full_url': referrer,
-                    'referrer': referrer,
-                    'inferred': True
-                },
-                website=website
-            )
-            interactions.append(referrer_interaction)
+            try:
+                with transaction.atomic():
+                    hint_referrer = cls.build_touchpoint_hint_from_event_data(
+                        event_data, 
+                        website, 
+                        hint_type='referrer'
+                    )
+                    
+                    touchpoint_referrer = resolver.resolve(
+                        hint_referrer,
+                        connector_type='web',
+                        source_identifier=cls._extract_domain(website.base_url)
+                    )
+                    
+                    action_referrer, _ = Action.objects.get_or_create(
+                        code='referrer_click',
+                        defaults={
+                            'name': 'Referrer Click',
+                            'description': 'Inferred click on external referrer',
+                            'action_type': None  # Inferred action
+                        }
+                    )
+                    
+                    referrer_interaction = cls._create_web_interaction_with_interaction(
+                        event_data=event_data,
+                        agent=agent,
+                        action=action_referrer,
+                        touchpoint=touchpoint_referrer,
+                        interaction_payload={
+                            'interaction_type': 'referrer_click',
+                            'full_url': referrer,
+                            'referrer': referrer,
+                            'inferred': True
+                        },
+                        website=website
+                    )
+                    interactions.append(referrer_interaction)
+                    logger.debug(f"Created referrer interaction from {referrer}")
+            except Exception as e:
+                # Referrer interaction is optional - log warning but continue
+                logger.warning(
+                    f"Failed to create referrer interaction from {referrer}: {str(e)}. "
+                    f"Continuing with page view only.",
+                    exc_info=True
+                )
         
         # ═══════════════════════════════════════════════════════════════
-        # INTERACTION 3: Session Start (if landing page)
+        # INTERACTION 3: Session Start (OPTIONAL - fails gracefully)
         # ═══════════════════════════════════════════════════════════════
         is_landing_page = event_data.get('payload', {}).get('is_landing_page', False)
         if is_landing_page:
-            # Build hint for session start interaction
-            hint_session = cls.build_touchpoint_hint_from_event_data(
-                event_data, 
-                website, 
-                hint_type='session'
-            )
-            
-            touchpoint_session = resolver.resolve(
-                hint_session,
-                connector_type='web',
-                source_identifier=cls._extract_domain(website.base_url)
-            )
-            
-            action_session, _ = Action.objects.get_or_create(
-                code='session_start',
-                defaults={
-                    'name': 'Session Start',
-                    'description': 'User started a new session',
-                    'action_type': None  # System action
-                }
-            )
-            
-            session_interaction = cls._create_web_interaction_with_interaction(
-                event_data=event_data,
-                agent=agent,
-                action=action_session,
-                touchpoint=touchpoint_session,
-                interaction_payload={
-                    'interaction_type': 'session_start',
-                    'full_url': event_data.get('full_url', ''),
-                    'session_id': event_data.get('session_id', ''),
-                    'inferred': True
-                },
-                website=website
-            )
-            interactions.append(session_interaction)
+            try:
+                with transaction.atomic():
+                    hint_session = cls.build_touchpoint_hint_from_event_data(
+                        event_data, 
+                        website, 
+                        hint_type='session'
+                    )
+                    
+                    touchpoint_session = resolver.resolve(
+                        hint_session,
+                        connector_type='web',
+                        source_identifier=cls._extract_domain(website.base_url)
+                    )
+                    
+                    action_session, _ = Action.objects.get_or_create(
+                        code='session_start',
+                        defaults={
+                            'name': 'Session Start',
+                            'description': 'User started a new session',
+                            'action_type': None  # System action
+                        }
+                    )
+                    
+                    session_interaction = cls._create_web_interaction_with_interaction(
+                        event_data=event_data,
+                        agent=agent,
+                        action=action_session,
+                        touchpoint=touchpoint_session,
+                        interaction_payload={
+                            'interaction_type': 'session_start',
+                            'full_url': event_data.get('full_url', ''),
+                            'session_id': event_data.get('session_id', ''),
+                            'inferred': True
+                        },
+                        website=website
+                    )
+                    interactions.append(session_interaction)
+                    logger.debug(f"Created session start interaction for session {event_data.get('session_id')}")
+            except Exception as e:
+                # Session interaction is optional - log warning but continue
+                logger.warning(
+                    f"Failed to create session start interaction: {str(e)}. "
+                    f"Continuing without session tracking.",
+                    exc_info=True
+                )
         
         return interactions
     
@@ -1148,24 +1183,32 @@ class WebInteraction(AbstractConnectorInteraction):
         # - Event touchpoints (form_submit, click, etc.): code=event_type, parent=web_page
         # - URL is the primary identifier for all
         
-        # Get page title for meaningful label
+        # Get page title and element for meaningful labels
         page_title = event_data.get('payload', {}).get('page_title', '')
         full_url = event_data.get('full_url', '')
+        element = event_data.get('element', '')  # Extract element early to avoid NameError
         
         # Determine if this is a page-level event or a child event
         is_page_event = event_type in ('page_view', 'page_read')
             
-        # Build meaningful label from page content
+        # Build meaningful label from page content with error handling
         label = ''
         if page_title:
             label = page_title
         else:
-            # Fallback: extract from URL path
-            from urllib.parse import urlparse
-            path = urlparse(full_url).path.strip('/')
-            if path:
-                label = path.split('/')[-1].replace('-', ' ').replace('_', ' ').title()
-            else:
+            # Fallback: extract from URL path with safe parsing
+            try:
+                from urllib.parse import urlparse
+                path = urlparse(full_url).path.strip('/')
+                if path:
+                    label = path.split('/')[-1].replace('-', ' ').replace('_', ' ').title()
+                else:
+                    label = website_name
+            except (ValueError, AttributeError) as e:
+                # Malformed URL - use website name as fallback
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to parse URL for label extraction: {full_url}. Error: {e}")
                 label = website_name
         
         if is_page_event:
