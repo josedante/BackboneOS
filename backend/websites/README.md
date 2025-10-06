@@ -189,6 +189,7 @@ websites/
 ├── EVENT_DIFFERENTIATION_SUMMARY.md    # Event differentiation
 ├── WEBSITE_EVENTS_CATALOG.md          # Complete events catalog
 ├── TRACKING_SCRIPT_DOCUMENTATION.md   # Client-side tracking docs
+├── TESTING_GAPS.md        # ★ Testing coverage analysis & improvement plan (NEW)
 └── migrations/            # Database migrations
 ```
 
@@ -203,6 +204,9 @@ websites/
 ### **Event Processing**
 - **[WEBSITE_EVENTS_CATALOG.md](./WEBSITE_EVENTS_CATALOG.md)**: Complete catalog of website events
 - **[EVENT_DIFFERENTIATION_SUMMARY.md](./EVENT_DIFFERENTIATION_SUMMARY.md)**: Event type differentiation
+
+### **Testing & Quality**
+- **[TESTING_GAPS.md](./TESTING_GAPS.md)**: **★ COVERAGE ANALYSIS** - Comprehensive testing gaps analysis and improvement plan
 - **[TRACKING_SCRIPT_DOCUMENTATION.md](./TRACKING_SCRIPT_DOCUMENTATION.md)**: Client-side tracking implementation
 
 ## 🚀 Getting Started

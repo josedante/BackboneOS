@@ -1355,7 +1355,7 @@ class WebInteraction(AbstractConnectorInteraction):
         email_indicators = [
             'mail.google.com', 'outlook.live.com', 'outlook.office.com',
             'mail.yahoo.com', 'mail.aol.com', 'mail.proton', 'mail.zoho',
-            'webmail', 'email', 'newsletter', 'mailchimp', 'sendgrid',
+            'mail.', 'webmail', 'email', 'newsletter', 'mailchimp', 'sendgrid',
             'constantcontact', 'campaign-archive'
         ]
         if any(indicator in referrer_lower for indicator in email_indicators):

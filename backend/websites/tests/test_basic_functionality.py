@@ -87,7 +87,7 @@ class BasicFunctionalityTestCase(TestCase):
         ]
         
         for referrer in search_referrers:
-            medium = WebInteraction._analyze_referrer_medium(None, referrer)
+            medium = WebInteraction._analyze_referrer_medium(referrer)
             self.assertEqual(medium, "organic_search", f"Should detect organic search for: {referrer}")
         
         # Test social media
@@ -98,7 +98,7 @@ class BasicFunctionalityTestCase(TestCase):
         ]
         
         for referrer in social_referrers:
-            medium = WebInteraction._analyze_referrer_medium(None, referrer)
+            medium = WebInteraction._analyze_referrer_medium(referrer)
             self.assertEqual(medium, "social_media", f"Should detect social media for: {referrer}")
         
         # Test email
@@ -108,7 +108,7 @@ class BasicFunctionalityTestCase(TestCase):
         ]
         
         for referrer in email_referrers:
-            medium = WebInteraction._analyze_referrer_medium(None, referrer)
+            medium = WebInteraction._analyze_referrer_medium(referrer)
             self.assertEqual(medium, "email", f"Should detect email for: {referrer}")
         
         # Test direct
@@ -117,7 +117,7 @@ class BasicFunctionalityTestCase(TestCase):
         ]
         
         for referrer in direct_referrers:
-            medium = WebInteraction._analyze_referrer_medium(None, referrer)
+            medium = WebInteraction._analyze_referrer_medium(referrer)
             self.assertEqual(medium, "direct", f"Should detect direct for: {referrer}")
     
     def test_get_channel_code(self):
@@ -154,7 +154,7 @@ class BasicFunctionalityTestCase(TestCase):
         if utm_medium:
             result = utm_medium
         elif referrer:
-            result = WebInteraction._analyze_referrer_medium(None, referrer)
+            result = WebInteraction._analyze_referrer_medium(referrer)
         else:
             result = 'direct'
         
@@ -167,7 +167,7 @@ class BasicFunctionalityTestCase(TestCase):
         if utm_medium:
             result = utm_medium
         elif referrer:
-            result = WebInteraction._analyze_referrer_medium(None, referrer)
+            result = WebInteraction._analyze_referrer_medium(referrer)
         else:
             result = 'direct'
         
@@ -180,7 +180,7 @@ class BasicFunctionalityTestCase(TestCase):
         if utm_medium:
             result = utm_medium
         elif referrer:
-            result = WebInteraction._analyze_referrer_medium(None, referrer)
+            result = WebInteraction._analyze_referrer_medium(referrer)
         else:
             result = 'direct'
         
