@@ -1071,6 +1071,7 @@ class WebInteraction(AbstractConnectorInteraction):
             
             return TouchpointHint(
                 code=codes['child_code'],
+                url=referrer,
                 parent_code=codes['parent_code'],
                 channel_code=channel_code,
                 medium_code=medium_code,
@@ -1152,6 +1153,7 @@ class WebInteraction(AbstractConnectorInteraction):
         
         return TouchpointHint(
             code=codes['child_code'],
+            url=event_data.get('full_url', ''),
             parent_code=codes['parent_code'],  # Will be None for internal (no hierarchy)
             channel_code=channel_code,
             medium_code=medium_code,

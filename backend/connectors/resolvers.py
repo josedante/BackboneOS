@@ -185,6 +185,7 @@ class DefaultTouchpointResolver:
         
         touchpoint, created = Touchpoint.objects.get_or_create(
             code=touchpoint_code,
+            url=hint.url or '',
             defaults={
                 'name': touchpoint_name,
                 'channel': channel,

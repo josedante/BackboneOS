@@ -229,9 +229,9 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
     )
     
     name = models.CharField(max_length=200)
-    code = models.CharField(max_length=200, blank=True, unique=True)
+    code = models.CharField(max_length=200, blank=True)
     description = models.TextField(blank=True)
-    url = models.URLField(blank=True)
+    url = models.URLField(blank=True, max_length=500)
     external_id = models.CharField(max_length=100, blank=True)
     assigned_staff = models.ForeignKey(
         'auth.User', null=True, blank=True, on_delete=models.SET_NULL,
@@ -271,10 +271,12 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         ordering = ['name']
+        unique_together = [['code', 'url']]
         indexes = [
             models.Index(fields=['is_active']),
             models.Index(fields=['touchpoint_type']),  # Updated from touchpoint_type
             models.Index(fields=['code']),
+            models.Index(fields=['url']),
             models.Index(fields=['name']),
             models.Index(fields=['channel']),
             models.Index(fields=['medium']),  # NEW: Medium index

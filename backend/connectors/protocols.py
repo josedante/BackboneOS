@@ -40,6 +40,7 @@ class TouchpointHint:
     medium_code: Optional[str] = None       # e.g. "organic", "paid", "referral"
     touchpoint_type_code: Optional[str] = None  # e.g. "landing_page", "form", "chat"
     parent_code: Optional[str] = None       # e.g. parent touchpoint code for hierarchy
+    url: Optional[str] = None               # e.g. "https://www.thebackbonegroup.com/"
     label: Optional[str] = None             # Human-friendly name
     metadata: dict = None                   # Additional context
     
