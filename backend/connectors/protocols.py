@@ -31,6 +31,7 @@ class TouchpointHint:
         channel_code: Channel identifier (e.g., "web", "email", "chat")
         medium_code: Medium classification (e.g., "organic", "paid", "referral")
         touchpoint_type_code: Touchpoint type classification (e.g., "landing_page", "form", "chat")
+        parent_code: Optional parent touchpoint code for hierarchical structure
         label: Human-friendly name for the touchpoint
         metadata: Additional context data as a dictionary
     """
@@ -38,6 +39,7 @@ class TouchpointHint:
     channel_code: Optional[str] = None      # e.g. "web", "email", "chat"
     medium_code: Optional[str] = None       # e.g. "organic", "paid", "referral"
     touchpoint_type_code: Optional[str] = None  # e.g. "landing_page", "form", "chat"
+    parent_code: Optional[str] = None       # e.g. parent touchpoint code for hierarchy
     label: Optional[str] = None             # Human-friendly name
     metadata: dict = None                   # Additional context
     

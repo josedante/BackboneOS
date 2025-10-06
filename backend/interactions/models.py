@@ -218,8 +218,18 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         help_text="Tipo funcional (QUÉ tipo de touchpoint)"
     )
     
+    # Hierarchical structure for campaign/creative granularity
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='children',
+        help_text="Parent touchpoint for hierarchical organization (e.g., campaign-level child of source-level parent)"
+    )
+    
     name = models.CharField(max_length=200)
-    code = models.CharField(max_length=100, blank=True, unique=True)
+    code = models.CharField(max_length=200, blank=True, unique=True)
     description = models.TextField(blank=True)
     url = models.URLField(blank=True)
     external_id = models.CharField(max_length=100, blank=True)

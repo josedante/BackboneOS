@@ -991,16 +991,17 @@ class WebInteraction(AbstractConnectorInteraction):
         from connectors.protocols import TouchpointHint
         
         # ========================================================================
-        # REFERRER INTERACTIONS: Attribution tracking (uses UTM or referrer analysis)
+        # REFERRER & SESSION INTERACTIONS: Attribution tracking (uses UTM or referrer analysis)
+        # Both interaction types share the same touchpoint, differing only in the interaction itself
         # ========================================================================
-        if hint_type == 'referrer':
+        if hint_type in ('referrer', 'session'):
             from interactions.models import Channel, Medium, TouchpointType
             
             referrer = event_data.get('referrer', '')
             
             # Parse UTM parameters with fallback to referrer domain
-            fallback_channel_code = cls._extract_referrer_channel(referrer)
-            fallback_channel_name = cls._extract_domain(referrer) if referrer else 'Unknown'
+            fallback_channel_code = cls._extract_referrer_channel(referrer) if referrer else 'direct'
+            fallback_channel_name = cls._extract_domain(referrer) if referrer else 'Direct'
             
             utm_parsed = cls._parse_utm_for_attribution(
                 event_data,
@@ -1009,17 +1010,21 @@ class WebInteraction(AbstractConnectorInteraction):
                 fallback_channel_name=fallback_channel_name
             )
             
-            referrer_channel_code = utm_parsed['channel_code']
-            referrer_channel_name = utm_parsed['channel_name']
+            channel_code = utm_parsed['channel_code']
+            channel_name = utm_parsed['channel_name']
             medium_code = utm_parsed['medium_code']
+
+            # Determine source type: UTM or referrer implies external, otherwise direct/owned
+            has_external_source = bool(event_data.get('utm_source') or referrer)
+            channel_source_type = 'external' if has_external_source else 'owned'
             
             # Pre-create Channel
             Channel.objects.get_or_create(
-                code=referrer_channel_code,
+                code=channel_code,
                 defaults={
-                    'name': referrer_channel_name,
-                    'description': f"External traffic from {referrer_channel_name}",
-                    'source_type': 'external'
+                    'name': channel_name,
+                    'description': f"Traffic source: {channel_name}",
+                    'source_type': channel_source_type
                 }
             )
             
@@ -1048,85 +1053,36 @@ class WebInteraction(AbstractConnectorInteraction):
                 }
             )
             
-            return TouchpointHint(
-                code='web.referrer_click',
-                channel_code=referrer_channel_code,
-                medium_code=medium_code,
-                touchpoint_type_code=touchpoint_type_code,
-                label='Referrer Click',
-                metadata={
-                    'referrer_url': referrer,
-                    **utm_parsed['utm_metadata']
-                }
-            )
-        
-        # ========================================================================
-        # SESSION INTERACTIONS: Session lifecycle tracking (uses UTM or defaults to direct)
-        # ========================================================================
-        if hint_type == 'session':
-            from interactions.models import Channel, Medium, TouchpointType
-            
-            referrer = event_data.get('referrer', '')
-            
-            # Parse UTM parameters with fallback to referrer domain (same as referrer interactions)
-            fallback_channel_code = cls._extract_referrer_channel(referrer) if referrer else 'direct'
-            fallback_channel_name = cls._extract_domain(referrer) if referrer else 'Direct'
-            
-            utm_parsed = cls._parse_utm_for_attribution(
-                event_data,
-                referrer=referrer,
-                fallback_channel_code=fallback_channel_code,
-                fallback_channel_name=fallback_channel_name
+            # Build hierarchical codes (parent for rollup, child for granular attribution)
+            codes = cls._build_hierarchical_codes(
+                channel_code,
+                medium_code,
+                touchpoint_type_code,
+                utm_parsed['utm_metadata']
             )
             
-            channel_code = utm_parsed['channel_code']
-            channel_name = utm_parsed['channel_name']
-            medium_code = utm_parsed['medium_code']
-            
-            # Determine source type: UTM implies external campaign, otherwise owned
-            channel_source_type = 'external' if event_data.get('utm_source') else 'owned'
-            
-            # Pre-create Channel
-            Channel.objects.get_or_create(
-                code=channel_code,
-                defaults={
-                    'name': channel_name,
-                    'description': f"Website: {channel_name}",
-                    'source_type': channel_source_type
-                }
-            )
-            
-            # Pre-create Medium
-            medium_metadata = cls._get_medium_metadata(medium_code)
-            Medium.objects.get_or_create(
-                code=medium_code,
-                defaults={
-                    'name': medium_metadata['name'],
-                    'description': medium_metadata['description'],
-                    'communication_type': medium_metadata['communication_type']
-                }
-            )
-            
-            # Pre-create TouchpointType (always web_session)
-            TouchpointType.objects.get_or_create(
-                code='web_session',
-                defaults={
-                    'name': 'Web Session',
-                    'description': 'Beginning of a new user session on the website'
-                }
-            )
+            # Build touchpoint label from taxonomy
+            # Use campaign name if available, otherwise channel + medium
+            campaign_name = utm_parsed['utm_metadata'].get('utm_campaign', '').strip()
+            if campaign_name:
+                label = f"{channel_name} - {campaign_name}"
+            else:
+                label = f"{channel_name} - {medium_metadata['name']}"
             
             return TouchpointHint(
-                code='web.session_start',
+                code=codes['child_code'],
+                parent_code=codes['parent_code'],
                 channel_code=channel_code,
                 medium_code=medium_code,
-                touchpoint_type_code='web_session',
-                label='Session Start',
+                touchpoint_type_code=touchpoint_type_code,
+                label=label,
                 metadata={
+                    'referrer_url': referrer,
                     'session_id': event_data.get('session_id', ''),
                     **utm_parsed['utm_metadata']
                 }
             )
+        
         
         # ========================================================================
         # INTERNAL INTERACTIONS: Website activity (ignores UTM, uses website structure)
@@ -1186,8 +1142,17 @@ class WebInteraction(AbstractConnectorInteraction):
             }
         )
         
+        # Build hierarchical codes (internal interactions have no UTM, so no hierarchy)
+        codes = cls._build_hierarchical_codes(
+            channel_code,
+            medium_code,
+            touchpoint_type_code,
+            {}  # No UTM metadata for internal interactions
+        )
+        
         return TouchpointHint(
-            code=f"web.{event_type}",
+            code=codes['child_code'],
+            parent_code=codes['parent_code'],  # Will be None for internal (no hierarchy)
             channel_code=channel_code,
             medium_code=medium_code,
             touchpoint_type_code=touchpoint_type_code,
@@ -1610,6 +1575,50 @@ class WebInteraction(AbstractConnectorInteraction):
         from urllib.parse import urlparse
         parsed = urlparse(url)
         return parsed.netloc or 'unknown'
+    
+    @classmethod
+    def _build_hierarchical_codes(cls, channel_code: str, medium_code: str, touchpoint_type_code: str, utm_metadata: dict) -> dict:
+        """
+        Build hierarchical touchpoint codes (parent and child).
+        
+        Parent code: channel.medium.type (for rollup analytics)
+        Child code: parent + utm_campaign.utm_content.utm_term (for granular attribution)
+        
+        Args:
+            channel_code: Channel code
+            medium_code: Medium code
+            touchpoint_type_code: TouchpointType code
+            utm_metadata: Dict with utm_campaign, utm_content, utm_term
+        
+        Returns:
+            Dict with 'parent_code' and 'child_code'
+        """
+        # Parent code: always channel.medium.type
+        parent_code = f"{channel_code}.{medium_code}.{touchpoint_type_code}"
+        
+        # Build UTM suffix from available UTM parameters
+        utm_parts = []
+        for key in ['utm_campaign', 'utm_content', 'utm_term']:
+            value = utm_metadata.get(key, '').strip()
+            if value:
+                # Normalize: lowercase, replace spaces/special chars with underscore
+                normalized = value.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+                # Remove any consecutive underscores
+                normalized = '_'.join(filter(None, normalized.split('_')))
+                utm_parts.append(normalized)
+        
+        # Child code: parent + UTM parts (if any)
+        if utm_parts:
+            child_code = f"{parent_code}.{'.'.join(utm_parts)}"
+        else:
+            # No UTM parameters = child same as parent (no hierarchy needed)
+            child_code = parent_code
+            parent_code = None  # No parent needed when there's no hierarchy
+        
+        return {
+            'parent_code': parent_code,
+            'child_code': child_code
+        }
     
     @classmethod
     def _extract_referrer_channel(cls, referrer_url: str) -> str:

@@ -161,7 +161,25 @@ class DefaultTouchpointResolver:
                 }
             )
         
-        # Create or get touchpoint
+        # Handle hierarchical touchpoints: create parent if specified
+        parent_touchpoint = None
+        if hint.parent_code:
+            # Create parent touchpoint (same taxonomy, but without parent)
+            parent_name = f"{self._format_code_as_name(hint.channel_code or '')} - {self._format_code_as_name(hint.medium_code or '')}"
+            parent_touchpoint, _ = Touchpoint.objects.get_or_create(
+                code=hint.parent_code,
+                defaults={
+                    'name': parent_name,
+                    'channel': channel,
+                    'medium': medium,
+                    'touchpoint_type': touchpoint_type,
+                    'parent': None,  # Parent has no parent
+                    'description': f"Parent touchpoint for rollup analytics: {hint.parent_code}",
+                    'is_active': True
+                }
+            )
+        
+        # Create or get child touchpoint (or standalone if no parent)
         touchpoint_code = hint.code or f"generic.{hint.channel_code or 'unknown'}"
         touchpoint_name = hint.label or hint.code or 'Generic Touchpoint'
         
@@ -172,6 +190,7 @@ class DefaultTouchpointResolver:
                 'channel': channel,
                 'medium': medium,
                 'touchpoint_type': touchpoint_type,
+                'parent': parent_touchpoint,  # Link to parent if exists
                 'description': f"Auto-generated touchpoint for {touchpoint_code}",
                 'is_active': True
             }
