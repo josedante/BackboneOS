@@ -411,6 +411,16 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_BEAT_SCHEDULE_FILENAME = '/tmp/celerybeat-schedule'
 CELERY_BEAT_MAX_LOOP_INTERVAL = 5  # seconds
 
+# Celery Beat periodic tasks schedule
+CELERY_BEAT_SCHEDULE = {
+    'retry-failed-events': {
+        'task': 'connectors.retry_failed_events',
+        'schedule': 300.0,  # Run every 5 minutes (300 seconds)
+        'options': {
+            'expires': 60.0,  # Task expires after 1 minute if not picked up
+        }
+    },
+}
 
 
 # # Configuración de seguridad adicional

@@ -8,8 +8,11 @@ from django.utils.decorators import method_decorator
 from django.views import View
 import json
 import logging
+import traceback
+import sentry_sdk
 
 from .models import WebInteraction
+from connectors.fallback import store_failed_event
 
 logger = logging.getLogger(__name__)
 
@@ -87,17 +90,104 @@ class PageViewEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            # Client sent invalid JSON - log warning to Sentry
+            sentry_sdk.capture_message(
+                f"Invalid JSON in page_view event",
+                level='warning',
+                extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')}
+            )
             return JsonResponse({
                 'error': 'Invalid JSON data'
             }, status=400)
+        
+        except ValueError as e:
+            # Data validation errors (4xx) - log to Sentry but don't store in fallback
+            sentry_sdk.capture_message(
+                f"Invalid data in page_view event: {str(e)}",
+                level='warning',
+                extras={
+                    'event_data': data if 'data' in locals() else {},
+                    'error': str(e)
+                }
+            )
+            logger.warning(f"Invalid data in page_view event: {str(e)}")
+            return JsonResponse({
+                'error': 'Invalid data',
+                'message': str(e)
+            }, status=400)
             
         except Exception as e:
-            logger.error(f"Error processing page view event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            # CRITICAL: System errors (5xx) - capture in Sentry and store in fallback
+            error_trace = traceback.format_exc()
+            
+            # Set Sentry context with rich data
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'page_view')
+                scope.set_tag('has_fallback', 'true')
+                
+                # Add contextual data
+                if 'data' in locals():
+                    scope.set_context('event_data', {
+                        'full_url': data.get('full_url'),
+                        'website_base': data.get('website_base'),
+                        'session_id': data.get('session_id'),
+                        'has_referrer': bool(data.get('referrer')),
+                    })
+                
+                # Capture the exception with context
+                sentry_sdk.capture_exception(e)
+            
+            # Attempt to store in fallback for retry
+            try:
+                failed_event = store_failed_event(
+                    connector_type='web',
+                    event_type='page_view',
+                    raw_payload=data if 'data' in locals() else {},
+                    error_message=str(e),
+                    error_trace=error_trace,
+                    source_identifier=data.get('website_base', '') if 'data' in locals() else ''
+                )
+                
+                logger.error(
+                    f"CRITICAL: Failed to process page view event. "
+                    f"Stored in fallback queue (ID: {failed_event.pk}) for retry. "
+                    f"Error: {str(e)}",
+                    exc_info=True
+                )
+                
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Event processing failed but has been queued for retry',
+                    'fallback_id': str(failed_event.pk),
+                    'message': 'Your event will be processed automatically'
+                }, status=202)  # 202 Accepted - will process later
+                
+            except Exception as fallback_error:
+                # CATASTROPHIC: Even fallback failed!
+                
+                # Send critical alert to Sentry
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    scope.set_context('original_error', {'message': str(e)})
+                    scope.set_context('fallback_error', {'message': str(fallback_error)})
+                    
+                    sentry_sdk.capture_message(
+                        "CATASTROPHIC: Failed to process event AND failed to store in fallback!",
+                        level='fatal'
+                    )
+                
+                logger.critical(
+                    f"CATASTROPHIC FAILURE: Original error: {str(e)} | Fallback error: {str(fallback_error)}",
+                    exc_info=True
+                )
+                
+                return JsonResponse({
+                    'error': 'Internal server error',
+                    'message': 'Unable to process event'
+                }, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -141,17 +231,59 @@ class PageReadEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(
+                f"Invalid JSON in page_read event",
+                level='warning',
+                extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')}
+            )
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        
+        except ValueError as e:
+            sentry_sdk.capture_message(
+                f"Invalid data in page_read event: {str(e)}",
+                level='warning',
+                extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)}
+            )
+            logger.warning(f"Invalid data in page_read event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
             
         except Exception as e:
-            logger.error(f"Error processing page read event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'page_read')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {
+                        'full_url': data.get('full_url'),
+                        'website_base': data.get('website_base')
+                    })
+                sentry_sdk.capture_exception(e)
+            
+            try:
+                failed_event = store_failed_event(
+                    connector_type='web',
+                    event_type='page_read',
+                    raw_payload=data if 'data' in locals() else {},
+                    error_message=str(e),
+                    error_trace=error_trace,
+                    source_identifier=data.get('website_base', '') if 'data' in locals() else ''
+                )
+                logger.error(f"CRITICAL: Failed to process page_read event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Event processing failed but has been queued for retry',
+                    'fallback_id': str(failed_event.pk),
+                    'message': 'Your event will be processed automatically'
+                }, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -193,17 +325,39 @@ class ClickEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(f"Invalid JSON in click event", level='warning', extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')})
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        
+        except ValueError as e:
+            sentry_sdk.capture_message(f"Invalid data in click event: {str(e)}", level='warning', extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)})
+            logger.warning(f"Invalid data in click event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
             
         except Exception as e:
-            logger.error(f"Error processing click event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'click')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {'full_url': data.get('full_url'), 'website_base': data.get('website_base')})
+                sentry_sdk.capture_exception(e)
+            
+            try:
+                failed_event = store_failed_event(
+                    connector_type='web', event_type='click', raw_payload=data if 'data' in locals() else {},
+                    error_message=str(e), error_trace=error_trace, source_identifier=data.get('website_base', '') if 'data' in locals() else ''
+                )
+                logger.error(f"CRITICAL: Failed to process click event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'Event processing failed but has been queued for retry', 'fallback_id': str(failed_event.pk), 'message': 'Your event will be processed automatically'}, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -245,17 +399,33 @@ class FormSubmitEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
-            
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(f"Invalid JSON in form_submit event", level='warning', extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')})
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except ValueError as e:
+            sentry_sdk.capture_message(f"Invalid data in form_submit event: {str(e)}", level='warning', extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)})
+            logger.warning(f"Invalid data in form_submit event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
         except Exception as e:
-            logger.error(f"Error processing form submission event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'form_submit')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {'full_url': data.get('full_url'), 'website_base': data.get('website_base')})
+                sentry_sdk.capture_exception(e)
+            try:
+                failed_event = store_failed_event(connector_type='web', event_type='form_submit', raw_payload=data if 'data' in locals() else {}, error_message=str(e), error_trace=error_trace, source_identifier=data.get('website_base', '') if 'data' in locals() else '')
+                logger.error(f"CRITICAL: Failed to process form_submit event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'Event processing failed but has been queued for retry', 'fallback_id': str(failed_event.pk), 'message': 'Your event will be processed automatically'}, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -297,17 +467,33 @@ class DownloadEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
-            
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(f"Invalid JSON in download event", level='warning', extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')})
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except ValueError as e:
+            sentry_sdk.capture_message(f"Invalid data in download event: {str(e)}", level='warning', extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)})
+            logger.warning(f"Invalid data in download event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
         except Exception as e:
-            logger.error(f"Error processing download event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'download')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {'full_url': data.get('full_url'), 'website_base': data.get('website_base')})
+                sentry_sdk.capture_exception(e)
+            try:
+                failed_event = store_failed_event(connector_type='web', event_type='download', raw_payload=data if 'data' in locals() else {}, error_message=str(e), error_trace=error_trace, source_identifier=data.get('website_base', '') if 'data' in locals() else '')
+                logger.error(f"CRITICAL: Failed to process download event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'Event processing failed but has been queued for retry', 'fallback_id': str(failed_event.pk), 'message': 'Your event will be processed automatically'}, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -349,17 +535,33 @@ class VideoPlayEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
-            
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(f"Invalid JSON in video_play event", level='warning', extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')})
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except ValueError as e:
+            sentry_sdk.capture_message(f"Invalid data in video_play event: {str(e)}", level='warning', extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)})
+            logger.warning(f"Invalid data in video_play event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
         except Exception as e:
-            logger.error(f"Error processing video play event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'video_play')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {'full_url': data.get('full_url'), 'website_base': data.get('website_base')})
+                sentry_sdk.capture_exception(e)
+            try:
+                failed_event = store_failed_event(connector_type='web', event_type='video_play', raw_payload=data if 'data' in locals() else {}, error_message=str(e), error_trace=error_trace, source_identifier=data.get('website_base', '') if 'data' in locals() else '')
+                logger.error(f"CRITICAL: Failed to process video_play event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'Event processing failed but has been queued for retry', 'fallback_id': str(failed_event.pk), 'message': 'Your event will be processed automatically'}, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -401,17 +603,33 @@ class SearchEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
-            
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(f"Invalid JSON in search event", level='warning', extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')})
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except ValueError as e:
+            sentry_sdk.capture_message(f"Invalid data in search event: {str(e)}", level='warning', extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)})
+            logger.warning(f"Invalid data in search event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
         except Exception as e:
-            logger.error(f"Error processing search event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'search')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {'full_url': data.get('full_url'), 'website_base': data.get('website_base')})
+                sentry_sdk.capture_exception(e)
+            try:
+                failed_event = store_failed_event(connector_type='web', event_type='search', raw_payload=data if 'data' in locals() else {}, error_message=str(e), error_trace=error_trace, source_identifier=data.get('website_base', '') if 'data' in locals() else '')
+                logger.error(f"CRITICAL: Failed to process search event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'Event processing failed but has been queued for retry', 'fallback_id': str(failed_event.pk), 'message': 'Your event will be processed automatically'}, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -453,14 +671,30 @@ class NewsletterSignupEventView(View):
             
             return JsonResponse(response_data, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'error': 'Invalid JSON data'
-            }, status=400)
-            
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_message(f"Invalid JSON in newsletter_signup event", level='warning', extras={'raw_body': request.body[:500].decode('utf-8', errors='ignore')})
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except ValueError as e:
+            sentry_sdk.capture_message(f"Invalid data in newsletter_signup event: {str(e)}", level='warning', extras={'event_data': data if 'data' in locals() else {}, 'error': str(e)})
+            logger.warning(f"Invalid data in newsletter_signup event: {str(e)}")
+            return JsonResponse({'error': 'Invalid data', 'message': str(e)}, status=400)
         except Exception as e:
-            logger.error(f"Error processing newsletter signup event: {str(e)}")
-            return JsonResponse({
-                'error': 'Internal server error',
-                'details': str(e)
-            }, status=500)
+            error_trace = traceback.format_exc()
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag('connector_type', 'web')
+                scope.set_tag('event_type', 'newsletter_signup')
+                scope.set_tag('has_fallback', 'true')
+                if 'data' in locals():
+                    scope.set_context('event_data', {'full_url': data.get('full_url'), 'website_base': data.get('website_base')})
+                sentry_sdk.capture_exception(e)
+            try:
+                failed_event = store_failed_event(connector_type='web', event_type='newsletter_signup', raw_payload=data if 'data' in locals() else {}, error_message=str(e), error_trace=error_trace, source_identifier=data.get('website_base', '') if 'data' in locals() else '')
+                logger.error(f"CRITICAL: Failed to process newsletter_signup event. Stored in fallback (ID: {failed_event.pk})", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'Event processing failed but has been queued for retry', 'fallback_id': str(failed_event.pk), 'message': 'Your event will be processed automatically'}, status=202)
+            except Exception as fallback_error:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = 'fatal'
+                    scope.set_tag('catastrophic_failure', 'true')
+                    sentry_sdk.capture_message("CATASTROPHIC: Failed to process event AND failed to store in fallback!", level='fatal')
+                logger.critical(f"CATASTROPHIC FAILURE: {str(e)} | Fallback: {str(fallback_error)}", exc_info=True)
+                return JsonResponse({'error': 'Internal server error', 'message': 'Unable to process event'}, status=500)

@@ -15,7 +15,7 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
-from .models import TouchpointMappingRule
+from .models import TouchpointMappingRule, FailedEvent
 from .monitoring_models import (
     TouchpointResolutionMetrics,
     TouchpointResolutionEvent,
@@ -462,3 +462,166 @@ class TouchpointCacheMetricsAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Cache metrics are read-only."""
         return False
+
+
+@admin.register(FailedEvent)
+class FailedEventAdmin(admin.ModelAdmin):
+    """Admin interface for managing failed connector events."""
+    
+    list_display = [
+        'id', 'connector_type', 'event_type', 'status',
+        'retry_count', 'get_max_retries_display',
+        'first_failed_at', 'next_retry_at', 'source_identifier_short'
+    ]
+    list_filter = [
+        'connector_type', 'event_type', 'status',
+        'first_failed_at', 'next_retry_at'
+    ]
+    search_fields = [
+        'id', 'source_identifier', 'error_message',
+        'interaction_ids'
+    ]
+    ordering = ['-first_failed_at']
+    
+    readonly_fields = [
+        'id', 'first_failed_at', 'last_retry_at', 'processed_at',
+        'retry_count', 'interaction_ids', 'get_max_retries_display',
+        'formatted_error_trace', 'formatted_raw_payload'
+    ]
+    
+    fieldsets = (
+        ('Event Information', {
+            'fields': ('id', 'connector_type', 'event_type', 'source_identifier', 'status')
+        }),
+        ('Retry Configuration', {
+            'fields': ('retry_count', 'get_max_retries_display', 'next_retry_at')
+        }),
+        ('Timeline', {
+            'fields': ('first_failed_at', 'last_retry_at', 'processed_at')
+        }),
+        ('Error Details', {
+            'fields': ('error_message', 'formatted_error_trace'),
+            'classes': ('collapse',)
+        }),
+        ('Event Payload', {
+            'fields': ('formatted_raw_payload',),
+            'classes': ('collapse',)
+        }),
+        ('Results', {
+            'fields': ('interaction_ids',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['retry_selected_events', 'abandon_selected_events', 'reset_retry_count']
+    
+    def get_max_retries_display(self, obj):
+        """Display max retries for this connector type."""
+        return obj.get_max_retries()
+    get_max_retries_display.short_description = 'Max Retries'
+    
+    def source_identifier_short(self, obj):
+        """Display truncated source identifier."""
+        if len(obj.source_identifier) > 40:
+            return f"{obj.source_identifier[:37]}..."
+        return obj.source_identifier
+    source_identifier_short.short_description = 'Source'
+    
+    def formatted_error_trace(self, obj):
+        """Display formatted error trace."""
+        if not obj.error_trace:
+            return "No trace available"
+        return format_html('<pre style="white-space: pre-wrap;">{}</pre>', obj.error_trace[:2000])
+    formatted_error_trace.short_description = 'Error Trace'
+    
+    def formatted_raw_payload(self, obj):
+        """Display formatted JSON payload."""
+        if not obj.raw_payload:
+            return "No payload available"
+        try:
+            formatted = json.dumps(obj.raw_payload, indent=2, ensure_ascii=False)
+            return format_html('<pre style="white-space: pre-wrap;">{}</pre>', formatted[:2000])
+        except:
+            return format_html('<pre>{}</pre>', str(obj.raw_payload)[:2000])
+    formatted_raw_payload.short_description = 'Raw Payload'
+    
+    def retry_selected_events(self, request, queryset):
+        """Manually trigger retry for selected events."""
+        from .fallback import retry_failed_event
+        
+        # Only retry events that are retryable
+        retryable = queryset.filter(status__in=['pending', 'retrying'])
+        
+        if not retryable.exists():
+            messages.warning(request, "No retryable events selected (must be 'pending' or 'retrying' status)")
+            return
+        
+        success_count = 0
+        failed_count = 0
+        
+        for event in retryable:
+            try:
+                if retry_failed_event(event):
+                    success_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                failed_count += 1
+                messages.error(request, f"Error retrying event {event.id}: {str(e)}")
+        
+        # Show results
+        if success_count > 0:
+            messages.success(request, f"{success_count} event(s) retried successfully")
+        if failed_count > 0:
+            messages.warning(request, f"{failed_count} event(s) failed to retry")
+    
+    retry_selected_events.short_description = "Retry selected events"
+    
+    def abandon_selected_events(self, request, queryset):
+        """Mark selected events as abandoned (won't retry)."""
+        # Only abandon events that haven't been processed
+        abandonable = queryset.filter(status__in=['pending', 'retrying', 'failed'])
+        
+        updated = abandonable.update(status='abandoned')
+        
+        if updated > 0:
+            messages.success(request, f"{updated} event(s) marked as abandoned")
+        else:
+            messages.warning(request, "No abandonable events selected")
+    
+    abandon_selected_events.short_description = "Abandon selected events"
+    
+    def reset_retry_count(self, request, queryset):
+        """Reset retry count for selected events (useful for giving them another chance)."""
+        # Only reset for failed events
+        resettable = queryset.filter(status='failed')
+        
+        updated_count = 0
+        for event in resettable:
+            event.retry_count = 0
+            event.status = 'pending'
+            event.next_retry_at = timezone.now()
+            event.save(update_fields=['retry_count', 'status', 'next_retry_at'])
+            updated_count += 1
+        
+        if updated_count > 0:
+            messages.success(request, f"{updated_count} event(s) reset for retry")
+        else:
+            messages.warning(request, "No failed events selected to reset")
+    
+    reset_retry_count.short_description = "Reset retry count (give another chance)"
+    
+    def has_add_permission(self, request):
+        """Events are created automatically via store_failed_event()."""
+        return False
+    
+    def get_queryset(self, request):
+        """Optimize queryset and default to recent events."""
+        qs = super().get_queryset(request)
+        
+        # Default to last 30 days if no date filter specified
+        if not request.GET.get('first_failed_at__gte'):
+            default_date = timezone.now() - timedelta(days=30)
+            qs = qs.filter(first_failed_at__gte=default_date)
+        
+        return qs
