@@ -1,8 +1,8 @@
-# 🎯 Three-Dimensional Classification System - Technical Implementation
+# 🎯 Three-Dimensional Classification System - Technical Implementation (v2.0)
 
 ## 📋 Overview
 
-This document provides technical implementation details for the three-dimensional classification system used in the `websites` app. For general usage information, see the main [README.md](./README.md).
+This document provides technical implementation details for the three-dimensional classification system used in the `websites` app with **v2.0 subject-agnostic architecture**. For general usage information, see the main [README.md](./README.md).
 
 ## 🏗️ System Architecture
 
@@ -15,306 +15,361 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
     channel = models.ForeignKey(Channel, ...)      # WHERE
     medium = models.ForeignKey(Medium, ...)        # HOW  
     touchpoint_type = models.ForeignKey(TouchpointType, ...)  # WHAT
+    
+    # Hierarchical structure
+    parent = models.ForeignKey('self', ...)  # For rollup analytics
 ```
 
 ### **Classification Dimensions**
 
 #### **1. Channel (WHERE) - Where the interaction occurred**
-- **Purpose**: Identifies the context/location where the interaction happened
-- **Examples**: `esan.edu.pe`, `alpha.com`, `mobile_app`
-- **Logic**: Determined from website URL where interaction occurred
-- **Implementation**: `_determine_channel_from_subject()` in `WebTouchpointResolver`
+- **Purpose**: Identifies the traffic source or website location
+- **Examples**: `esan.edu.pe` (owned), `google` (external), `facebook` (external)
+- **Logic**: For internal interactions, website domain; for attribution, UTM source or referrer domain
+- **Implementation**: Pre-created in `build_touchpoint_hint_from_event_data()` hint builder
 
 #### **2. Medium (HOW) - How it communicates**
-- **Purpose**: Identifies the communication method
-- **Examples**: `organic_search`, `social_media`, `cpc`, `email`, `referral`, `direct`
-- **Logic**: UTM parameters take precedence, then referrer analysis, then defaults
-- **Implementation**: `_determine_medium_from_subject()` in `WebTouchpointResolver`
+- **Purpose**: Identifies the communication/traffic method
+- **Examples**: `organic_search`, `cpc`, `social_media`, `email`, `referral`, `direct`, `web_interaction`
+- **Logic**: For attribution, UTM medium or referrer analysis; for internal, `web_interaction`
+- **Implementation**: Analyzed in `_parse_utm_for_attribution()` and `_analyze_referrer_medium()`
 
 #### **3. TouchpointType (WHAT) - What type of touchpoint**
 - **Purpose**: Identifies the functional type of touchpoint (web-specific)
-- **Examples**: `web_page`, `web_form`, `link`, `button`, `web_download`
-- **Logic**: Determined from event type with intelligent click classification
-- **Implementation**: `_get_enhanced_touchpoint_type_code()` in `WebTouchpointResolver`
+- **Examples**: `web_page`, `web_form`, `web_button`, `web_video`, `web_search_referral`
+- **Logic**: Determined from event type mapping with context-aware selection
+- **Implementation**: Mapped in `build_touchpoint_hint_from_event_data()` with `touchpoint_type_map`
 
-## 🔧 Implementation Details
+## 🔧 v2.0 Implementation Details
 
-### **WebTouchpointResolver - Classification Logic**
+### **TouchpointHint Building - Two Modes**
 
+The system builds hints differently based on interaction type:
+
+#### **Mode 1: Internal Interactions** (page_view, page_read, clicks, forms)
 ```python
-def _get_or_create_touchpoint(self, hint: TouchpointHint) -> Touchpoint:
-    # 1. Channel (WHERE) - Where the interaction occurred
-    channel = self._determine_channel_from_subject(hint)
-    
-    # 2. Medium (HOW) - How it communicates  
-    medium = self._determine_medium_from_subject(hint)
-    
-    # 3. TouchpointType (WHAT) - What type of touchpoint
-    touchpoint_type = self._get_enhanced_touchpoint_type_code(hint)
-    
-    # Create touchpoint with three-dimensional classification
-    touchpoint, created = Touchpoint.objects.get_or_create(
-        code=touchpoint_code,
-        defaults={
-            'name': touchpoint_name,
-            'touchpoint_type': touchpoint_type,
-            'channel': channel,
-            'medium': medium,
-            'description': f"Web touchpoint for {touchpoint_code}",
-            'is_active': True
-        }
-    )
+# For events that happen ON the website
+hint = TouchpointHint(
+    code="web_page",  # or touchpoint_type_code for events
+    url=full_url,  # The page URL
+    channel_code=website_channel,  # Owned website channel
+    medium_code="web_interaction",  # Internal interaction medium
+    touchpoint_type_code="web_page",  # Event-specific type
+    label=page_title,
+    metadata={...}
+)
 ```
 
-### **Channel Determination Logic**
-
+#### **Mode 2: Attribution Tracking** (referrer, session)
 ```python
-def _determine_channel_from_subject(self, hint: TouchpointHint) -> str:
-    # 1. Check UTM source first (highest precedence)
-    if hint.metadata and 'utm_source' in hint.metadata:
-        utm_source = hint.metadata['utm_source']
-        if utm_source:
-            return utm_source.lower()
-    
-    # 2. Check website URL (where interaction occurred)
-    if hint.metadata and 'website_url' in hint.metadata:
-        website_url = hint.metadata['website_url']
-        if website_url:
-            from urllib.parse import urlparse
-            parsed = urlparse(website_url)
-            domain = parsed.netloc
-            if domain:
-                return domain.replace('www.', '').lower()
-    
-    # 3. Check referrer URL (for referrer click interactions)
-    if hint.metadata and 'referrer_url' in hint.metadata:
-        referrer_url = hint.metadata['referrer_url']
-        if referrer_url:
-            from urllib.parse import urlparse
-            parsed = urlparse(referrer_url)
-            domain = parsed.netloc
-            if domain:
-                return domain.replace('www.', '').lower()
-    
-    # 4. Default to web channel
-    return 'web'
+# For tracking WHERE visitors came FROM
+hint = TouchpointHint(
+    code=composite_code,  # e.g., "google.organic_search.web_search_referral"
+    url=referrer_url,  # The external source URL
+    parent_code=parent_code,  # For rollup analytics
+    channel_code=utm_source or referrer_domain,  # External source
+    medium_code=utm_medium or analyzed_medium,  # Traffic method
+    touchpoint_type_code="web_search_referral",  # Referral type
+    label=f"{channel_name} - {campaign_name}",
+    metadata={...}
+)
 ```
 
-### **Medium Determination Logic**
+### **Channel Determination - v2.0 Approach**
+
+Channel determination happens BEFORE touchpoint resolution in the hint builder:
 
 ```python
-def _determine_medium_from_subject(self, hint: TouchpointHint) -> str:
-    # 1. Check UTM medium first (highest precedence)
-    if hint.metadata and 'utm_medium' in hint.metadata:
-        utm_medium = hint.metadata['utm_medium']
-        if utm_medium:
-            return utm_medium.lower()
+@classmethod
+def build_touchpoint_hint_from_event_data(cls, event_data: dict, website, hint_type: str = 'internal'):
+    """
+    Build TouchpointHint from raw event data.
     
-    # 2. Check if this is a page view on our own website
-    if hint.metadata and 'website_url' in hint.metadata:
-        website_url = hint.metadata['website_url']
-        if website_url:
-            return 'owned_website'
+    hint_type:
+        - 'internal': For page views/events ON the website
+        - 'referrer': For attribution tracking (WHERE visitor came FROM)
+        - 'session': For session start tracking (uses same attribution logic as referrer)
+    """
     
-    # 3. Check referrer for medium inference
-    if hint.metadata and 'referrer_url' in hint.metadata:
-        referrer_url = hint.metadata['referrer_url']
-        if referrer_url:
-            from urllib.parse import urlparse
-            parsed = urlparse(referrer_url)
-            domain = parsed.netloc.lower()
-            
-            # Map common domains to mediums
-            if 'google' in domain:
-                return 'organic_search'
-            elif any(social in domain for social in ['facebook', 'twitter', 'linkedin', 'instagram']):
-                return 'social_media'
-            elif 'mail' in domain or 'email' in domain:
-                return 'email'
-            else:
-                return 'referral'
-    
-    # 4. Default to direct
-    return 'direct'
+    if hint_type in ('referrer', 'session'):
+        # ATTRIBUTION MODE: Track external traffic source
+        utm_parsed = cls._parse_utm_for_attribution(event_data, referrer, ...)
+        channel_code = utm_parsed['channel_code']  # From UTM source or referrer domain
+    else:
+        # INTERNAL MODE: Track website activity
+        channel_code = website.channel.code  # Owned website channel
 ```
 
-### **TouchpointType Determination Logic**
+### **Medium Determination - v2.0 Approach**
+
+Medium is analyzed from UTM parameters or referrer domain:
 
 ```python
-def _get_enhanced_touchpoint_type_code(self, hint: TouchpointHint) -> str:
-    # Get event type and code from hint
-    event_type = hint.metadata.get('event_type', '') if hint.metadata else ''
-    code = hint.code or ''
+@classmethod
+def _analyze_referrer_medium(cls, referrer: str, target_url: str = '') -> str:
+    """
+    Analyze referrer URL to determine traffic medium.
+    Returns: 'cpc', 'organic_search', 'social_media', 'email', 'referral', 'direct'
+    """
     
-    # Check for referrer click interactions
-    if 'referrer_click' in event_type.lower() or 'referrer_click' in code.lower():
-        # Check if it's a Google search referrer
-        if hint.metadata and 'referrer_url' in hint.metadata:
-            referrer_url = hint.metadata['referrer_url']
-            if 'google' in referrer_url.lower():
-                return 'search_results'
-        return 'web_page'  # Default for referrer clicks
+    # Check for paid traffic indicators (gclid, fbclid, utm_medium=cpc)
+    if any(param in target_url_lower for param in ['gclid=', 'fbclid=', 'msclkid=']):
+        return 'cpc'
     
-    # Check for page view interactions
-    if 'page_view' in event_type.lower() or 'page_view' in code.lower():
-        return 'web_page'
+    # Search engines → organic_search
+    if any(engine in referrer_lower for engine in ['google.', 'bing.', 'yahoo.']):
+        return 'organic_search'
     
-    # Check for form submissions
-    if 'form_submit' in event_type.lower() or 'form_submit' in code.lower():
-        return 'web_form'
+    # Social platforms → social_media
+    if any(social in referrer_lower for social in ['facebook.', 'linkedin.', 'twitter.']):
+        return 'social_media'
     
-    # Check for click interactions with intelligent classification
-    if 'click' in event_type.lower() or 'click' in code.lower():
-        # Check selector metadata to distinguish between link and button
-        if hint.metadata and 'selector' in hint.metadata:
-            selector = hint.metadata['selector']
-            if selector:
-                # Check if selector indicates a button (button, input[type="button"], etc.)
-                if any(btn_indicator in selector.lower() for btn_indicator in ['button', 'input[type="button"]', 'input[type="submit"]']):
-                    return 'button'
-                else:
-                    return 'link'
-        return 'link'  # Default for clicks
+    # Email indicators → email
+    if any(indicator in referrer_lower for indicator in ['mail.google', 'outlook.', 'mailchimp']):
+        return 'email'
     
-    # Check for download interactions
-    if 'download' in event_type.lower() or 'download' in code.lower():
-        return 'web_download'
-    
-    # Check for purchase interactions
-    if 'purchase' in event_type.lower() or 'purchase' in code.lower():
-        return 'web_purchase'
-    
-    # Check for signup interactions
-    if 'signup' in event_type.lower() or 'signup' in code.lower():
-        return 'web_signup'
-    
-    # Check for login interactions
-    if 'login' in event_type.lower() or 'login' in code.lower():
-        return 'web_login'
-    
-    # Check for session interactions
-    if 'session_start' in event_type.lower() or 'session_start' in code.lower():
-        return 'web_session_start'
-    elif 'session_end' in event_type.lower() or 'session_end' in code.lower():
-        return 'web_session_end'
-    
-    # Default to web_page for web interactions
-    return 'web_page'
+    # Default → referral
+    return 'referral'
 ```
 
-## 📊 Classification Examples
+### **TouchpointType Determination - v2.0 Approach**
 
-### **Example 1: Organic Google Search**
+TouchpointType is mapped from event type with context awareness:
+
 ```python
-# Input Event
+# For INTERNAL interactions (hint_type='internal')
+touchpoint_type_map = {
+    'page_view': 'web_page',
+    'page_read': 'web_page',
+    'form_submit': 'web_form',
+    'click': 'web_button',
+    'download': 'web_file',
+    'video_play': 'web_video',
+    'search': 'web_search',
+    'newsletter_signup': 'web_signup',
+}
+touchpoint_type_code = touchpoint_type_map.get(event_type, 'web_page')
+
+# For ATTRIBUTION interactions (hint_type='referrer'/'session')
+# Determined by _resolve_referrer_touchpoint_type() based on medium and context
+tp_info = cls._resolve_referrer_touchpoint_type(medium_code, website, referrer)
+# Returns: 'web_search_referral', 'web_social_referral', 'web_email_referral', etc.
+```
+
+## 📊 Classification Examples (v2.0)
+
+### **Example 1: Page View from Organic Google Search**
+
+**Input Event:**
+```json
 {
     "event_type": "page_view",
-    "website_url": "https://esan.edu.pe/programs/mba",
-    "referrer_url": "https://google.com/search?q=mba+programs+peru",
-    "utm_source": "",  # Empty - no UTM parameters
-    "utm_medium": ""
-}
-
-# Expected Classification
-{
-    "channel": "esan.edu.pe",        # WHERE: happened on ESAN's website
-    "medium": "organic_search",      # HOW: arrived from organic search
-    "touchpoint_type": "web_page"    # WHAT: page view interaction
+    "website_base": "https://esan.edu.pe",
+    "full_url": "https://esan.edu.pe/programs/mba",
+    "referrer": "https://google.com/search?q=mba+programs+peru",
+    "utm_source": "",  # No UTM parameters
+    "utm_medium": "",
+    "payload": {
+        "is_landing_page": true,
+        "page_title": "MBA Programs"
+    }
 }
 ```
 
-### **Example 2: Paid Google Campaign**
-```python
-# Input Event
-{
-    "event_type": "page_view",
-    "website_url": "https://esan.edu.pe/programs/mba",
-    "referrer_url": "https://google.com/search?q=mba+programs+peru",
-    "utm_source": "google",          # UTM parameters present
-    "utm_medium": "cpc"
-}
+**Output: 3 Interactions with 3 Different Touchpoints:**
 
-# Expected Classification
-{
-    "channel": "google",             # WHERE: UTM source takes precedence
-    "medium": "cpc",                 # HOW: UTM medium takes precedence
-    "touchpoint_type": "web_page"    # WHAT: page view interaction
-}
-```
+1. **Page View Interaction** (internal):
+   - Touchpoint Code: `web_page`
+   - Channel: `esan.edu.pe` (owned website)
+   - Medium: `web_interaction` (internal)
+   - TouchpointType: `web_page`
 
-### **Example 3: Social Media Referral**
-```python
-# Input Event
-{
-    "event_type": "page_view",
-    "website_url": "https://esan.edu.pe/programs/mba",
-    "referrer_url": "https://facebook.com/post/123",
-    "utm_source": "",  # Empty - no UTM parameters
-    "utm_medium": ""
-}
+2. **Referrer Click Interaction** (attribution):
+   - Touchpoint Code: `google.organic_search.web_search_referral`
+   - Channel: `google` (referrer domain)
+   - Medium: `organic_search` (analyzed from referrer)
+   - TouchpointType: `web_search_referral`
 
-# Expected Classification
-{
-    "channel": "esan.edu.pe",        # WHERE: happened on ESAN's website
-    "medium": "social_media",        # HOW: arrived from social media
-    "touchpoint_type": "web_page"    # WHAT: page view interaction
-}
-```
-
-## 🔄 Migration Guide
-
-### **Data Model Changes**
-1. **Medium field moved**: From `Channel` to `Touchpoint`
-2. **TouchpointType renamed**: To `TouchpointType`
-3. **Updated relationships**: Touchpoint now has direct relationships to all three dimensions
-
-### **Code Changes Required**
-```python
-# Before
-touchpoint_type = models.ForeignKey(TouchpointType, ...)
-channel.medium = models.ForeignKey(Medium, ...)
-
-# After
-touchpoint_type = models.ForeignKey(TouchpointType, ...)
-touchpoint.medium = models.ForeignKey(Medium, ...)
-touchpoint.channel = models.ForeignKey(Channel, ...)
-```
-
-### **Automatic Migration**
-- Existing migrations have been updated
-- System is compatible with existing data
-- No manual intervention required
-
-## 🧪 Testing
-
-### **Test Coverage**
-- **28 tests passing**: Complete coverage of all functionality
-- **Classification tests**: All three dimensions tested
-- **UTM precedence tests**: UTM parameters take precedence
-- **Referrer analysis tests**: Comprehensive referrer analysis
-- **TouchpointType tests**: Web-specific types without overlap
-
-### **Test Scenarios**
-- **Organic vs Paid**: Channel differentiation for analytics
-- **UTM precedence**: UTM parameters override referrer analysis
-- **Referrer analysis**: Social, search, email, referral traffic
-- **TouchpointType classification**: Web-specific types
-- **Click classification**: Link vs button distinction
-
-## 🎯 Benefits
-
-### **Analytical Benefits**
-- **Granular analysis**: Each dimension can be analyzed independently
-- **Better ML/AI**: Improved feature extraction for predictive models
-- **Flexible reporting**: Grouping and filtering by any dimension
-- **No overlap**: Clear separation of responsibilities
-
-### **Business Benefits**
-- **Marketing attribution**: Clear distinction between organic and paid traffic
-- **Customer journey**: Better understanding of traffic sources
-- **ROI analysis**: Improved analysis of marketing spend effectiveness
-- **Scalability**: Easy extension for new interaction types
+3. **Session Start Interaction** (attribution):
+   - Touchpoint Code: `google.organic_search.web_search_referral`
+   - Channel: `google` (same as referrer)
+   - Medium: `organic_search`
+   - TouchpointType: `web_search_referral`
 
 ---
 
-This three-dimensional classification system provides a robust foundation for web interaction analysis while maintaining compatibility with the broader BackboneOS interaction framework.
+### **Example 2: Paid Google Campaign with UTM**
+
+**Input Event:**
+```json
+{
+    "event_type": "page_view",
+    "website_base": "https://esan.edu.pe",
+    "full_url": "https://esan.edu.pe/programs/mba",
+    "referrer": "https://google.com/search?q=mba",
+    "utm_source": "google",
+    "utm_medium": "cpc",
+    "utm_campaign": "summer_mba_2025",
+    "payload": {
+        "is_landing_page": true,
+        "page_title": "MBA Programs"
+    }
+}
+```
+
+**Output: 3 Interactions:**
+
+1. **Page View** (internal):
+   - Channel: `esan.edu.pe`
+   - Medium: `web_interaction`
+   - TouchpointType: `web_page`
+
+2. **Referrer Click** (attribution with UTM):
+   - Channel: `google` (from UTM source)
+   - Medium: `cpc` (from UTM medium)
+   - TouchpointType: `web_search_referral`
+   - Parent Code: `google.cpc` (rollup)
+   - Child Code: `google.cpc.web_search_referral.summer_mba_2025`
+
+3. **Session Start** (attribution):
+   - Same classification as referrer click
+
+---
+
+### **Example 3: Internal Navigation (No Referrer)**
+
+**Input Event:**
+```json
+{
+    "event_type": "page_view",
+    "website_base": "https://esan.edu.pe",
+    "full_url": "https://esan.edu.pe/about",
+    "referrer": "https://esan.edu.pe/programs/mba",  # Internal referrer
+    "payload": {
+        "is_landing_page": false,
+        "page_title": "About Us"
+    }
+}
+```
+
+**Output: 1 Interaction Only:**
+
+1. **Page View** (internal):
+   - Channel: `esan.edu.pe`
+   - Medium: `web_interaction`
+   - TouchpointType: `web_page`
+   
+*Note: No referrer click (same website) and no session start (not landing page)*
+
+---
+
+### **Example 4: Form Submission Event**
+
+**Input Event:**
+```json
+{
+    "event_type": "form_submit",
+    "website_base": "https://esan.edu.pe",
+    "full_url": "https://esan.edu.pe/contact",
+    "payload": {
+        "form_id": "contact-form",
+        "form_type": "contact"
+    }
+}
+```
+
+**Output: 1 Interaction:**
+
+1. **Form Submit** (internal):
+   - Touchpoint Code: `web_form` (event-specific)
+   - Channel: `esan.edu.pe`
+   - Medium: `web_interaction`
+   - TouchpointType: `web_form`
+   - Parent Code: `web_page` (form is on a page)
+
+## 🏗️ Hierarchical Touchpoint Structure
+
+The v2.0 system supports parent-child touchpoint relationships for rollup analytics:
+
+### **Parent Touchpoints** (for campaign rollup)
+```python
+# Example: Google CPC campaign rollup
+Parent Touchpoint:
+    code: "google.cpc"
+    url: ""  # No URL for rollup touchpoints
+    channel: google
+    medium: cpc
+    touchpoint_type: web_search_referral
+    parent: None
+```
+
+### **Child Touchpoints** (for granular tracking)
+```python
+# Example: Specific campaign creative
+Child Touchpoint:
+    code: "google.cpc.web_search_referral.summer_mba_2025"
+    url: "https://google.com/search..."
+    channel: google
+    medium: cpc
+    touchpoint_type: web_search_referral
+    parent: [Parent Touchpoint]  # Links to parent for rollup
+```
+
+This enables:
+- **Campaign-level analytics**: Roll up all interactions by parent
+- **Creative-level analytics**: Track specific ad performance by child
+- **Flexible reporting**: Query at any hierarchy level
+
+## 🧪 v2.0 Testing
+
+### **Test Coverage**
+- ✅ **All event processors**: 8/8 processors tested
+- ✅ **Pre-creation resolution**: Touchpoint resolved before Interaction
+- ✅ **Hint building**: Internal vs. attribution modes
+- ✅ **UTM parsing**: Campaign parameter handling
+- ✅ **Referrer analysis**: Medium detection from domains
+- ✅ **Hierarchical structure**: Parent-child touchpoint creation
+- ✅ **Multi-interaction**: Page view creates 1-3 interactions
+
+### **Key Test Scenarios**
+- **v2.0 flow**: Complete event → hint → resolution → interaction
+- **Attribution tracking**: UTM precedence over referrer analysis
+- **Internal tracking**: Website activity without attribution
+- **Hierarchical touchpoints**: Parent-child relationships
+- **Edge cases**: Missing data, invalid URLs, bot detection
+
+## 🎯 v2.0 Benefits
+
+### **Architectural Benefits**
+- **Pre-Creation Resolution**: Touchpoints resolved before database save
+- **Subject-Agnostic**: No object passing, explicit parameters only
+- **Testable**: Direct dict input, no mock objects needed
+- **Explicit Data Flow**: All classification logic visible in hint builder
+- **23% Code Reduction**: Removed 453 lines of v1.0 code
+
+### **Analytical Benefits**
+- **Dual-Mode Classification**: Internal activity + external attribution
+- **Hierarchical Analytics**: Campaign rollup + creative granularity
+- **Multi-Interaction Support**: Comprehensive page view attribution
+- **Flexible Reporting**: Group by any dimension or hierarchy level
+- **Clear Separation**: Internal touchpoints vs. attribution touchpoints
+
+### **Business Benefits**
+- **Complete Attribution**: WHERE visitors came FROM (referrer) + what they DID (page view)
+- **Campaign ROI**: Track campaigns with rollup analytics
+- **Traffic Analysis**: Organic vs. paid, search vs. social, etc.
+- **Journey Mapping**: Session start + page views + conversions
+- **Scalability**: Easy to add new event types and attribution sources
+
+---
+
+## 📚 Related Documentation
+
+- **[README.md](./README.md)**: General overview and getting started
+- **[MULTI_INTERACTION_APPROACH.md](./MULTI_INTERACTION_APPROACH.md)**: Multi-interaction details
+- **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)**: Implementation status
+- **[WEBSITE_EVENTS_CATALOG.md](./WEBSITE_EVENTS_CATALOG.md)**: Complete events catalog
+
+---
+
+This v2.0 three-dimensional classification system provides a robust foundation for web interaction analysis with pre-creation resolution, hierarchical structure, and dual-mode classification for internal activity tracking and external attribution analysis.

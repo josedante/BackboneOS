@@ -182,9 +182,10 @@ websites/
 │   └── commands/
 │       └── ensure_website_channels.py   # Channel management command
 ├── README.md              # This documentation (v2.0 updated)
+├── PAGE_VIEW_EVENT_FLOW.md            # ★ Complete flow explanation (NEW)
 ├── IMPLEMENTATION_SUMMARY.md           # Implementation status
 ├── MULTI_INTERACTION_APPROACH.md       # Multi-interaction details
-├── THREE_DIMENSIONAL_CLASSIFICATION.md # Classification system
+├── THREE_DIMENSIONAL_CLASSIFICATION.md # Classification system (v2.0 updated)
 ├── EVENT_DIFFERENTIATION_SUMMARY.md    # Event differentiation
 ├── WEBSITE_EVENTS_CATALOG.md          # Complete events catalog
 ├── TRACKING_SCRIPT_DOCUMENTATION.md   # Client-side tracking docs
@@ -194,6 +195,7 @@ websites/
 ## 📚 Additional Documentation
 
 ### **Architecture & Implementation**
+- **[PAGE_VIEW_EVENT_FLOW.md](./PAGE_VIEW_EVENT_FLOW.md)**: **★ COMPREHENSIVE GUIDE** - Complete step-by-step flow explanation
 - **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)**: Current implementation status
 - **[THREE_DIMENSIONAL_CLASSIFICATION.md](./THREE_DIMENSIONAL_CLASSIFICATION.md)**: Technical implementation of classification system
 - **[MULTI_INTERACTION_APPROACH.md](./MULTI_INTERACTION_APPROACH.md)**: Multi-interaction approach for page views
