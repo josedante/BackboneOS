@@ -7,11 +7,13 @@ A comprehensive Django framework for automatic, configurable touchpoint creation
 - **Automatic Touchpoint Resolution**: Intelligent touchpoint creation based on interaction data
 - **Configurable Mapping Rules**: Admin-configurable rules for custom touchpoint creation
 - **Multi-Channel Support**: Web, email, WhatsApp, and custom connector support
+- **Event Fallback & Recovery**: ⭐ **NEW** - Automatic retry system for failed events with exponential backoff
 - **Performance Monitoring**: Comprehensive metrics collection and alerting
 - **Admin Interface**: Enhanced Django admin with dashboards and analytics
 - **Management Commands**: Powerful CLI tools for operations and maintenance
 - **Integration Tests**: Complete end-to-end testing suite
 - **Extensible Architecture**: Protocol-based design for easy extension
+- **Sentry Integration**: ⭐ **NEW** - Complete error tracking and performance monitoring
 
 ## 📋 Table of Contents
 
@@ -118,10 +120,11 @@ Event Data → TouchpointHint → Mapping Rule Lookup → Touchpoint Creation
 
 - **[Architecture v2.0](ARCHITECTURE_v2.md)**: ⭐ **NEW** - Subject-agnostic architecture overview
 - **[Migration Guide](MIGRATION_GUIDE.md)**: ⭐ **NEW** - Migrating from v1.0 to v2.0
+- **[Fallback System](FALLBACK_SYSTEM.md)**: ⭐ **NEW** - Event recovery and retry system documentation
 - **[Usage Examples](USAGE_EXAMPLES.md)**: ✅ **UPDATED** - Practical, real-world usage scenarios
 - **[Quick Reference](QUICK_REFERENCE.md)**: ✅ **UPDATED** - Quick reference guide
-- **[API Documentation](API_DOCUMENTATION.md)**: Complete API reference with examples
-- **[Admin Interface Guide](ADMIN_INTERFACE_GUIDE.md)**: Admin interface documentation
+- **[API Documentation](API_DOCUMENTATION.md)**: ✅ **UPDATED** - Complete API reference with examples
+- **[Admin Interface Guide](ADMIN_INTERFACE_GUIDE.md)**: ✅ **UPDATED** - Admin interface documentation
 - **[Implementation Plan](IMPLEMENTATION_PLAN.md)**: Historical implementation roadmap (v1.0)
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)**: Historical implementation status (v1.0)
 
@@ -300,6 +303,7 @@ python manage.py cleanup_touchpoint_events --retention-days=30 --dry-run
 ### Access Points
 
 - **Mapping Rules**: `/admin/connectors/touchpointmappingrule/`
+- **Failed Events**: ⭐ **NEW** - `/admin/connectors/failedevent/`
 - **Resolution Events**: `/admin/connectors/touchpointresolutionevent/`
 - **Alerts**: `/admin/connectors/touchpointalert/`
 - **Metrics**: `/admin/connectors/touchpointresolutionmetrics/`
@@ -530,6 +534,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For additional support and documentation:
 
 - **Full API Documentation**: `API_DOCUMENTATION.md`
+- **Fallback System Guide**: `FALLBACK_SYSTEM.md` ⭐ **NEW**
 - **Usage Examples**: `USAGE_EXAMPLES.md`
 - **Quick Reference**: `QUICK_REFERENCE.md`
 - **Implementation Guide**: `IMPLEMENTATION_PLAN.md`
@@ -550,6 +555,9 @@ For additional support and documentation:
 - ✅ **NEW**: Subject-agnostic architecture (no more `TouchpointInferenceProtocol`)
 - ✅ **NEW**: Pre-creation touchpoint resolution
 - ✅ **NEW**: Direct hint building from raw event data
+- ✅ **NEW**: Event fallback and recovery system
+- ✅ **NEW**: Exponential backoff retry strategy
+- ✅ **NEW**: Comprehensive Sentry integration
 
 ### Future Enhancements
 

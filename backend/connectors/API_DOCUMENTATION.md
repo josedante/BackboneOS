@@ -617,6 +617,253 @@ slow = TouchpointResolutionEvent.objects.filter(
 
 ## Error Handling
 
+### HTTP Response Codes (Event API)
+
+When processing events through API endpoints (e.g., `PageViewEventView`), the system uses standard HTTP codes with intelligent fallback:
+
+| Code | Status | Meaning | Client Action |
+|------|--------|---------|---------------|
+| `201` | Created | Event processed successfully | Continue normal operation |
+| `202` | Accepted | Event stored for automatic retry (system error) | No action needed - event will be reprocessed |
+| `400` | Bad Request | Invalid input (client error) | Fix request and retry |
+| `500` | Server Error | Catastrophic failure (processing + fallback failed) | Contact support |
+
+#### 201 Created Response
+
+Successful event processing:
+
+```json
+{
+  "success": true,
+  "message": "Successfully processed page view event",
+  "interactions_created": 3,
+  "interaction_ids": [
+    "uuid-1",
+    "uuid-2",
+    "uuid-3"
+  ]
+}
+```
+
+#### 202 Accepted Response (Fallback)
+
+System error occurred, event stored for retry:
+
+```json
+{
+  "success": false,
+  "error": "Event processing failed but has been queued for retry",
+  "fallback_id": "6d542e78-8a12-4743-81e8-3a4c79077779",
+  "message": "Your event will be processed automatically"
+}
+```
+
+**What happens next:**
+1. Event is stored in `FailedEvent` table
+2. Celery Beat picks it up within 5 minutes
+3. System retries with exponential backoff
+4. Up to 5 retry attempts (configurable per connector)
+5. Success → interactions created automatically
+6. Failure → logged to Sentry, visible in admin
+
+#### 400 Bad Request Response
+
+Client sent invalid data:
+
+```json
+{
+  "error": "Invalid JSON data"
+}
+```
+
+or
+
+```json
+{
+  "error": "Invalid data",
+  "message": "Missing required field: full_url"
+}
+```
+
+**Client action:** Fix the request and retry immediately.
+
+#### 500 Server Error Response (Catastrophic)
+
+Both event processing AND fallback storage failed:
+
+```json
+{
+  "error": "Internal server error",
+  "message": "Unable to process event"
+}
+```
+
+**Client action:** Contact support - indicates serious system issue.
+
+### Error Classification
+
+The system classifies errors into three categories:
+
+#### 1. Client Errors (4xx) - NOT Stored in Fallback
+
+**Triggers:**
+- Invalid JSON (`json.JSONDecodeError`)
+- Missing required fields (`ValueError`)
+- Invalid data format (`ValueError`)
+
+**Example:**
+```python
+except json.JSONDecodeError as e:
+    sentry_sdk.capture_message("Invalid JSON", level='warning')
+    return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+
+except ValueError as e:
+    sentry_sdk.capture_message(f"Invalid data: {e}", level='warning')
+    return JsonResponse({'error': 'Invalid data'}, status=400)
+```
+
+**Sentry Level:** `warning` (client-side issue)
+
+#### 2. System Errors (5xx) - Stored in Fallback
+
+**Triggers:**
+- Database connection errors
+- Timeout errors
+- Import errors
+- Unexpected exceptions
+
+**Example:**
+```python
+except Exception as e:
+    error_trace = traceback.format_exc()
+    
+    # Log to Sentry
+    with sentry_sdk.push_scope() as scope:
+        scope.set_tag('has_fallback', 'true')
+        sentry_sdk.capture_exception(e)
+    
+    # Store in fallback
+    failed_event = store_failed_event(
+        connector_type='web',
+        event_type='page_view',
+        raw_payload=data,
+        error_message=str(e),
+        error_trace=error_trace,
+        source_identifier=data.get('website_base', '')
+    )
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Event processing failed but has been queued for retry',
+        'fallback_id': str(failed_event.pk)
+    }, status=202)
+```
+
+**Sentry Level:** `error` (system issue, but recoverable)
+
+#### 3. Catastrophic Failures - Both Processing and Fallback Failed
+
+**Triggers:**
+- Database completely unavailable
+- Disk space exhausted
+- System resources critically low
+
+**Example:**
+```python
+except Exception as fallback_error:
+    # Critical Sentry alert
+    with sentry_sdk.push_scope() as scope:
+        scope.level = 'fatal'
+        scope.set_tag('catastrophic_failure', 'true')
+        sentry_sdk.capture_message(
+            "CATASTROPHIC: Failed to process AND store in fallback!",
+            level='fatal'
+        )
+    
+    return JsonResponse({
+        'error': 'Internal server error',
+        'message': 'Unable to process event'
+    }, status=500)
+```
+
+**Sentry Level:** `fatal` (immediate intervention required)
+
+### Fallback System API
+
+For detailed fallback system documentation, see **[FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md)**.
+
+#### store_failed_event()
+
+Stores a failed event for automatic retry.
+
+```python
+from connectors.fallback import store_failed_event
+
+failed_event = store_failed_event(
+    connector_type='web',
+    event_type='page_view',
+    raw_payload={'full_url': 'https://example.com', ...},
+    error_message='Database connection timeout',
+    error_trace='Traceback (most recent call last)...',
+    source_identifier='example.com'
+)
+
+print(f"Failed event stored: {failed_event.pk}")
+print(f"Status: {failed_event.status}")
+print(f"Next retry: {failed_event.next_retry_at}")
+```
+
+**Parameters:**
+- `connector_type` (str): Connector type ('web', 'email', etc.)
+- `event_type` (str): Event type ('page_view', 'form_submit', etc.)
+- `raw_payload` (dict): Original event data
+- `error_message` (str): Error description
+- `error_trace` (str): Full traceback
+- `source_identifier` (str): Source identifier (domain, etc.)
+
+**Returns:** `FailedEvent` instance
+
+#### retry_failed_event()
+
+Manually retry a failed event.
+
+```python
+from connectors.fallback import retry_failed_event
+from connectors.models import FailedEvent
+
+event = FailedEvent.objects.get(pk=event_id)
+success = retry_failed_event(event)
+
+if success:
+    print(f"Event processed successfully!")
+    print(f"Interactions created: {event.interaction_ids}")
+else:
+    print(f"Retry failed, scheduled for: {event.next_retry_at}")
+```
+
+**Parameters:**
+- `event` (FailedEvent): Event to retry
+
+**Returns:** `bool` - True if successful, False otherwise
+
+#### get_events_ready_for_retry()
+
+Query events ready for retry.
+
+```python
+from connectors.fallback import get_events_ready_for_retry
+
+events = get_events_ready_for_retry()
+print(f"Found {len(events)} events ready for retry")
+
+for event in events:
+    print(f"Event: {event.id}")
+    print(f"  Type: {event.connector_type}.{event.event_type}")
+    print(f"  Retries: {event.retry_count}/{event.get_max_retries()}")
+```
+
+**Returns:** `QuerySet[FailedEvent]`
+
 ### Common Exceptions
 
 ```python

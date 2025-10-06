@@ -6,7 +6,57 @@ The enhanced Django admin interface provides comprehensive management capabiliti
 
 ## 📋 Available Admin Interfaces
 
-### 1. **Touchpoint Mapping Rules** (`/admin/connectors/touchpointmappingrule/`)
+### 1. **Failed Events** (`/admin/connectors/failedevent/`) ⭐ **NEW**
+
+**Purpose**: Monitor and manage failed event processing with automatic retry.
+
+#### Features:
+- **List View**:
+  - Displays all failed events with status and retry information
+  - Filterable by connector type, event type, status, and date range
+  - Searchable by event ID, source identifier, error message
+  - Color-coded status badges for quick visual scanning
+  - Shows retry progress (retry_count / max_retries)
+
+- **Detail View**:
+  - Event Information: ID, connector/event type, source, status
+  - Retry Configuration: Current retry count, max retries, next retry time
+  - Timeline: First failed, last retry, processed timestamps
+  - Error Details: Formatted error message and full traceback (collapsible)
+  - Event Payload: Formatted JSON payload (collapsible)
+  - Results: Created interaction IDs (if successfully processed)
+
+- **Custom Actions**:
+  - **Retry Selected Events**: Manually trigger retry for pending/retrying events
+  - **Abandon Selected Events**: Mark events as abandoned (won't retry)
+  - **Reset Retry Count**: Give failed events another chance
+
+#### Field Descriptions:
+- **Connector Type**: Type of connector ('web', 'email', 'payment')
+- **Event Type**: Type of event ('page_view', 'form_submit', etc.)
+- **Status**: Current status (pending, retrying, processed, failed, abandoned)
+- **Retry Count**: Number of retry attempts made
+- **Max Retries**: Maximum retries allowed (varies by connector type)
+- **Source Identifier**: Source of the event (domain, app ID, etc.)
+- **Error Message**: Short error description
+- **Error Trace**: Full Python traceback (for debugging)
+- **Raw Payload**: Original event data (JSON)
+- **Interaction IDs**: IDs of interactions created after successful retry
+
+#### Status Color Coding:
+- 🔵 **Pending**: Blue (waiting for first retry)
+- 🟡 **Retrying**: Yellow (currently being retried)
+- 🟢 **Processed**: Green (successfully processed)
+- 🔴 **Failed**: Red (exceeded max retries)
+- ⚫ **Abandoned**: Gray (manually abandoned)
+
+#### Automatic Processing:
+- Celery Beat runs retry task every 5 minutes
+- Events retry with exponential backoff (1min, 2min, 4min, 8min, 16min)
+- Successful retries create interactions automatically
+- Failed retries logged to Sentry with full context
+
+### 2. **Touchpoint Mapping Rules** (`/admin/connectors/touchpointmappingrule/`)
 
 **Purpose**: Manage touchpoint mapping rules that define how interactions are converted to touchpoints.
 
@@ -39,7 +89,7 @@ The enhanced Django admin interface provides comprehensive management capabiliti
 - **Medium Code**: Marketing medium (e.g., 'search', 'display', 'email')
 - **Priority**: Rule precedence (higher numbers = higher priority)
 
-### 2. **Touchpoint Resolution Events** (`/admin/connectors/touchpointresolutionevent/`)
+### 3. **Touchpoint Resolution Events** (`/admin/connectors/touchpointresolutionevent/`)
 
 **Purpose**: Monitor individual touchpoint resolution events for debugging and analysis.
 
@@ -56,7 +106,7 @@ The enhanced Django admin interface provides comprehensive management capabiliti
 - **Mapping Rule Applied**: Whether a custom rule was used
 - **Error Details**: Error message and type if resolution failed
 
-### 3. **Touchpoint Resolution Metrics** (`/admin/connectors/touchpointresolutionmetrics/`)
+### 4. **Touchpoint Resolution Metrics** (`/admin/connectors/touchpointresolutionmetrics/`)
 
 **Purpose**: View aggregated performance metrics over time.
 
@@ -74,7 +124,7 @@ The enhanced Django admin interface provides comprehensive management capabiliti
 - **Cache Hit Rate**: Percentage of cache hits
 - **Error Rate**: Percentage of failed resolutions
 
-### 4. **Touchpoint Alerts** (`/admin/connectors/touchpointalert/`)
+### 5. **Touchpoint Alerts** (`/admin/connectors/touchpointalert/`)
 
 **Purpose**: Manage system alerts and notifications.
 
@@ -91,7 +141,7 @@ The enhanced Django admin interface provides comprehensive management capabiliti
 - **System Alerts**: Cache issues, database problems
 - **Capacity Alerts**: High volume, resource usage
 
-### 5. **System Health Records** (`/admin/connectors/touchpointsystemhealth/`)
+### 6. **System Health Records** (`/admin/connectors/touchpointsystemhealth/`)
 
 **Purpose**: Monitor overall system health and performance.
 
@@ -102,7 +152,7 @@ The enhanced Django admin interface provides comprehensive management capabiliti
 - **Cache Metrics**: Cache size, memory usage
 - **Database Metrics**: Connection count, slow queries
 
-### 6. **Cache Performance Metrics** (`/admin/connectors/touchpointcachemetrics/`)
+### 7. **Cache Performance Metrics** (`/admin/connectors/touchpointcachemetrics/`)
 
 **Purpose**: Monitor cache performance and optimization.
 
@@ -278,6 +328,8 @@ TEMPLATES = [
 - **Cache Hit Rate**: Should be > 80%
 - **Error Rate**: Should be < 5%
 - **Active Alerts**: Should be 0 for healthy system
+- **Failed Event Queue**: ⭐ **NEW** - Should be < 100 events
+- **Event Processing Success Rate**: ⭐ **NEW** - Should be > 90%
 
 ### 2. **Alert Thresholds**
 - **Critical**: Success rate < 90%, resolution time > 500ms
@@ -285,14 +337,14 @@ TEMPLATES = [
 - **Info**: Cache hit rate < 70%, error rate > 2%
 
 ### 3. **Regular Maintenance**
-- **Daily**: Check alerts and error rates
-- **Weekly**: Review performance trends
-- **Monthly**: Analyze rule usage and optimize
-- **Quarterly**: Review and update retention policies
+- **Daily**: Check alerts, error rates, and failed event queue
+- **Weekly**: Review performance trends and retry success rates
+- **Monthly**: Analyze rule usage, optimize, and cleanup old processed events
+- **Quarterly**: Review and update retention policies and retry configurations
 
 ## 🎯 Conclusion
 
-The enhanced admin interface provides comprehensive management capabilities for the Touchpoint Resolution System. With real-time monitoring, detailed analytics, and intuitive management tools, administrators can effectively maintain and optimize the system.
+The enhanced admin interface provides comprehensive management capabilities for the Touchpoint Resolution System. With real-time monitoring, detailed analytics, intuitive management tools, and the new fallback system, administrators can effectively maintain and optimize the system.
 
 Key benefits:
 - **Real-Time Monitoring**: Immediate visibility into system performance
@@ -300,5 +352,13 @@ Key benefits:
 - **Intuitive Management**: User-friendly interfaces for all operations
 - **Automated Alerts**: Proactive notification of issues
 - **Data Retention**: Smart cleanup policies to prevent bloat
+- **Event Recovery**: ⭐ **NEW** - Automatic retry system with zero data loss
+- **Full Visibility**: ⭐ **NEW** - Complete tracking of failed events and retries
 
 The admin interface is designed to scale with your system and provide the tools needed for effective touchpoint resolution management.
+
+## 📚 See Also
+
+- **[FALLBACK_SYSTEM.md](FALLBACK_SYSTEM.md)**: Complete fallback system documentation
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)**: HTTP response codes and error handling
+- **[README.md](README.md)**: Main connectors documentation
