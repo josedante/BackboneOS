@@ -90,6 +90,155 @@ Represents a web session - a continuous period of user activity.
 - **Analytics**: Page count, bounce detection, conversion events
 - **Integration**: Links to Website and Agent models
 
+## 🔒 Domain Validation and Security
+
+### **Overview**
+
+The websites app validates all incoming tracking events to ensure they come from registered, authorized domains. This prevents unauthorized websites from sending tracking data to your BackboneOS instance.
+
+### **How It Works**
+
+1. **Event arrives** at any tracking endpoint (page_view, click, form_submit, etc.)
+2. **Domain extracted** from the `website_base` field in the event payload
+3. **Validation performed** against the `Website` model:
+   - Domain must be registered in the database
+   - Website must have `active=True`
+4. **Decision**:
+   - ✅ **Allowed**: Event is processed normally
+   - ❌ **Rejected**: Event is rejected with HTTP 403, logged to `FailedEvent` for audit
+
+### **Registering Websites for Tracking**
+
+To allow a website to send tracking events:
+
+```python
+from websites.models import Website
+from our_institution.models import Division
+
+# Get or create your division
+division = Division.objects.get(code='YOUR_DIVISION')
+
+# Register the website
+website = Website.objects.create(
+    name="My Client Website",
+    base_url="https://client-website.com",  # Must match exactly
+    division=division,
+    active=True  # Must be True to receive events
+)
+```
+
+Or via Django Admin:
+1. Go to **Websites > Websites**
+2. Click **Add Website**
+3. Enter name, base URL, select division
+4. Ensure **Active** is checked
+5. Save
+
+### **Disabling a Website**
+
+To temporarily stop accepting events from a website without deleting it:
+
+```python
+website = Website.objects.get(base_url="https://client-website.com")
+website.active = False
+website.save()
+```
+
+Or via Django Admin: Uncheck the **Active** checkbox.
+
+### **CORS Configuration**
+
+In addition to domain validation, you need to configure CORS to allow browser requests from your tracking websites.
+
+The system uses a two-tier approach:
+1. **Base origins** - Hardcoded in `settings.py` for BackboneOS frontend/admin
+2. **Additional origins** - Configured via environment variable for tracking websites
+
+**Add tracking websites to `.env`:**
+
+```bash
+# .env file
+# Add your tracking website domains (comma-separated)
+CORS_ALLOWED_ORIGINS="https://site1.com,https://site2.com,https://site3.com"
+```
+
+**Example `.env` configuration:**
+```bash
+# Multiple tracking websites
+CORS_ALLOWED_ORIGINS="https://mycompany.com,https://blog.mycompany.com,https://shop.mycompany.com"
+
+# Single website
+CORS_ALLOWED_ORIGINS="https://client-website.com"
+```
+
+**Production Settings** (automatically applied when `DEBUG=False`):
+- `CORS_ALLOW_ALL_ORIGINS=False` - Only listed origins allowed
+- `CORS_ALLOWED_ORIGINS` - Base origins + environment variable origins
+
+**Development Settings** (automatically applied when `DEBUG=True`):
+- `CORS_ALLOW_ALL_ORIGINS=True` - All origins allowed for testing
+- Environment variable still respected for consistency
+
+### **Monitoring Rejected Events**
+
+Rejected events are automatically logged to the `FailedEvent` model for security audit:
+
+```python
+from connectors.models import FailedEvent
+
+# View all rejected domain validation events
+rejected_events = FailedEvent.objects.filter(
+    connector_type='web',
+    error_message__icontains='not registered'
+)
+
+# Check specific domain
+rejected_from_domain = FailedEvent.objects.filter(
+    source_identifier='https://suspicious-site.com'
+)
+```
+
+Or via Django Admin:
+1. Go to **Connectors > Failed Events**
+2. Filter by:
+   - **Connector Type**: web
+   - **Error Message**: contains "not registered" or "inactive"
+
+### **Validation API**
+
+The validation method is exposed as a class method:
+
+```python
+from websites.models import Website
+
+# Validate a domain
+try:
+    website = Website.validate_domain_or_reject("https://example.com")
+    print(f"Domain allowed: {website.name}")
+except PermissionError as e:
+    print(f"Domain rejected: {e}")
+```
+
+### **Security Best Practices**
+
+1. **Register websites explicitly** - Don't auto-register unknown domains in production
+2. **Use HTTPS only** - Set `base_url` with `https://` scheme
+3. **Review rejected events** - Check `FailedEvent` regularly for unauthorized attempts
+4. **Keep websites active** - Use `active=False` to quickly disable compromised sites
+5. **Monitor CORS logs** - Check server logs for CORS errors
+
+### **Endpoints Protected**
+
+All event endpoints validate domains:
+- `/api/websites/events/page-view/` - Page view events
+- `/api/websites/events/page-read/` - Page read events
+- `/api/websites/events/click/` - Click events
+- `/api/websites/events/form-submit/` - Form submission events
+- `/api/websites/events/download/` - Download events
+- `/api/websites/events/video-play/` - Video play events
+- `/api/websites/events/search/` - Search events
+- `/api/websites/events/newsletter-signup/` - Newsletter signup events
+
 ## 🔧 v2.0 Touchpoint Resolution System
 
 ### **Subject-Agnostic Architecture**
@@ -306,6 +455,8 @@ The `websites` app converts **anonymous web activity** into traceable interactio
 - ✅ **Multi-Interaction Support**: Comprehensive page view attribution
 - ✅ **Domain Normalization**: Consistent source identifier handling
 - ✅ **Mapping Rules Support**: Custom touchpoint codes via database rules
+- ✅ **Domain Validation**: Security layer rejecting unauthorized tracking sources
+- ✅ **Audit Logging**: Failed events logged to FailedEvent for security monitoring
 
 ## 🔄 Recent Changes - v2.0 Migration (January 2025)
 

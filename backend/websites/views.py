@@ -75,6 +75,29 @@ class PageViewEventView(View):
                     'error': 'Only page_view events are supported by this endpoint'
                 }, status=400)
             
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
+            
             # Process the page view event
             created_interactions = WebInteraction.process_page_view_event(data)
             
@@ -217,6 +240,29 @@ class PageReadEventView(View):
                     'error': 'Only page_read events are supported by this endpoint'
                 }, status=400)
             
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
+            
             # Process the page read event
             created_interactions = WebInteraction.process_page_read_event(data)
             
@@ -311,6 +357,29 @@ class ClickEventView(View):
                     'error': 'Only click events are supported by this endpoint'
                 }, status=400)
             
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
+            
             # Process the click event
             created_interactions = WebInteraction.process_click_event(data)
             
@@ -385,6 +454,29 @@ class FormSubmitEventView(View):
                     'error': 'Only form_submit events are supported by this endpoint'
                 }, status=400)
             
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
+            
             # Process the form submission event
             created_interactions = WebInteraction.process_form_submit_event(data)
             
@@ -452,6 +544,29 @@ class DownloadEventView(View):
                 return JsonResponse({
                     'error': 'Only download events are supported by this endpoint'
                 }, status=400)
+            
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
             
             # Process the download event
             created_interactions = WebInteraction.process_download_event(data)
@@ -521,6 +636,29 @@ class VideoPlayEventView(View):
                     'error': 'Only video_play events are supported by this endpoint'
                 }, status=400)
             
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
+            
             # Process the video play event
             created_interactions = WebInteraction.process_video_play_event(data)
             
@@ -589,6 +727,29 @@ class SearchEventView(View):
                     'error': 'Only search events are supported by this endpoint'
                 }, status=400)
             
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
+            
             # Process the search event
             created_interactions = WebInteraction.process_search_event(data)
             
@@ -656,6 +817,29 @@ class NewsletterSignupEventView(View):
                 return JsonResponse({
                     'error': 'Only newsletter_signup events are supported by this endpoint'
                 }, status=400)
+            
+            # Validate domain is allowed
+            try:
+                from .models import Website
+                Website.validate_domain_or_reject(data['website_base'])
+            except PermissionError as e:
+                # Domain not allowed - log to FailedEvent
+                logger.warning(f"Rejected event from unauthorized domain: {data['website_base']}")
+                
+                # Store in FailedEvent for audit
+                store_failed_event(
+                    connector_type='web',
+                    event_type=data.get('event_type', 'unknown'),
+                    raw_payload=data,
+                    error_message=str(e),
+                    error_trace='Domain validation failed',
+                    source_identifier=data.get('website_base', '')
+                )
+                
+                return JsonResponse({
+                    'error': 'Forbidden',
+                    'message': str(e)
+                }, status=403)
             
             # Process the newsletter signup event
             created_interactions = WebInteraction.process_newsletter_signup_event(data)

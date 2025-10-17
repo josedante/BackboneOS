@@ -84,6 +84,43 @@ class Website(BaseUUIDModelWithActiveStatus):
             self.channel = self._get_or_create_website_channel()
             self.save(update_fields=['channel'])
         return self.channel
+    
+    @classmethod
+    def validate_domain_or_reject(cls, website_base):
+        """
+        Validate that a domain is registered and active.
+        
+        Args:
+            website_base: The base URL from event (e.g., "https://example.com")
+        
+        Returns:
+            Website: The registered website object
+        
+        Raises:
+            PermissionError: If domain is not registered or inactive
+        """
+        from urllib.parse import urlparse
+        
+        # Normalize the URL
+        try:
+            parsed = urlparse(website_base)
+            # Validate that we have both scheme and netloc
+            if not parsed.scheme or not parsed.netloc:
+                raise PermissionError(f"Invalid URL format: {website_base}")
+            normalized_url = f"{parsed.scheme}://{parsed.netloc}"
+        except Exception as e:
+            raise PermissionError(f"Invalid URL format: {website_base}")
+        
+        # Check if website is registered and active
+        try:
+            website = cls.objects.get(base_url=normalized_url, active=True)
+            return website
+        except cls.DoesNotExist:
+            # Check if exists but inactive
+            if cls.objects.filter(base_url=normalized_url, active=False).exists():
+                raise PermissionError(f"Website '{website_base}' is registered but inactive")
+            else:
+                raise PermissionError(f"Website '{website_base}' is not registered")
 
 class WebSession(BaseUUIDModelWithActiveStatus):
     """

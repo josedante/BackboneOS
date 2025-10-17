@@ -217,25 +217,7 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[
-    "http://localhost:3000",  # Nuxt.js development server
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",  # Vite development server (fallback)
-    "http://127.0.0.1:5173",
-    "https://backboneos-frontend.onrender.com",  # Render frontend
-    "https://backboneos.com",  # Custom domain
-    "https://backend.proyecto-opensource.orb.local",  # Local development domain
-    "https://frontend.proyecto-opensource.orb.local",  # Local frontend domain
-]).split(',') if isinstance(config('CORS_ALLOWED_ORIGINS', default=None), str) else [
-    "http://localhost:3000",  # Nuxt.js development server
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",  # Vite development server (fallback)
-    "http://127.0.0.1:5173",
-    "https://backboneos-frontend.onrender.com",  # Render frontend
-    "https://backboneos.com",  # Custom domain
-    "https://backend.proyecto-opensource.orb.local",  # Local development domain
-    "https://frontend.proyecto-opensource.orb.local",  # Local frontend domain
-]
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[]).split(',') if isinstance(config('CORS_ALLOWED_ORIGINS', default=None), str) else []
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[
@@ -278,10 +260,10 @@ else:
     CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript access to CSRF token in development
     CSRF_USE_SESSIONS = False  # Use cookies instead of sessions for CSRF
 
-# Add production origins from environment variables
-PRODUCTION_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
-if PRODUCTION_ORIGINS and PRODUCTION_ORIGINS[0]:  # Check if not empty
-    CORS_ALLOWED_ORIGINS.extend(PRODUCTION_ORIGINS)
+# # Add production origins from environment variables
+# PRODUCTION_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
+# if PRODUCTION_ORIGINS and PRODUCTION_ORIGINS[0]:  # Check if not empty
+#     CORS_ALLOWED_ORIGINS.extend(PRODUCTION_ORIGINS)
 
 CORS_ALLOW_CREDENTIALS = True
 

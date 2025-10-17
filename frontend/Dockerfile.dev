@@ -23,5 +23,5 @@ EXPOSE 3000
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Start development server
-CMD ["npm", "run", "dev"]
+# Start development server on all interfaces (required for Docker)
+CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
