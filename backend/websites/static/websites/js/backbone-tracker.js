@@ -23,7 +23,7 @@
 
     // Configuration
     const CONFIG = {
-        baseApiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/',
+        baseApiEndpoint: 'https://backboneos-backend.onrender.com/api/websites/events/',
         sessionTimeout: 30 * 60 * 1000, // 30 minutes
         engagementThreshold: 30 * 1000, // 30 seconds
         scrollThreshold: 50, // 50% scroll depth
