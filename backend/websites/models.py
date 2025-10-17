@@ -1,11 +1,13 @@
 # apps/websites/models.py
 from __future__ import annotations
-import uuid, re
+import uuid, re, logging
 from django.db import models, transaction
 from django.conf import settings
 from backend.models import BaseUUIDModelWithActiveStatus
 from django.utils import timezone
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 # Core relations
 from interactions.models import TouchpointType, Touchpoint, Channel, Agent
@@ -204,7 +206,7 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         """
         visitor_cookie = web_interaction.visitor_cookie
         website = web_interaction.website
-        occurred_at = web_interaction.occurred_at
+        occurred_at = web_interaction.interaction.occurred_at
         
         # Check for existing active session within 30-minute window
         timeout_threshold = occurred_at - timedelta(minutes=30)
@@ -247,9 +249,9 @@ class WebSession(BaseUUIDModelWithActiveStatus):
             session_id=session_id,
             visitor_cookie=web_interaction.visitor_cookie,
             website=web_interaction.website,
-            agent=web_interaction.agent,
-            started_at=web_interaction.occurred_at,
-            last_activity_at=web_interaction.occurred_at,
+            agent=web_interaction.interaction.agent,
+            started_at=web_interaction.interaction.occurred_at,
+            last_activity_at=web_interaction.interaction.occurred_at,
             utm_source=web_interaction.utm_source,
             utm_medium=web_interaction.utm_medium,
             utm_campaign=web_interaction.utm_campaign,
@@ -1281,7 +1283,7 @@ class WebInteraction(AbstractConnectorInteraction):
             action=action,
             touchpoint=touchpoint,  # Touchpoint resolved before creation
             payload=interaction_payload,
-            occurred_at=event_data.get('occurred_at')
+            occurred_at=event_data.get('occurred_at') or timezone.now()
         )
         
         # Create WebInteraction with the interaction as primary key
@@ -1302,6 +1304,10 @@ class WebInteraction(AbstractConnectorInteraction):
             is_bot=cls._is_bot_user_agent(event_data.get('user_agent', '')),
             **web_interaction_kwargs
         )
+        
+        # Infer/create WebSession for this interaction
+        web_session = WebSession.infer_session_for_interaction(web_interaction)
+        logger.debug(f"WebSession {web_session.session_id} {'created' if web_session.page_count == 1 else 'updated'} for interaction {web_interaction.pk}")
         
         return web_interaction
     

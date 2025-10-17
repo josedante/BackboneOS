@@ -304,6 +304,11 @@ class PageViewEventProcessingTestCase(TestCase):
             self.assertIsInstance(interaction, WebInteraction)
             self.assertEqual(interaction.website.base_url, "https://test.example.com")
             self.assertEqual(interaction.session_id, "sess_test123")
+        
+        # Verify WebSession was created
+        self.assertEqual(WebSession.objects.count(), 1)
+        session = WebSession.objects.first()
+        self.assertEqual(session.visitor_cookie, "visitor_test456")
     
     def test_process_page_view_event_without_referrer(self):
         """Test page view event processing without external referrer (integration test)."""
@@ -317,6 +322,9 @@ class PageViewEventProcessingTestCase(TestCase):
         # Should create only page view interaction (no referrer click)
         self.assertEqual(len(interactions), 1)
         self.assertIsInstance(interactions[0], WebInteraction)
+        
+        # Verify WebSession was created
+        self.assertEqual(WebSession.objects.count(), 1)
     
     def test_process_page_view_event_with_external_referrer(self):
         """Test page view event processing with external referrer (integration test)."""
@@ -327,6 +335,9 @@ class PageViewEventProcessingTestCase(TestCase):
         self.assertEqual(len(interactions), 2)
         for interaction in interactions:
             self.assertIsInstance(interaction, WebInteraction)
+        
+        # Verify WebSession was created
+        self.assertEqual(WebSession.objects.count(), 1)
     
     def test_process_page_view_event_with_new_session(self):
         """Test page view event processing with new session (integration test)."""
@@ -342,6 +353,123 @@ class PageViewEventProcessingTestCase(TestCase):
         self.assertEqual(len(interactions), 3)
         for interaction in interactions:
             self.assertIsInstance(interaction, WebInteraction)
+        
+        # Verify WebSession was created
+        self.assertEqual(WebSession.objects.count(), 1)
+    
+    def test_websession_created_on_first_page_view(self):
+        """Test that WebSession is automatically created when processing first page view."""
+        # Verify no sessions exist initially
+        self.assertEqual(WebSession.objects.count(), 0)
+        
+        # Process the page view event
+        interactions = WebInteraction.process_page_view_event(self.sample_event_data)
+        
+        # Verify WebSession was created
+        self.assertEqual(WebSession.objects.count(), 1)
+        
+        session = WebSession.objects.first()
+        self.assertEqual(session.visitor_cookie, "visitor_test456")
+        self.assertEqual(session.website, self.website)
+        self.assertEqual(session.page_count, 1)
+        self.assertTrue(session.is_bounce)  # First page is bounce by default
+        self.assertEqual(session.utm_source, "google")
+        self.assertEqual(session.utm_medium, "organic")
+        self.assertEqual(session.utm_campaign, "mba_search")
+    
+    def test_websession_reused_within_timeout(self):
+        """Test that WebSession is reused when processing subsequent page views within 30 minutes."""
+        # Process first page view
+        interactions1 = WebInteraction.process_page_view_event(self.sample_event_data)
+        self.assertEqual(WebSession.objects.count(), 1)
+        
+        first_session = WebSession.objects.first()
+        first_session_id = first_session.session_id
+        
+        # Process second page view with same visitor (within timeout)
+        event_data_2 = self.sample_event_data.copy()
+        event_data_2["full_url"] = "https://test.example.com/programs/executive-mba"
+        event_data_2["session_id"] = "sess_test123"  # Same session ID from client
+        interactions2 = WebInteraction.process_page_view_event(event_data_2)
+        
+        # Should still have only one session
+        self.assertEqual(WebSession.objects.count(), 1)
+        
+        # Verify session was updated
+        session = WebSession.objects.first()
+        self.assertEqual(session.session_id, first_session_id)
+        self.assertEqual(session.page_count, 2)
+        self.assertFalse(session.is_bounce)  # Multiple pages = not a bounce
+    
+    def test_websession_new_session_after_timeout(self):
+        """Test that new WebSession is created after 30+ minute gap."""
+        from datetime import timedelta
+        
+        # Process first page view
+        interactions1 = WebInteraction.process_page_view_event(self.sample_event_data)
+        self.assertEqual(WebSession.objects.count(), 1)
+        
+        first_session = WebSession.objects.first()
+        
+        # Manually set last_activity_at to 31 minutes ago
+        old_time = timezone.now() - timedelta(minutes=31)
+        first_session.last_activity_at = old_time
+        first_session.save()
+        
+        # Process second page view with same visitor (after timeout)
+        event_data_2 = self.sample_event_data.copy()
+        event_data_2["full_url"] = "https://test.example.com/programs/executive-mba"
+        event_data_2["session_id"] = "sess_test456"  # Different session ID from client
+        event_data_2["occurred_at"] = timezone.now()
+        interactions2 = WebInteraction.process_page_view_event(event_data_2)
+        
+        # Should have two sessions now
+        self.assertEqual(WebSession.objects.count(), 2)
+        
+        # Verify new session was created
+        sessions = WebSession.objects.order_by('-started_at')
+        new_session = sessions[0]
+        self.assertNotEqual(new_session.session_id, first_session.session_id)
+        self.assertEqual(new_session.page_count, 1)
+        self.assertTrue(new_session.is_bounce)
+    
+    def test_websession_updated_on_page_read(self):
+        """Test that WebSession is updated when processing page read event."""
+        # First create a page view to establish session
+        interactions1 = WebInteraction.process_page_view_event(self.sample_event_data)
+        self.assertEqual(WebSession.objects.count(), 1)
+        
+        initial_session = WebSession.objects.first()
+        self.assertEqual(initial_session.page_count, 1)
+        
+        # Now process a page read event
+        page_read_event = {
+            "event_type": "page_read",
+            "website_base": "https://test.example.com",
+            "full_url": "https://test.example.com/programs/mba",
+            "session_id": "sess_test123",
+            "visitor_cookie": "visitor_test456",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "utm_source": "google",
+            "utm_medium": "organic",
+            "utm_campaign": "mba_search",
+            "element": "body",
+            "payload": {
+                "page_title": "MBA Programs - Test University",
+                "read_time": 45,
+                "scroll_depth": 75
+            }
+        }
+        
+        interactions2 = WebInteraction.process_page_read_event(page_read_event)
+        
+        # Should still have only one session
+        self.assertEqual(WebSession.objects.count(), 1)
+        
+        # Verify session was updated
+        session = WebSession.objects.first()
+        self.assertEqual(session.page_count, 2)
+        self.assertFalse(session.is_bounce)
 
 
 class WebSessionTestCase(TestCase):
