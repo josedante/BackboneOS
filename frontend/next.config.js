@@ -10,7 +10,8 @@ const nextConfig = {
   
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE || 'https://backboneos-backend.onrender.com',
+    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
+    NEXT_PRIVATE_API_BASE: process.env.NEXT_PRIVATE_API_BASE,
   },
 
   // Image optimization

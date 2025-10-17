@@ -34,7 +34,6 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://backboneos-frontend.onrender.com,https://backend.proyecto-opensource.orb.local,https://frontend.proyecto-opensource.orb.local
     networks:
       - backboneos-network
   backend:
@@ -49,6 +48,8 @@ services:
     depends_on:
       - db
       - redis
+    environment:
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://backboneos-frontend.onrender.com,https://backend.proyecto-opensource.orb.local,https://frontend.proyecto-opensource.orb.local
     networks:
       - backboneos-network
 
@@ -64,8 +65,8 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
-      - NUXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
-      - NUXT_PRIVATE_API_BASE=https://backend
+      - NEXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
+      - NEXT_PRIVATE_API_BASE=https://backend
     depends_on:
       - backend
     networks:

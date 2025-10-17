@@ -73,10 +73,14 @@ services:
       # Security (prompt for these in dashboard)
       - key: SECRET_KEY
         sync: false
+
+      # CORS settings
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://backboneos-frontend.onrender.com,https://backboneos.com,https://thebackbonegroup.com"
       
       # Security headers and CSRF
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://backboneos-backend.onrender.com,https://backboneos-frontend.onrender.com,https://backboneos.com"
+        value: "https://backboneos-frontend.onrender.com,https://backboneos.com,https://thebackbonegroup.com"
       - key: SESSION_COOKIE_SECURE
         value: "True"
       - key: CSRF_COOKIE_SECURE
