@@ -32,7 +32,7 @@ class ChannelAdmin(admin.ModelAdmin):
         # Count interactions through touchpoints
         from django.db.models import Count, Q
         return obj.touchpoints.filter(is_active=True).aggregate(
-            total=Count('interaction_set', filter=Q(interaction_set__is_active=True))
+            total=Count('interaction', filter=Q(interaction__is_active=True))
         )['total'] or 0
     interactions_count.short_description = 'Interacciones'
     
