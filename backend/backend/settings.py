@@ -220,19 +220,7 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[]).split(',') if isinstance(config('CORS_ALLOWED_ORIGINS', default=None), str) else []
 
 # CSRF Configuration
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[
-    "https://backboneos-backend.onrender.com",
-    "https://backboneos-frontend.onrender.com",
-    "https://backboneos.com",
-    "https://backend.proyecto-opensource.orb.local",
-    "https://frontend.proyecto-opensource.orb.local",
-]).split(',') if isinstance(config('CSRF_TRUSTED_ORIGINS', default=None), str) else [
-    "https://backboneos-backend.onrender.com",
-    "https://backboneos-frontend.onrender.com",
-    "https://backboneos.com",
-    "https://backend.proyecto-opensource.orb.local",
-    "https://frontend.proyecto-opensource.orb.local",
-]
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[]).split(',') if isinstance(config('CSRF_TRUSTED_ORIGINS', default=None), str) else []
 
 # Security Settings for Production
 if not DEBUG:
