@@ -196,7 +196,9 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         """
         Infer or create a WebSession for the given WebInteraction.
         
-        Simple logic: session continues if within 30 minutes, otherwise create new session.
+        The tracking script manages session IDs and knows when to start new sessions
+        (30min timeout, UTM changes, cross-domain navigation). We trust the session_id
+        from the WebInteraction as the source of truth.
         
         Args:
             web_interaction: The WebInteraction to infer session for
@@ -204,31 +206,32 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         Returns:
             WebSession: The inferred or created session
         """
-        visitor_cookie = web_interaction.visitor_cookie
+        session_id = web_interaction.session_id
         website = web_interaction.website
         occurred_at = web_interaction.interaction.occurred_at
         
-        # Check for existing active session within 30-minute window
-        timeout_threshold = occurred_at - timedelta(minutes=30)
+        # If no session_id provided, fall back to legacy logic
+        if not session_id:
+            return cls._create_new_session(web_interaction)
         
-        # Look for recent session with same visitor cookie
-        recent_session = cls.objects.filter(
-            visitor_cookie=visitor_cookie,
-            website=website,
-            last_activity_at__gte=timeout_threshold,
-            ended_at__isnull=True
-        ).order_by('-last_activity_at').first()
-        
-        if recent_session:
-            # Continue existing session
-            recent_session.last_activity_at = occurred_at
-            recent_session.page_count += 1
-            recent_session.is_bounce = False  # Multiple pages = not a bounce
-            recent_session.save()
-            return recent_session
-        
-        # Create new session
-        return cls._create_new_session(web_interaction)
+        # Look for existing session with the SAME session_id
+        # The tracking script is the source of truth for session identity
+        try:
+            existing_session = cls.objects.get(
+                session_id=session_id,
+                website=website
+            )
+            
+            # Update existing session
+            existing_session.last_activity_at = occurred_at
+            existing_session.page_count += 1
+            existing_session.is_bounce = False  # Multiple pages = not a bounce
+            existing_session.save()
+            return existing_session
+            
+        except cls.DoesNotExist:
+            # Session doesn't exist yet - create it
+            return cls._create_new_session(web_interaction)
     
     @classmethod
     def _create_new_session(cls, web_interaction: 'WebInteraction') -> 'WebSession':
