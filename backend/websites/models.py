@@ -241,8 +241,9 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         Returns:
             WebSession: The newly created session
         """
-        # Generate unique session ID
-        session_id = f"sess_{uuid.uuid4().hex[:16]}"
+        # Use session_id from WebInteraction (from tracking script)
+        # Fallback to generating one if not provided
+        session_id = web_interaction.session_id or f"sess_{uuid.uuid4().hex[:16]}"
         
         # Create session with interaction data
         session = cls.objects.create(
