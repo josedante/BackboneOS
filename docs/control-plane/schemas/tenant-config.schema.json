@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TenantConfig",
+  "type": "object",
+  "required": ["tenant", "plan", "region", "connectors"],
+  "properties": {
+    "tenant": { "type": "string", "pattern": "^[a-z0-9-]{3,40}$" },
+    "plan": { "type": "string", "enum": ["starter", "pro", "enterprise"] },
+    "region": { "type": "string" },
+    "staging": { "type": "boolean", "default": false },
+    "custom_backend_domain": { "type": ["string", "null"] },
+    "frontend_origin": { "type": ["string", "null"] },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "backend_plan": { "type": "string" },
+        "workers_plan": { "type": "string" },
+        "db_plan": { "type": "string" },
+        "redis_plan": { "type": "string" }
+      }
+    },
+    "connectors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "config": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  }
+}
+

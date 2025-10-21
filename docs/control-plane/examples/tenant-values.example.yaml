@@ -1,0 +1,22 @@
+tenant: acme
+plan: pro
+region: oregon
+staging: true
+custom_backend_domain: null
+frontend_origin: https://frontend-staging-acme.example.com
+resources:
+  backend_plan: starter
+  workers_plan: starter
+  db_plan: free
+  redis_plan: starter
+connectors:
+  - name: salesforce
+    version: 1.2.3
+    config:
+      client_id: ${secret:ACME_SF_CLIENT_ID}
+      client_secret: ${secret:ACME_SF_CLIENT_SECRET}
+  - name: stripe
+    version: 0.9.1
+    config:
+      api_key: ${secret:ACME_STRIPE_API_KEY}
+
