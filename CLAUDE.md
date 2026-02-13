@@ -25,6 +25,7 @@ This is a full-stack application with a Django REST Framework backend and Nuxt.j
 
 - **Database**: PostgreSQL 14 containerized
   - Default credentials: `myuser`/`mypassword`/`mydatabase`
+  - Index policy and audit: see [docs/DATABASE_INDEXES.md](docs/DATABASE_INDEXES.md). When adding or changing model indexes, follow the rules there.
 
 ## Essential Commands
 

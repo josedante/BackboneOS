@@ -47,7 +47,6 @@ class ProductCategory(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['is_active']),
             models.Index(fields=['name']),
             models.Index(fields=['code']),
-            models.Index(fields=['parent']),
             models.Index(fields=['division', 'is_active']),
         ]
 
@@ -168,8 +167,6 @@ class Product(BaseUUIDModelWithActiveStatus):
         verbose_name_plural = "Productos"
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['name']),
-            models.Index(fields=['code']),
             models.Index(fields=['category', 'is_active']),
             models.Index(fields=['base_price']),
         ]

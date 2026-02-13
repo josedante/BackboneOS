@@ -134,7 +134,7 @@ class WebSession(BaseUUIDModelWithActiveStatus):
     """
     
     # Session identity
-    session_id = models.CharField(max_length=64, db_index=True, unique=True)
+    session_id = models.CharField(max_length=64, unique=True)  # unique=True creates index; no db_index needed
     visitor_cookie = models.CharField(max_length=64, db_index=True)
     
     # Session context
@@ -169,7 +169,6 @@ class WebSession(BaseUUIDModelWithActiveStatus):
         indexes = [
             models.Index(fields=['visitor_cookie', 'started_at']),
             models.Index(fields=['website', 'started_at']),
-            models.Index(fields=['session_id']),
             models.Index(fields=['utm_source', 'utm_medium']),
         ]
     
@@ -343,10 +342,9 @@ class WebInteraction(AbstractConnectorInteraction):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        # session_id and visitor_cookie have db_index=True on the field; no duplicate Meta Index
         indexes = [
             models.Index(fields=["website", "created_at"]),
-            models.Index(fields=["session_id"]),
-            models.Index(fields=["visitor_cookie"]),
             models.Index(fields=["utm_source", "utm_medium", "utm_campaign"]),
         ]
     

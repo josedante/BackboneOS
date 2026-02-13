@@ -32,10 +32,7 @@ class StaffProfile(BaseUUIDModelWithActiveStatus):
         verbose_name_plural = "Perfiles de Staff"
         indexes = [
             models.Index(fields=["is_active"]),
-            models.Index(fields=["division"]),
-            models.Index(fields=["position"]),
             models.Index(fields=["verified"]),
-            models.Index(fields=["manager"]),
         ]
 
     def __str__(self):
@@ -78,7 +75,6 @@ class UserTag(BaseUUIDModelWithActiveStatus):
         verbose_name_plural = "Etiquetas de Usuario"
         unique_together = ("representative", "name")
         indexes = [
-            models.Index(fields=["representative"]),
             models.Index(fields=["tag_type"]),
             models.Index(fields=["is_active"]),
         ]
@@ -107,7 +103,6 @@ class UserPreference(BaseUUIDModelWithActiveStatus):
         verbose_name = "Preferencias del Usuario"
         verbose_name_plural = "Preferencias del Usuario"
         indexes = [
-            models.Index(fields=["user"]),
             models.Index(fields=["preferred_contact_medium"]),
             models.Index(fields=["notifications_enabled"]),
             models.Index(fields=["is_active"]),

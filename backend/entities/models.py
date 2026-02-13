@@ -34,24 +34,16 @@ class Person(BaseUUIDModelWithActiveStatus):
     class Meta:
         unique_together = ("id_type", "id_number")
         indexes = [
-            # Índices básicos para búsquedas frecuentes
             models.Index(fields=['first_name', 'last_name']),
-            models.Index(fields=['gender']),
-            models.Index(fields=['marital_status']),
             models.Index(fields=['birthday']),
-            models.Index(fields=['country_of_nationality']),
-            models.Index(fields=['id_type']),
             models.Index(fields=['id_type', 'id_number']),
             models.Index(fields=['is_active']),
-            # Índices compuestos para analytics y filtrado
             models.Index(fields=['is_active', 'country_of_nationality']),
             models.Index(fields=['is_active', 'gender']),
             models.Index(fields=['is_active', 'marital_status']),
             models.Index(fields=['is_active', 'birthday']),
-            # Índices para búsquedas demográficas
             models.Index(fields=['gender', 'country_of_nationality']),
             models.Index(fields=['marital_status', 'gender']),
-            # Índices para ordenamiento frecuente
             models.Index(fields=['created_at']),
             models.Index(fields=['updated_at']),
             models.Index(fields=['is_active', 'created_at']),
@@ -149,28 +141,21 @@ class ContactDetail(BaseUUIDModelWithActiveStatus):
             )
         ]
         indexes = [
-            # Índices principales para consultas frecuentes
-            models.Index(fields=["person"]),
-            models.Index(fields=["organization"]),
             models.Index(fields=["is_primary"]),
             models.Index(fields=["verified"]),
             models.Index(fields=["email"]),
             models.Index(fields=["phone"]),
             models.Index(fields=["is_active"]),
-            # Índices compuestos para filtrado común
             models.Index(fields=["person", "is_primary"]),
             models.Index(fields=["organization", "is_primary"]),
             models.Index(fields=["person", "is_active"]),
             models.Index(fields=["organization", "is_active"]),
             models.Index(fields=["is_active", "is_primary"]),
             models.Index(fields=["is_active", "verified"]),
-            models.Index(fields=["is_primary", "verified"]),
-            # Índices para búsquedas de contacto
             models.Index(fields=["email", "verified"]),
             models.Index(fields=["phone", "verified"]),
             models.Index(fields=["email", "is_active"]),
             models.Index(fields=["phone", "is_active"]),
-            # Índices para analytics de contacto
             models.Index(fields=["person", "verified"]),
             models.Index(fields=["organization", "verified"]),
         ]
@@ -218,23 +203,17 @@ class IndividualProfile(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         indexes = [
-            # Índices para consultas semánticas frecuentes
-            models.Index(fields=['person']),
-            models.Index(fields=['academic_degree']),
             models.Index(fields=['preferred_contact_medium']),
             models.Index(fields=['accepts_privacy_policy']),
             models.Index(fields=['allows_marketing']),
             models.Index(fields=['is_active']),
-            # Índices compuestos para filtrado común
             models.Index(fields=['is_active', 'academic_degree']),
             models.Index(fields=['is_active', 'allows_marketing']),
             models.Index(fields=['is_active', 'preferred_contact_medium']),
             models.Index(fields=['is_active', 'accepts_privacy_policy']),
-            # Índices para analytics y segmentación
             models.Index(fields=['academic_degree', 'allows_marketing']),
             models.Index(fields=['preferred_contact_medium', 'allows_marketing']),
             models.Index(fields=['accepts_privacy_policy', 'allows_marketing']),
-            # Índices para perfilado semántico
             models.Index(fields=['person', 'is_active']),
             models.Index(fields=['academic_degree', 'preferred_contact_medium']),
         ]
@@ -255,19 +234,12 @@ class Organization(BaseUUIDModelWithActiveStatus):
     class Meta:
         unique_together = ("id_type", "id_number")
         indexes = [
-            # Índices para búsquedas frecuentes
             models.Index(fields=['name']),
             models.Index(fields=['legal_name']),
-            models.Index(fields=['org_type']),
-            models.Index(fields=['industry']),
-            models.Index(fields=['country']),
-            models.Index(fields=['id_type']),
             models.Index(fields=['id_type', 'id_number']),
-            # Índices para consultas de analytics
             models.Index(fields=['is_active', 'org_type']),
             models.Index(fields=['is_active', 'industry']),
             models.Index(fields=['is_active', 'country']),
-            # Índices compuestos para filtrado y analytics
             models.Index(fields=['org_type', 'industry']),
             models.Index(fields=['country', 'industry']),
             models.Index(fields=['is_active']),

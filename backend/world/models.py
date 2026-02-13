@@ -29,7 +29,6 @@ class Country(models.Model):
         ordering = ['name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['name']),
             models.Index(fields=['is_active', 'name']),
             models.Index(fields=['timezone']),
             models.Index(fields=['currency_code']),
@@ -66,12 +65,9 @@ class Industry(BaseUUIDModelWithActiveStatus):
         ordering = ['display_order', 'name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['parent']),
             models.Index(fields=['is_active', 'parent']),
             models.Index(fields=['display_order', 'name']),
             models.Index(fields=['ciiu_code']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):
@@ -127,12 +123,9 @@ class FunctionOrResponsibility(BaseUUIDModelWithActiveStatus):
         ordering = ['display_order', 'name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['parent']),
             models.Index(fields=['is_active', 'parent']),
             models.Index(fields=['typical_level']),
             models.Index(fields=['display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):
@@ -195,8 +188,6 @@ class Skill(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['typical_level_required']),
             models.Index(fields=['skill_type', 'display_order', 'name']),
             models.Index(fields=['is_active', 'skill_type']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):
@@ -232,11 +223,10 @@ class PersonalIDType(BaseUUIDModelWithActiveStatus):
         ordering = ['country__name', 'display_order', 'name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['country']),
             models.Index(fields=['is_active', 'country']),
             models.Index(fields=['country', 'display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
         ]
 
     def __str__(self):
@@ -299,8 +289,6 @@ class OrganizationType(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['typical_size']),
             models.Index(fields=['is_active', 'ownership_type']),
             models.Index(fields=['display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):
@@ -335,11 +323,10 @@ class OrganizationalIDType(BaseUUIDModelWithActiveStatus):
         ordering = ['country__name', 'display_order', 'name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['country']),
             models.Index(fields=['is_active', 'country']),
             models.Index(fields=['country', 'display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
         ]
 
     def __str__(self):
@@ -364,7 +351,6 @@ class DescriptorFamily(models.Model):
         ordering = ["name"]
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['name']),  # Para búsquedas y ordenamiento
             models.Index(fields=['is_active', 'name']),
         ]
 
@@ -390,13 +376,10 @@ class WorldDescriptor(BaseUUIDModelWithActiveStatus):
         ordering = ["family__name", "name"]
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['family']),
-            models.Index(fields=['parent']),
             models.Index(fields=['is_active', 'family']),
-            models.Index(fields=['family', 'name']),
             models.Index(fields=['family', 'parent']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
+            models.Index(fields=['name']),
+            models.Index(fields=['code']),
         ]
 
     def __str__(self):
@@ -458,8 +441,6 @@ class MarketSegment(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['segment_type']),
             models.Index(fields=['is_active', 'segment_type']),
             models.Index(fields=['display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):
@@ -516,10 +497,9 @@ class Tag(models.Model):
         ordering = ['name']
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['name']),
             models.Index(fields=['is_active', 'name']),
-            models.Index(fields=['created_at']),  # Para actividad reciente
-            models.Index(fields=['updated_at']),  # Para cambios recientes
+            models.Index(fields=['created_at']),
+            models.Index(fields=['updated_at']),
         ]
 
     def __str__(self):
@@ -546,8 +526,6 @@ class AcademicDegree(BaseUUIDModelWithActiveStatus):
         ]
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['code']),
-            models.Index(fields=['name']),
             models.Index(fields=['is_active', 'code']),
         ]
 
@@ -566,8 +544,6 @@ class Position(BaseUUIDModelWithActiveStatus):
         ]
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['name']),
-            models.Index(fields=['code']),
             models.Index(fields=['is_active', 'name']),
         ]
 
@@ -587,8 +563,6 @@ class Gender(BaseUUIDModelWithActiveStatus):
         indexes = [
             models.Index(fields=['is_active']),
             models.Index(fields=['display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):
@@ -610,8 +584,6 @@ class MaritalStatus(BaseUUIDModelWithActiveStatus):
         indexes = [
             models.Index(fields=['is_active']),
             models.Index(fields=['display_order', 'name']),
-            models.Index(fields=['name']),  # Para búsquedas de texto
-            models.Index(fields=['code']),  # Para búsquedas por código
         ]
 
     def __str__(self):

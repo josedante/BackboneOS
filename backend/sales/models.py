@@ -48,7 +48,6 @@ class ProductAcquisition(Interaction):
         verbose_name_plural = "Adquisiciones de Productos"
         ordering = ['-occurred_at']
         indexes = [
-            models.Index(fields=['offering']),
             models.Index(fields=['price_paid']),
             models.Index(fields=['payment_modality']),
         ]

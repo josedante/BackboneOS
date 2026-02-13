@@ -80,9 +80,6 @@ class Campaign(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['end_date']),
             models.Index(fields=['funnel_stage']),
             models.Index(fields=['content_type']),
-            models.Index(fields=['division']),
-            models.Index(fields=['team']),
-            # Composite indexes for common query patterns
             models.Index(fields=['is_active', 'start_date']),
             models.Index(fields=['is_active', 'content_type']),
             models.Index(fields=['division', 'is_active']),

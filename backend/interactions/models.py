@@ -47,9 +47,6 @@ class Agent(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['agent_type']),
             models.Index(fields=['identifier']),
             models.Index(fields=['is_active']),
-            models.Index(fields=['operated_by']),
-            models.Index(fields=['represents_person']),
-            models.Index(fields=['represents_organization']),
         ]
 
     def generate_name(self):
@@ -274,13 +271,11 @@ class Touchpoint(BaseUUIDModelWithActiveStatus):
         unique_together = [['code', 'url']]
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['touchpoint_type']),  # Updated from touchpoint_type
+            models.Index(fields=['touchpoint_type']),
             models.Index(fields=['code']),
             models.Index(fields=['url']),
             models.Index(fields=['name']),
-            models.Index(fields=['channel']),
-            models.Index(fields=['medium']),  # NEW: Medium index
-            # NEW: Composite indexes for three-dimensional analysis
+            # Composite indexes for three-dimensional analysis (channel/medium are FKs)
             models.Index(fields=['channel', 'medium']),
             models.Index(fields=['medium', 'touchpoint_type']),
             models.Index(fields=['channel', 'touchpoint_type']),
@@ -346,24 +341,13 @@ class Interaction(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         ordering = ['-occurred_at']
+        # Composite indexes support analytics (touchpoint+time, agent+time); person/org/touchpoint/action/agent/representative are FKs (indexed automatically)
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['person']),
-            models.Index(fields=['organization']),
-            models.Index(fields=['touchpoint']),
-            models.Index(fields=['action']),
-            models.Index(fields=['agent']),
-            models.Index(fields=['representative']),
             models.Index(fields=['occurred_at']),
             models.Index(fields=['is_active', 'occurred_at']),
-            # Composite index for touchpoint-channel filtering (common pattern)
             models.Index(fields=['touchpoint', 'is_active']),
-            # Nuevos índices para campos añadidos
             models.Index(fields=['session_id']),
-            models.Index(fields=['ip_address']),
-            models.Index(fields=['duration_seconds']),
-            models.Index(fields=['source']),
-            # Índices compuestos para analytics
             models.Index(fields=['touchpoint', 'occurred_at']),
             models.Index(fields=['agent', 'occurred_at']),
         ]
