@@ -53,27 +53,10 @@ export default function EntitiesPage() {
     enabled: activeTab === 'organizations',
   })
 
-  // Fetch counts for tabs (without pagination to get total counts)
-  const { data: peopleCountResponse } = useQuery<PeopleResponse>({
-    queryKey: ['people-count', { search: searchTerm }],
-    queryFn: () => entitiesApi.getPeople({ 
-      ...(searchTerm && { search: searchTerm }),
-      limit: 1, // Just get 1 item to get the count
-    }),
-  })
-
-  const { data: organizationsCountResponse } = useQuery<OrganizationsResponse>({
-    queryKey: ['organizations-count', { search: searchTerm }],
-    queryFn: () => entitiesApi.getOrganizations({ 
-      ...(searchTerm && { search: searchTerm }),
-      limit: 1, // Just get 1 item to get the count
-    }),
-  })
-
   const people = getResults(peopleResponse)
   const organizations = getResults(organizationsResponse)
-  const totalPeople = peopleCountResponse?.count || 0
-  const totalOrganizations = organizationsCountResponse?.count || 0
+  const totalPeople = peopleResponse?.count ?? 0
+  const totalOrganizations = organizationsResponse?.count ?? 0
   const totalItems = activeTab === 'people' ? totalPeople : totalOrganizations
   const totalPages = Math.ceil(totalItems / pageSize)
   const isLoading = activeTab === 'people' ? peopleLoading : organizationsLoading
