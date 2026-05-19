@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google'
 
 import './globals.css'
 import { Providers } from './providers'
-import { TokenRefreshDebugger } from '@/components/dev/TokenRefreshDebugger'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,7 +28,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           {children}
-          {/* <TokenRefreshDebugger /> */}
+
         </Providers>
       </body>
     </html>
