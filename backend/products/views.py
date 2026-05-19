@@ -1,13 +1,11 @@
-from django.shortcuts import render
-from django.db.models import Q, Count, Avg, Min, Max, Prefetch
+from django.db.models import Q, Count
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny, BasePermission
-from django.conf import settings
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, BasePermission
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters
 from our_institution.models import Division
@@ -16,8 +14,9 @@ from .serializers import (
     DivisionSerializer, ProductCategorySerializer, ProductCategoryTreeSerializer,
     ModalitySerializer, CustomizationSerializer,
     ProductListSerializer, ProductDetailSerializer,
-    ProductCreateUpdateSerializer
+    ProductCreateUpdateSerializer,
 )
+from .services import duplicate_product, get_division_summary, get_product_stats
 
 
 class DivisionFilter(django_filters.FilterSet):
@@ -72,42 +71,10 @@ class DivisionViewSet(viewsets.ModelViewSet):
     def summary(self, request, pk=None):
         """Resumen estadístico de la división"""
         division = self.get_object()
-        
-        # Contar categorías
-        categories_count = division.categories.filter(is_active=True).count()
-        
-        # Contar productos
-        products_count = Product.objects.filter(
-            category__division=division,
-            is_active=True
-        ).count()
-        
-        # Estadísticas de precios
-        products_with_price = Product.objects.filter(
-            category__division=division,
-            is_active=True,
-            base_price__isnull=False
-        )
-        
-        price_stats = {}
-        if products_with_price.exists():
-            price_agg = products_with_price.aggregate(
-                avg_price=Avg('base_price'),
-                min_price=Min('base_price'),
-                max_price=Max('base_price')
-            )
-            price_stats = {
-                'products_with_price': products_with_price.count(),
-                'avg_price': price_agg['avg_price'],
-                'min_price': price_agg['min_price'],
-                'max_price': price_agg['max_price']
-            }
-        
+        summary = get_division_summary(division)
         return Response({
             'division': DivisionSerializer(division, context={'request': request}).data,
-            'categories_count': categories_count,
-            'products_count': products_count,
-            'price_statistics': price_stats
+            **summary,
         })
 
 
@@ -405,65 +372,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """Estadísticas de productos"""
         queryset = self.filter_queryset(self.get_queryset())
-        
-        stats = {
-            'total_products': queryset.count(),
-            'by_category': {},
-            'by_modality': {},
-            'by_industry': {},
-            'price_stats': {},
-            'duration_stats': {}
-        }
-        
-        # Estadísticas por categoría
-        category_stats = queryset.values(
-            'category__name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')[:10]
-        stats['by_category'] = {item['category__name'] or 'Sin categoría': item['count'] for item in category_stats}
-        
-        # Estadísticas por modalidad
-        modality_stats = queryset.values(
-            'modalities__name'
-        ).annotate(
-            count=Count('id', distinct=True)
-        ).order_by('-count')[:10]
-        stats['by_modality'] = {item['modalities__name'] or 'Sin modalidad': item['count'] for item in modality_stats}
-        
-        # Estadísticas por industria
-        industry_stats = queryset.values(
-            'related_industries__name'
-        ).annotate(
-            count=Count('id', distinct=True)
-        ).order_by('-count')[:10]
-        stats['by_industry'] = {item['related_industries__name'] or 'Sin industria': item['count'] for item in industry_stats}
-        
-        # Estadísticas de precios
-        price_data = queryset.filter(base_price__isnull=False).aggregate(
-            avg_price=Avg('base_price'),
-            min_price=Min('base_price'),
-            max_price=Max('base_price'),
-            products_with_price=Count('id')
-        )
-        stats['price_stats'] = {
-            'average': float(price_data['avg_price'] or 0),
-            'minimum': float(price_data['min_price'] or 0),
-            'maximum': float(price_data['max_price'] or 0),
-            'products_with_price': price_data['products_with_price'],
-            'products_without_price': queryset.filter(base_price__isnull=True).count()
-        }
-        
-        # Estadísticas de duración
-        duration_data = queryset.filter(duration__isnull=False).aggregate(
-            products_with_duration=Count('id')
-        )
-        stats['duration_stats'] = {
-            'products_with_duration': duration_data['products_with_duration'],
-            'products_without_duration': queryset.filter(duration__isnull=True).count()
-        }
-        
-        return Response(stats)
+        return Response(get_product_stats(queryset))
     
     @action(detail=False, methods=['get'])
     def search_advanced(self, request):
@@ -499,24 +408,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def duplicate(self, request, pk=None):
         """Duplicar un producto"""
         product = self.get_object()
-        
-        # Crear copia
-        new_product = Product.objects.get(pk=product.pk)
-        new_product.pk = None
-        new_product.name = f"{product.name} (Copia)"
-        new_product.code = f"{product.code}_COPY_{product.id}"
-        new_product.save()
-        
-        # Copiar relaciones M2M
-        new_product.included_products.set(product.included_products.all())
-        new_product.modalities.set(product.modalities.all())
-        new_product.target_segments.set(product.target_segments.all())
-        new_product.related_industries.set(product.related_industries.all())
-        new_product.related_functions.set(product.related_functions.all())
-        new_product.related_skills.set(product.related_skills.all())
-        new_product.descriptors.set(product.descriptors.all())
-        new_product.tags.set(product.tags.all())
-        
+        new_product = duplicate_product(product)
         serializer = ProductDetailSerializer(new_product, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
