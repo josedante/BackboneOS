@@ -348,6 +348,7 @@ export interface ApiParams {
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE,
+  withCredentials: true, // send httpOnly auth cookies on every request
   headers: {
     'Content-Type': 'application/json',
   },
@@ -357,43 +358,19 @@ export const api = axios.create({
 // Token refresh state to prevent multiple simultaneous refresh attempts
 let isRefreshing = false
 let failedQueue: Array<{
-  resolve: (value: unknown) => void
+  resolve: () => void
   reject: (error: Error) => void
 }> = []
 
-// Process failed requests after token refresh
-const processQueue = (error: Error | null, token: string | null = null) => {
+const processQueue = (error: Error | null) => {
   failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error)
-    } else {
-      resolve(token)
-    }
+    if (error) reject(error)
+    else resolve()
   })
-  
   failedQueue = []
 }
 
-// Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const authTokens = localStorage.getItem('auth_tokens')
-    if (authTokens) {
-      try {
-        const tokens = JSON.parse(authTokens)
-        if (tokens.access) {
-          config.headers.Authorization = `Bearer ${tokens.access}`
-        }
-      } catch (error) {
-        console.error('Error parsing auth tokens:', error)
-        localStorage.removeItem('auth_tokens')
-      }
-    }
-  }
-  return config
-})
-
-// Response interceptor to handle auth errors and token refresh
+// Response interceptor: on 401, attempt a cookie-based token refresh then retry
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -401,75 +378,25 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject })
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
-        }).catch(err => {
-          return Promise.reject(err)
-        })
+        }).then(() => api(originalRequest))
+          .catch(err => Promise.reject(err))
       }
 
       originalRequest._retry = true
       isRefreshing = true
 
       try {
-        const authTokens = localStorage.getItem('auth_tokens')
-        if (!authTokens) {
-          throw new Error('No refresh token available')
-        }
-
-        const tokens = JSON.parse(authTokens)
-        if (!tokens.refresh) {
-          throw new Error('No refresh token available')
-        }
-
-        // Attempt to refresh the token
-        const response = await fetch(`${process.env['NEXT_PUBLIC_API_BASE'] || 'https://backend.proyecto-opensource.orb.local'}/users/jwt/refresh/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ refresh: tokens.refresh }),
-        })
-
-        if (!response.ok) {
-          throw new Error('Token refresh failed')
-        }
-
-        const data = await response.json()
-        
-        // Update tokens in localStorage
-        const newTokens = {
-          access: data.access,
-          refresh: data.refresh || tokens.refresh // Use new refresh token if provided
-        }
-        localStorage.setItem('auth_tokens', JSON.stringify(newTokens))
-
-        // Update the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${data.access}`
-        
-        // Process queued requests
-        processQueue(null, data.access)
-        
-        // Retry the original request
+        // POST with no body — server reads the refresh_token httpOnly cookie
+        await api.post('/users/jwt/refresh/')
+        processQueue(null)
         return api(originalRequest)
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError)
-        
-        // Clear auth data and redirect to login
-        localStorage.removeItem('auth_tokens')
-        localStorage.removeItem('user')
-        
-        // Process queued requests with error
-        processQueue(refreshError as Error, null)
-        
+        processQueue(refreshError as Error)
         if (typeof window !== 'undefined') {
           window.location.href = '/login'
         }
-        
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
@@ -482,19 +409,18 @@ api.interceptors.response.use(
 
 // API endpoints
 export const authApi = {
-  login: async (username: string, password: string) => {
+  login: async (username: string, password: string): Promise<{ user: User }> => {
     const response = await api.post('/users/jwt/login/', { username, password })
     return response.data
   },
 
-  getCurrentUser: async () => {
+  getCurrentUser: async (): Promise<User> => {
     const response = await api.get('/users/user/')
     return response.data
   },
 
-  logout: async () => {
-    const response = await api.post('/users/jwt/logout/')
-    return response.data
+  logout: async (): Promise<void> => {
+    await api.post('/users/jwt/logout/')
   },
 }
 

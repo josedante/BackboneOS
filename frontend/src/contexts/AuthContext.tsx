@@ -9,14 +9,8 @@ import { TokenRefreshManager } from '@/components/auth/TokenRefreshManager'
 import { authApi } from '@/lib/api'
 import type { User } from '@/lib/api'
 
-interface AuthTokens {
-  access: string
-  refresh: string
-}
-
 interface AuthContextType {
   user: User | null
-  tokens: AuthTokens | null
   isAuthenticated: boolean
   isLoading: boolean
   login: (username: string, password: string) => Promise<boolean>
@@ -33,75 +27,27 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
-  const [tokens, setTokens] = useState<AuthTokens | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Initialize auth state from localStorage
+  // On mount, restore session from the httpOnly access_token cookie.
+  // A 401 here means either no cookie or an expired one; the axios interceptor
+  // will try the refresh cookie automatically before rejecting.
   useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const storedTokens = localStorage.getItem('auth_tokens')
-        const storedUser = localStorage.getItem('user')
-        
-        if (storedTokens && storedUser) {
-          const parsedTokens = JSON.parse(storedTokens)
-          const parsedUser = JSON.parse(storedUser)
-          
-          setTokens(parsedTokens)
-          setUser(parsedUser)
-        }
-      } catch (error) {
-        console.error('Error initializing auth state:', error)
-        // Clear corrupted data
-        localStorage.removeItem('auth_tokens')
-        localStorage.removeItem('user')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    initializeAuth()
+    authApi.getCurrentUser()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false))
   }, [])
 
-  // Store tokens in localStorage
-  const storeTokens = (newTokens: AuthTokens) => {
-    setTokens(newTokens)
-    localStorage.setItem('auth_tokens', JSON.stringify(newTokens))
-  }
-
-  // Store user in localStorage
-  const storeUser = (newUser: User) => {
-    setUser(newUser)
-    localStorage.setItem('user', JSON.stringify(newUser))
-  }
-
-  // Clear all auth data
-  const clearAuthData = () => {
-    setUser(null)
-    setTokens(null)
-    localStorage.removeItem('auth_tokens')
-    localStorage.removeItem('user')
-  }
-
-  // Login function
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true)
-      const response = await authApi.login(username, password)
-      
-      const newTokens: AuthTokens = {
-        access: response.access,
-        refresh: response.refresh
-      }
-      
-      storeTokens(newTokens)
-      storeUser(response.user)
-      
+      const { user: loggedInUser } = await authApi.login(username, password)
+      setUser(loggedInUser)
       toast.success('Login successful!')
       return true
     } catch (error) {
-      // Login error
       const errorMessage = (error as any).response?.data?.error || 'Login failed'
       toast.error(errorMessage)
       return false
@@ -110,83 +56,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  // Logout function
   const logout = async (): Promise<void> => {
     try {
-      if (tokens?.access) {
-        await authApi.logout()
-      }
-    } catch (error) {
-      console.error('Logout error:', error)
-      // Continue with logout even if API call fails
+      await authApi.logout()
+    } catch {
+      // Continue with local logout even if the server call fails
     } finally {
-      clearAuthData()
+      setUser(null)
       toast.success('Logged out successfully')
       router.push('/login')
     }
   }
 
-  // Refresh token function
+  // Called by TokenRefreshManager on a proactive timer.
+  // Token rotation happens server-side via the httpOnly cookie; we call /me to
+  // confirm the session is alive and pick up any user-data changes.
   const refreshToken = async (): Promise<boolean> => {
-    if (!tokens?.refresh) {
-      return false
-    }
-
     try {
-      const response = await fetch(`${process.env['NEXT_PUBLIC_API_BASE'] || 'https://backend.proyecto-opensource.orb.local'}/users/jwt/refresh/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh: tokens.refresh }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Token refresh failed')
-      }
-
-      const data = await response.json()
-      
-      const newTokens: AuthTokens = {
-        access: data.access,
-        refresh: data.refresh || tokens.refresh // Use new refresh token if provided, otherwise keep current
-      }
-      
-      storeTokens(newTokens)
+      const freshUser = await authApi.getCurrentUser()
+      setUser(freshUser)
       return true
-    } catch (error) {
-      console.error('Token refresh error:', error)
-      clearAuthData()
+    } catch {
+      setUser(null)
       router.push('/login')
       return false
     }
   }
 
-  // Update user function
   const updateUser = (newUser: User) => {
-    storeUser(newUser)
-  }
-
-  const value: AuthContextType = {
-    user,
-    tokens,
-    isAuthenticated: !!user && !!tokens?.access,
-    isLoading,
-    login,
-    logout,
-    refreshToken,
-    updateUser,
+    setUser(newUser)
   }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      logout,
+      refreshToken,
+      updateUser,
+    }}>
       <TokenRefreshManager />
       {children}
     </AuthContext.Provider>
   )
 }
 
-// Custom hook to use auth context
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (context === undefined) {

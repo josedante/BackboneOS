@@ -34,9 +34,8 @@ export class AuthErrorBoundary extends Component<Props, State> {
   }
 
   handleLogout = () => {
-    // Clear auth data and redirect to login
-    localStorage.removeItem('auth_tokens')
-    localStorage.removeItem('user')
+    // Auth state lives in httpOnly cookies; navigation to /login is enough.
+    // The server will clear the cookies when the user logs in again.
     window.location.href = '/login'
   }
 
