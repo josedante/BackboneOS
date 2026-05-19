@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-This is a full-stack application with a Django REST Framework backend and Nuxt.js 3 frontend, using PostgreSQL as the database. The project is containerized with Docker.
+This is a full-stack application with a Django REST Framework backend and Next.js 15 frontend, using PostgreSQL as the database. The project is containerized with Docker.
 
 ### Key Components
 
@@ -17,7 +17,7 @@ This is a full-stack application with a Django REST Framework backend and Nuxt.j
   - Token-based authentication with DRF is available, too
   - API endpoints under `/api/`
 
-- **Frontend**: Nuxt.js 3 + TypeScript in `frontend/` directory
+- **Frontend**: Next.js 15 + TypeScript in `frontend/` directory
 
   - Uses modern Nuxt 3 features with auto-imports
   - API services in `src/services/` communicate with Django backend
