@@ -187,10 +187,20 @@ WHITENOISE_AUTOREFRESH = DEBUG  # Only auto-refresh in development
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # DEFAULT_AUTO_FIELD = 'backend.fields.UUIDAutoField'
 
+# =============================================================================
+# AUTH COOKIE SETTINGS
+# =============================================================================
+# Development (DEBUG=True): frontend and backend are on different origins
+# (localhost:3000 vs backend.orb.local), so cookies must be SameSite=None;Secure.
+# Production (DEBUG=False): frontend and backend share the same registered domain
+# (app.mysite.com + api.mysite.com), so SameSite=Lax is sufficient and safer.
+COOKIE_SAMESITE = config('COOKIE_SAMESITE', default='None' if DEBUG else 'Lax')
+COOKIE_SECURE = config('COOKIE_SECURE', default=True, cast=bool)
+
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.CookieJWTAuthentication',  # cookie-first, Bearer fallback
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
