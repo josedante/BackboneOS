@@ -120,23 +120,19 @@ class UserSession(BaseUUIDModelWithActiveStatus):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     
-    # Campos calculados para reportes rápidos
-    session_duration_minutes = models.IntegerField(null=True, blank=True)
-    
     class Meta:
         verbose_name = "Sesión de Usuario"
         verbose_name_plural = "Sesiones de Usuario"
-        # Particionado por fecha para escalabilidad
         indexes = [
             models.Index(fields=["user", "login_time"]),
             models.Index(fields=["login_time"]),
         ]
 
-    def save(self, *args, **kwargs):
+    @property
+    def session_duration_minutes(self) -> int | None:
         if self.logout_time and self.login_time:
-            duration = self.logout_time - self.login_time
-            self.session_duration_minutes = int(duration.total_seconds() / 60)
-        super().save(*args, **kwargs)
+            return int((self.logout_time - self.login_time).total_seconds() / 60)
+        return None
 
 
 # Para eventos críticos que necesitan integridad inmediata
