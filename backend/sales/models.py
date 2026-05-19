@@ -49,7 +49,7 @@ class ProductAcquisition(Interaction):
         ordering = ['-occurred_at']
         indexes = [
             models.Index(fields=['price_paid']),
-            models.Index(fields=['payment_modality']),
+            # ['payment_modality'] removed — 3-value enum, low cardinality
         ]
 
     def clean(self):
@@ -217,6 +217,12 @@ class SalesOpportunity(BaseUUIDModelWithActiveStatus):
     class Meta:
         unique_together = ('person', 'organization', 'offering')
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_active', 'stage']),
+            models.Index(fields=['product', 'stage']),
+            models.Index(fields=['representative', 'stage']),
+            models.Index(fields=['expected_closing_date']),
+        ]
 
     def __str__(self):
         return f"{self.person} → {self.product}"

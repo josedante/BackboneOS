@@ -46,7 +46,7 @@ class Agent(BaseUUIDModelWithActiveStatus):
         indexes = [
             models.Index(fields=['agent_type']),
             models.Index(fields=['identifier']),
-            models.Index(fields=['is_active']),
+            # ['is_active'] removed — boolean, low-cardinality
         ]
 
     def generate_name(self):
@@ -98,12 +98,8 @@ class Medium(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['is_active']),
-            models.Index(fields=['code']),
-            models.Index(fields=['name']),
-            models.Index(fields=['communication_type']),
-        ]
+        # All indexes removed: name/code are unique=True (auto-indexed);
+        # is_active and communication_type are low-cardinality on a tiny lookup table
 
     def __str__(self):
         return self.name
@@ -133,12 +129,8 @@ class Channel(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['is_active']),
-            models.Index(fields=['code']),
-            models.Index(fields=['name']),
-            models.Index(fields=['source_type']),
-        ]
+        # All indexes removed: name/code are unique=True (auto-indexed);
+        # is_active and source_type are low-cardinality on a tiny lookup table
 
     def __str__(self):
         return self.name
@@ -151,11 +143,7 @@ class ActionType(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['is_active']),
-            models.Index(fields=['code']),
-            models.Index(fields=['name']),
-        ]
+        # All indexes removed: name/code are unique=True (auto-indexed); is_active is boolean
 
     def __str__(self):
         return self.name
@@ -169,11 +157,7 @@ class Action(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['is_active']),
-            models.Index(fields=['code']),
-            models.Index(fields=['name']),
-        ]
+        # All indexes removed: name/code are unique=True (auto-indexed); is_active is boolean
 
     def __str__(self):
         return self.name
@@ -183,15 +167,10 @@ class TouchpointType(BaseUUIDModelWithActiveStatus):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=30, unique=True)
     description = models.TextField(blank=True)
-    
 
     class Meta:
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['is_active']),
-            models.Index(fields=['code']),
-            models.Index(fields=['name']),
-        ]
+        # All indexes removed: name/code are unique=True (auto-indexed); is_active is boolean
 
     def __str__(self):
         return self.name
