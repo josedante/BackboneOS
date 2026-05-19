@@ -377,6 +377,12 @@ api.interceptors.response.use(
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // The refresh endpoint itself returned 401 — both tokens are gone.
+      // Return immediately to avoid an infinite loop / deadlock.
+      if (originalRequest.url?.includes('/jwt/refresh/')) {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -394,7 +400,8 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError as Error)
-        if (typeof window !== 'undefined') {
+        // Redirect to login only when not already there to prevent a redirect loop
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login'
         }
         return Promise.reject(refreshError)
