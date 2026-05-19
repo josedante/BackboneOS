@@ -10,7 +10,6 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('about/', views.about, name='about'),
     path('api/', include(router.urls)),
-    path('login/', views.login, name='api_login'),
     path('jwt/login/', views.jwt_login, name='jwt_login'),
     path('jwt/logout/', views.jwt_logout, name='jwt_logout'),
     path('jwt/refresh/', views.jwt_cookie_refresh, name='jwt_refresh'),
