@@ -35,18 +35,9 @@ class Person(BaseUUIDModelWithActiveStatus):
         unique_together = ("id_type", "id_number")
         indexes = [
             models.Index(fields=['first_name', 'last_name']),
-            models.Index(fields=['birthday']),
-            models.Index(fields=['id_type', 'id_number']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['is_active', 'country_of_nationality']),
-            models.Index(fields=['is_active', 'gender']),
-            models.Index(fields=['is_active', 'marital_status']),
-            models.Index(fields=['is_active', 'birthday']),
-            models.Index(fields=['gender', 'country_of_nationality']),
-            models.Index(fields=['marital_status', 'gender']),
+            # ['birthday'] removed — covered by ['is_active', 'birthday'] composite below
             models.Index(fields=['created_at']),
             models.Index(fields=['updated_at']),
-            models.Index(fields=['is_active', 'created_at']),
         ]
 
     def __str__(self):
@@ -141,23 +132,17 @@ class ContactDetail(BaseUUIDModelWithActiveStatus):
             )
         ]
         indexes = [
-            models.Index(fields=["is_primary"]),
-            models.Index(fields=["verified"]),
+            # ['is_primary'], ['verified'], ['is_active'] removed — boolean, covered by composites below
             models.Index(fields=["email"]),
             models.Index(fields=["phone"]),
-            models.Index(fields=["is_active"]),
             models.Index(fields=["person", "is_primary"]),
             models.Index(fields=["organization", "is_primary"]),
             models.Index(fields=["person", "is_active"]),
             models.Index(fields=["organization", "is_active"]),
-            models.Index(fields=["is_active", "is_primary"]),
-            models.Index(fields=["is_active", "verified"]),
             models.Index(fields=["email", "verified"]),
             models.Index(fields=["phone", "verified"]),
             models.Index(fields=["email", "is_active"]),
             models.Index(fields=["phone", "is_active"]),
-            models.Index(fields=["person", "verified"]),
-            models.Index(fields=["organization", "verified"]),
         ]
 
     def __str__(self):
@@ -203,19 +188,11 @@ class IndividualProfile(BaseUUIDModelWithActiveStatus):
 
     class Meta:
         indexes = [
-            models.Index(fields=['preferred_contact_medium']),
-            models.Index(fields=['accepts_privacy_policy']),
             models.Index(fields=['allows_marketing']),
-            models.Index(fields=['is_active']),
-            models.Index(fields=['is_active', 'academic_degree']),
-            models.Index(fields=['is_active', 'allows_marketing']),
-            models.Index(fields=['is_active', 'preferred_contact_medium']),
-            models.Index(fields=['is_active', 'accepts_privacy_policy']),
-            models.Index(fields=['academic_degree', 'allows_marketing']),
-            models.Index(fields=['preferred_contact_medium', 'allows_marketing']),
-            models.Index(fields=['accepts_privacy_policy', 'allows_marketing']),
+            models.Index(fields=['accepts_privacy_policy']),
+            models.Index(fields=['academic_degree']),
+            models.Index(fields=['preferred_contact_medium']),
             models.Index(fields=['person', 'is_active']),
-            models.Index(fields=['academic_degree', 'preferred_contact_medium']),
         ]
 
 
@@ -236,13 +213,12 @@ class Organization(BaseUUIDModelWithActiveStatus):
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['legal_name']),
-            models.Index(fields=['id_type', 'id_number']),
+            # ['id_type', 'id_number'] removed — unique_together already creates this index
             models.Index(fields=['is_active', 'org_type']),
             models.Index(fields=['is_active', 'industry']),
             models.Index(fields=['is_active', 'country']),
-            models.Index(fields=['org_type', 'industry']),
-            models.Index(fields=['country', 'industry']),
-            models.Index(fields=['is_active']),
+            # ['org_type', 'industry'], ['country', 'industry'] removed — speculative compounds
+            # ['is_active'] removed — covered as prefix by the composites above
         ]
 
     def __str__(self):
@@ -353,8 +329,7 @@ class PhysicalAddress(BaseUUIDModelWithActiveStatus):
         ]
         indexes = [
             # Índices principales para consultas frecuentes
-            models.Index(fields=['is_primary']),
-            models.Index(fields=['use_for_billing']),
+            # ['is_primary'], ['use_for_billing'] removed — boolean, covered by composites below
             models.Index(fields=['owner_person']),
             models.Index(fields=['owner_org']),
             models.Index(fields=['country']),
@@ -363,8 +338,6 @@ class PhysicalAddress(BaseUUIDModelWithActiveStatus):
             models.Index(fields=['country', 'city']),
             models.Index(fields=['region_or_state', 'city']),
             # Índices compuestos para filtrado común
-            models.Index(fields=['is_active', 'is_primary']),
-            models.Index(fields=['is_active', 'use_for_billing']),
             models.Index(fields=['owner_person', 'is_primary']),
             models.Index(fields=['owner_org', 'is_primary']),
             models.Index(fields=['owner_person', 'is_active']),
