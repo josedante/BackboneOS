@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'django_redis',
     'rest_framework',
-    'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
@@ -201,7 +200,6 @@ COOKIE_SECURE = config('COOKIE_SECURE', default=True, cast=bool)
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'users.authentication.CookieJWTAuthentication',  # cookie-first, Bearer fallback
-        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [

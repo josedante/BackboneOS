@@ -6,7 +6,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
@@ -56,32 +55,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return UserCreateSerializer
         return UserSerializer
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def login(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-
-    if username and password:
-        user = authenticate(username=username, password=password)
-        if user:
-            token, created = Token.objects.get_or_create(user=user)
-            serializer = UserSerializer(user)
-            return Response({
-                'token': token.key,
-                'user': serializer.data
-            })
-        else:
-            return Response(
-                {'error': 'Credenciales inválidas'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-    else:
-        return Response(
-            {'error': 'Username y password son requeridos'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
