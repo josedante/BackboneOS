@@ -230,7 +230,12 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default=[]).split(',') if isinstance(config('CORS_ALLOWED_ORIGINS', default=None), str) else []
 
 # CSRF Configuration
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default=[]).split(',') if isinstance(config('CSRF_TRUSTED_ORIGINS', default=None), str) else []
+# In dev, default to the local orb.local backend origin so the Django admin works.
+# In production, set CSRF_TRUSTED_ORIGINS explicitly via env var.
+_csrf_default = 'https://backend.proyecto-opensource.orb.local' if DEBUG else ''
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in config('CSRF_TRUSTED_ORIGINS', default=_csrf_default).split(',') if o.strip()
+]
 
 # Security Settings for Production
 if not DEBUG:
