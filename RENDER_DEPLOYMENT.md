@@ -5,12 +5,12 @@ This guide will help you deploy your BackboneOS CRM ecosystem to Render using th
 ## ⚠️ CRITICAL WARNINGS
 
 ### 🗄️ Database Data Loss Risk
-**FREE TIER POSTGRESQL EXPIRES IN 90 DAYS**
+**FREE TIER POSTGRESQL EXPIRES IN 30 DAYS**
 
-- **Risk**: Your database will be automatically deleted after 90 days on the free tier
+- **Risk**: Your database will be automatically deleted after 30 days on the free tier
 - **Impact**: All your CRM data will be permanently lost
-- **Solution**: Upgrade to a paid PostgreSQL plan ($7/month) before the 90-day limit
-- **Recommendation**: Upgrade within 60 days to ensure smooth transition
+- **Solution**: Upgrade to a paid PostgreSQL plan ($7/month) before the 30-day limit
+- **Recommendation**: Upgrade within 2 weeks of provisioning to ensure smooth transition
 
 ### 💰 Cost Optimization
 **OPTIONAL SERVICES CAN BE DELETED**
@@ -186,7 +186,7 @@ You'll need to set these in the Render dashboard:
 ### Free Tier Limits
 - **Web Services**: 750 hours/month
 - **Worker Services**: 750 hours/month
-- **PostgreSQL**: 90 days, 1GB storage ⚠️ **DATA LOSS RISK**
+- **PostgreSQL**: 30 days, 1GB storage ⚠️ **DATA LOSS RISK**
 - **Redis**: 25MB storage
 
 ### Upgrade Path
