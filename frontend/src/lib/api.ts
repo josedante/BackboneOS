@@ -383,6 +383,11 @@ api.interceptors.response.use(
         return Promise.reject(error)
       }
 
+      // On the login page there are no cookies yet — skip refresh entirely.
+      if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject })
