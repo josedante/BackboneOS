@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { TokenRefreshManager } from '@/components/auth/TokenRefreshManager'
@@ -29,11 +29,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const pathname = usePathname()
 
   // On mount, restore session from the httpOnly access_token cookie.
-  // A 401 here means either no cookie or an expired one; the axios interceptor
-  // will try the refresh cookie automatically before rejecting.
+  // Skip on the login page — there are no cookies yet and the 401 is expected.
   useEffect(() => {
+    if (pathname === '/login') {
+      setIsLoading(false)
+      return
+    }
     authApi.getCurrentUser()
       .then(setUser)
       .catch(() => setUser(null))
