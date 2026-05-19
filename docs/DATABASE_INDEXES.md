@@ -12,51 +12,59 @@ This document records the index policy for Django models and a summary of the in
 2. **Prefer composite indexes for real query patterns**
    - Add composite indexes (e.g. `(website, started_at)`, `(touchpoint, occurred_at)`) when filters or ordering consistently use those column combinations. Single-column indexes on the same columns are redundant if the leftmost column is already indexed (e.g. by FK).
 
-3. **Limit indexes on small reference tables**
-   - For lookup/reference tables (e.g. world app, Medium, Channel, ActionType) that are typically small (hundreds to low thousands of rows), keep at most one or two indexes (e.g. `is_active` and one composite for common list ordering). Avoid indexing every filter column.
+3. **Do not index low-cardinality fields standalone**
+   - Boolean fields (`is_active`, `is_primary`, `verified`) and small enums (< ~15 distinct values) have too little selectivity for standalone indexes — the planner will choose a sequential scan. Use them only as the right-hand column in a composite index with a high-cardinality left column (e.g. `(representative, stage)`, `(person, is_active)`).
 
-4. **When reverting a removal**
+4. **Limit indexes on small reference tables**
+   - For lookup/reference tables (e.g. world app, Medium, Channel, ActionType) that are typically small (hundreds to low thousands of rows), add no explicit indexes at all — sequential scans on small tables are always faster than index lookups.
+
+5. **When reverting a removal**
    - If a removed index is re-added after observing slow queries, document the revert here (model, index, reason, migration name).
 
 ## Audit summary (index cleanup)
 
-The following changes were applied to remove redundant or over-defensive indexes. Indexes listed as "Removed" were redundant with FK/unique or trimmed on small tables.
+The following changes were applied in two rounds (initial FK/unique audit + second-pass boolean/cardinality audit). Migration names are listed per app.
 
-### interactions
-- **Agent**: Removed single-column indexes on FK fields `operated_by`, `represents_person`, `represents_organization`. Kept `agent_type`, `identifier`, `is_active`.
-- **Touchpoint**: Removed single-column indexes on FK fields `channel`, `medium`. Kept composite indexes and indexes on `code`, `url`, `name`, `touchpoint_type`, `is_active`.
-- **Interaction**: Removed single-column indexes on FK fields `person`, `organization`, `touchpoint`, `action`, `agent`, `representative`. Removed single-column indexes on `ip_address`, `duration_seconds`, `source`. Kept composite indexes for analytics (`touchpoint`+`occurred_at`, `agent`+`occurred_at`, `is_active`+`occurred_at`, etc.) and `session_id`, `occurred_at`, `is_active`.
+### interactions — migration `0005_remove_redundant_indexes`
+- **Agent**: Removed `['is_active']` (boolean). Kept `['agent_type']`, `['identifier']`.
+- **Medium, Channel, ActionType, Action, TouchpointType**: Removed ALL explicit indexes. `name` and `code` are `unique=True` (auto-indexed); remaining fields are low-cardinality on tiny lookup tables.
+- **Touchpoint**: Kept composite indexes for three-dimensional analysis: `['channel','medium']`, `['medium','touchpoint_type']`, `['channel','touchpoint_type']`. Also kept `['is_active']`, `['touchpoint_type']`, `['code']`, `['url']`, `['name']`.
+- **Interaction**: Kept composites for analytics — `['is_active']`, `['occurred_at']`, `['is_active','occurred_at']`, `['touchpoint','is_active']`, `['session_id']`, `['touchpoint','occurred_at']`, `['agent','occurred_at']`.
 
 ### websites
-- **WebSession**: Removed `db_index=True` from `session_id` (column has `unique=True`, which creates an index). Removed `Index(fields=['session_id'])` from Meta. Kept composite indexes.
-- **WebInteraction**: Removed duplicate `Index(fields=['session_id'])` and `Index(fields=['visitor_cookie'])` from Meta (fields already have `db_index=True`). Kept composite indexes.
+- **WebSession**: Removed `db_index=True` from `session_id` (`unique=True` already creates an index). Removed `Index(fields=['session_id'])` from Meta. Kept composite indexes.
+- **WebInteraction**: Removed duplicate `Index(fields=['session_id'])` and `Index(fields=['visitor_cookie'])` (fields have `db_index=True`). Kept composite indexes.
 
-### world
-- Removed single-column indexes on FK columns (`parent`, `country`, `family`) and on columns that are `unique=True` or part of `unique_together` (e.g. `name`, `code` where unique). Trimmed small reference tables to fewer indexes (e.g. kept `is_active` and one ordering composite per model). See migrations `world/migrations/0003_remove_redundant_indexes.py` for the full list.
+### world — migration `0003_remove_redundant_indexes`
+- Removed single-column indexes on FK columns (`parent`, `country`, `family`) and on `unique=True` columns (`name`, `code`). Small reference tables pruned to zero or one index.
 
-### entities
-- **Person**: Removed single-column indexes on FK fields `gender`, `marital_status`, `country_of_nationality`, `id_type`. Kept composites and non-FK indexes.
-- **ContactDetail**: Removed single-column indexes on `person`, `organization` (FKs). Kept composites and other indexes.
-- **IndividualProfile**: Removed single-column indexes on `person`, `academic_degree` (FK/OneToOne). Kept composites and other indexes.
-- **Organization**: Removed single-column indexes on `org_type`, `industry`, `country`, `id_type` (FKs). Kept composites and other indexes.
+### entities — migration `0003_remove_redundant_indexes`
+- **Person**: Removed `['id_type','id_number']` (redundant with `unique_together`), `['is_active']`, all standalone birthday-related indexes, gender/marital_status composites, `['is_active','country_of_nationality']`, `['is_active','gender']`, `['is_active','created_at']`. Kept `['first_name','last_name']`, `['created_at']`, `['updated_at']`.
+- **ContactDetail**: Removed `['is_primary']`, `['verified']`, `['is_active']`, `['is_active','is_primary']`, `['is_active','verified']`, `['person','verified']`, `['organization','verified']`. Kept `['email']`, `['phone']`, `['person','is_primary']`, `['organization','is_primary']`, `['person','is_active']`, `['organization','is_active']`, `['email','verified']`, `['phone','verified']`, `['email','is_active']`, `['phone','is_active']`.
+- **IndividualProfile**: Removed all `['is_active',X]` composites (two booleans — too low selectivity). Added standalone `['academic_degree']`. Kept `['allows_marketing']`, `['accepts_privacy_policy']`, `['preferred_contact_medium']`, `['person','is_active']`.
+- **Organization**: Removed `['id_type','id_number']` (redundant with `unique_together`), `['is_active']`, `['org_type','industry']`, `['country','industry']`. Kept `['name']`, `['legal_name']`, `['is_active','org_type']`, `['is_active','industry']`, `['is_active','country']`.
+- **PhysicalAddress**: Removed `['is_primary']`, `['use_for_billing']`, `['is_active','is_primary']`, `['is_active','use_for_billing']`. Kept owner indexes, geographic indexes, owner+is_primary/is_active composites.
 
-### users
-- **StaffProfile**: Removed single-column indexes on `division`, `position`, `manager` (FKs). Kept `is_active`, `verified`.
-- **UserTag**: Removed single-column index on `representative` (FK). Kept `tag_type`, `is_active`.
-- **UserPreference**: Removed single-column index on `user` (OneToOne). Kept other indexes.
+### users — migration `0004_remove_redundant_indexes`
+- **StaffProfile**: Removed `['is_active']`, `['verified']` (boolean). `indexes = []`.
+- **UserTag**: Removed `['tag_type']` (9-value enum), `['is_active']` (boolean). `indexes = []`.
+- **UserPreference**: Removed `['preferred_contact_medium']` (6-value enum), `['notifications_enabled']`, `['is_active']` (booleans). `indexes = []`.
+- **UserSession**: Kept `['user','login_time']`, `['login_time']`.
+- **CriticalUserEvent**: Kept `['user','timestamp']`, `['event_type','timestamp']`.
 
 ### products
 - **ProductCategory**: Removed single-column index on `parent` (FK). Kept `division`+`is_active` composite and others.
 - **Product**: Removed single-column indexes on `name`, `code` (unique). Removed single-column index on `category` (FK). Kept `category`+`is_active`, `base_price`, `is_active`.
 
-### sales
-- **ProductAcquisition**: Removed single-column index on `offering` (FK). Kept `price_paid`, `payment_modality`. (Note: sales app was commented out in INSTALLED_APPS at audit time; when enabled, run `makemigrations sales` to generate the migration.)
+### sales — migration `0002_update_indexes`
+- **ProductAcquisition**: Removed `['payment_modality']` (3-value enum). Kept `['price_paid']`.
+- **SalesOpportunity**: Added `['is_active','stage']`, `['product','stage']`, `['representative','stage']`, `['expected_closing_date']` — missing indexes for real query patterns (pipeline views, rep dashboards, due-date filtering).
 
 ### campaigns
 - **Campaign**: Removed single-column indexes on `division`, `team` (FKs). Kept composite and other indexes.
 
 ### connectors
-- No model changes. FailedEvent uses `db_index=True` and Meta composite indexes; both are kept. TouchpointMappingRule has no FK in its index list.
+- No model changes. `FailedEvent` uses `db_index=True` and Meta composite indexes; both are kept.
 
 ## When adding indexes
 
