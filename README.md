@@ -1,10 +1,10 @@
-# 🦴 BackboneOS - CRM Full-Stack
+# 🦴 BackboneOS - Infraestructura, Atribución y Predicción listas para la rea de la IA
 
 > 🐳 **CONFIGURACIÓN OBLIGATORIA**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](DOCKER_README.md) para setup rápido.
 
 > **Sistema de gestión de relaciones con clientes (CRM) construido con arquitectura moderna**
 
-BackboneOS es el sistema CRM que se convertirá en el sistema operativo para la única función que Peter Druker consideró esencial en un negocio: la creación de clientes.
+BackboneOS es una **infraestructura "Sovereign First-Party" de código abierto** diseñada para capturar, limpiar y unificar cada punto de contacto de tus clientes directamente dentro de tus propios servidores (PostgreSQL/Redis).
 
 ## 🚀 Inicio Rápido
 
