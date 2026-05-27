@@ -113,4 +113,4 @@ docker-compose exec db pg_dump -U myuser mydatabase > backup.sql
 - Development: `secure: false`, `sameSite: 'lax'` for HTTP localhost
 - Production: `secure: true`, `sameSite: 'strict'` for HTTPS
 - CORS origins configurable via `CORS_ALLOWED_ORIGINS` environment variable
-- See `DEPLOYMENT.md` for production security checklist
+- See `docs/operations/DEPLOYMENT.md` for production security checklist

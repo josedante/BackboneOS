@@ -1,6 +1,6 @@
 # 🦴 BackboneOS - Infraestructura, Atribución y Predicción listas para la rea de la IA
 
-> 🐳 **CONFIGURACIÓN OBLIGATORIA**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](DOCKER_README.md) para setup rápido.
+> 🐳 **CONFIGURACIÓN OBLIGATORIA**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](docs/operations/DOCKER_README.md) para setup rápido.
 
 > **Sistema de gestión de relaciones con clientes (CRM) construido con arquitectura moderna**
 
@@ -165,9 +165,9 @@ npm run lint
 
 La documentación del proyecto está organizada de forma modular para facilitar la navegación y el mantenimiento:
 
-### 🗺️ [Navegación de Documentación](docs/NAVIGATION.md)
+### 🗺️ [Índice de Documentación](docs/README.md) · [Navegación](docs/NAVIGATION.md)
 
-**Índice completo y mapa de navegación** - Encuentra rápidamente lo que necesitas
+**Índice por categoría y mapa de navegación** - Encuentra rápidamente lo que necesitas
 
 ### 📖 Documentación Principal
 
@@ -190,10 +190,10 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 ### 🛠️ Documentación Técnica Adicional
 
 - **[🔴 Redis y Caché](docs/REDIS.md)** - Configuración de Redis, caché y sesiones optimizadas
-- **[CLAUDE.md](CLAUDE.md)** - Guía técnica completa para desarrollo
-- **[COMMANDS.md](COMMANDS.md)** - Comandos de desarrollo y deployment
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Configuración de producción
-- **[SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)** - Auditoría de seguridad
+- **[CLAUDE.md](docs/ai/CLAUDE.md)** - Guía técnica completa para desarrollo
+- **[COMMANDS.md](docs/operations/COMMANDS.md)** - Comandos de desarrollo y deployment
+- **[DEPLOYMENT.md](docs/operations/DEPLOYMENT.md)** - Configuración de producción
+- **[SECURITY_AUDIT_REPORT.md](docs/reports/SECURITY_AUDIT_REPORT.md)** - Auditoría de seguridad
 
 ## 📊 Estado del Proyecto
 

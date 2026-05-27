@@ -30,10 +30,10 @@ python manage.py <command>
 
 ### Key files for context:
 
-- `DOCKER_README.md` - Quick setup guide
-- `.vscode/DOCKER_DEVELOPMENT.md` - Detailed instructions
-- `COPILOT_INSTRUCTIONS.md` - Complete project documentation
-- `DO_NOT_RUN.md` - Commands to avoid
+- `docs/operations/DOCKER_README.md` - Quick setup guide
+- `docs/operations/DOCKER_DEVELOPMENT.md` - Detailed instructions
+- `docs/ai/COPILOT_INSTRUCTIONS.md` - Complete project documentation
+- `docs/operations/DO_NOT_RUN.md` - Commands to avoid
 
 ### Architecture:
 

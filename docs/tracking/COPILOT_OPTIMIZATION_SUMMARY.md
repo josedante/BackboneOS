@@ -58,7 +58,7 @@
 
 ```
 # Usar archivo principal optimizado
-@COPILOT_INSTRUCTIONS.md  # 220 líneas esenciales
+@docs/ai/COPILOT_INSTRUCTIONS.md  # 220 líneas esenciales
 ```
 
 ### Para Trabajo Específico por App
@@ -87,7 +87,7 @@
 
 ```
 # Comandos y configuración básica
-@COPILOT_CORE.md  # 199 líneas fundamentales
+@docs/ai/COPILOT_CORE.md  # 199 líneas fundamentales
 ```
 
 ## 🔄 Archivos de Respaldo

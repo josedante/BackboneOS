@@ -1,6 +1,6 @@
 # 🎯 App Campaigns - Sistema de Gestión de Campañas Comerciales
 
-> ⚠️ **IMPORTANTE**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](../DOCKER_README.md) para configuración.
+> ⚠️ **IMPORTANTE**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](../../docs/operations/DOCKER_README.md) para configuración.
 
 ## ✅ Propósito
 

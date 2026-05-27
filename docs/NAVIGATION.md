@@ -4,6 +4,8 @@
 
 Esta es la guía de navegación completa para toda la documentación del proyecto BackboneOS. Cada documento está especializado en un área específica para facilitar el mantenimiento y la consulta.
 
+**Índice por categoría**: [docs/README.md](README.md) (operations, reports, tracking, AI)
+
 ## 🏠 Documentación Principal
 
 ### 📖 [README.md](../README.md)
@@ -113,7 +115,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 
 ## 🛠️ Documentación Técnica Adicional
 
-### 📋 [CLAUDE.md](../CLAUDE.md)
+### 📋 [CLAUDE.md](ai/CLAUDE.md)
 
 **Guía técnica completa del proyecto**
 
@@ -121,7 +123,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 - Decisiones de arquitectura
 - Patrones implementados
 
-### ⚡ [COMMANDS.md](../COMMANDS.md)
+### ⚡ [COMMANDS.md](operations/COMMANDS.md)
 
 **Lista completa de comandos de desarrollo**
 
@@ -130,7 +132,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 - Comandos de testing
 - Utilidades de desarrollo
 
-### 🚀 [DEPLOYMENT.md](../DEPLOYMENT.md)
+### 🚀 [DEPLOYMENT.md](operations/DEPLOYMENT.md)
 
 **Guía de deployment y producción**
 
@@ -139,7 +141,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 - Optimizaciones de performance
 - Monitoreo y logging
 
-### 🔒 [SECURITY_AUDIT_REPORT.md](../SECURITY_AUDIT_REPORT.md)
+### 🔒 [SECURITY_AUDIT_REPORT.md](reports/SECURITY_AUDIT_REPORT.md)
 
 **Reporte de auditoría de seguridad**
 
@@ -176,7 +178,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 1. **[README.md](../README.md)** → Introducción y setup
 2. **[ARCHITECTURE.md](ARCHITECTURE.md)** → Entender el sistema
 3. **[BACKEND.md](BACKEND.md)** ó **[FRONTEND.md](FRONTEND.md)** → Área específica
-4. **[COMMANDS.md](../COMMANDS.md)** → Comandos esenciales
+4. **[COMMANDS.md](operations/COMMANDS.md)** → Comandos esenciales
 
 ### Para Desarrollo de Funcionalidades
 
@@ -187,15 +189,15 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 
 ### Para Deployment y Producción
 
-1. **[DEPLOYMENT.md](../DEPLOYMENT.md)** → Configuración de producción
-2. **[SECURITY_AUDIT_REPORT.md](../SECURITY_AUDIT_REPORT.md)** → Seguridad
+1. **[DEPLOYMENT.md](operations/DEPLOYMENT.md)** → Configuración de producción
+2. **[SECURITY_AUDIT_REPORT.md](reports/SECURITY_AUDIT_REPORT.md)** → Seguridad
 3. **[PROJECT_STATUS.md](PROJECT_STATUS.md)** → Estado actual
 
 ### Para Mantenimiento
 
 1. **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** → Organización
 2. Documentación específica de apps
-3. **[CLAUDE.md](../CLAUDE.md)** → Contexto técnico completo
+3. **[CLAUDE.md](ai/CLAUDE.md)** → Contexto técnico completo
 
 ---
 

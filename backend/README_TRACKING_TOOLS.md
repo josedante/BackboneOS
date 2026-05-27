@@ -81,7 +81,7 @@ For each page view, the system checks:
 
 - **Quick Start**: `TRACKING_TEST_QUICK_START.md`
 - **Full Guide**: `PAGE_VIEW_TRACKING_TESTING.md`
-- **Implementation Summary**: `../TRACKING_IMPLEMENTATION_SUMMARY.md`
+- **Implementation Summary**: `../docs/tracking/TRACKING_IMPLEMENTATION_SUMMARY.md`
 
 ## 🎯 Expected Output (Success)
 

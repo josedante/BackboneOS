@@ -213,10 +213,10 @@ Each WebInteraction includes:
 | `PAGE_VIEW_TRACKING_TESTING.md` | Complete testing guide |
 | `TRACKING_TEST_QUICK_START.md` | 5-minute quick start |
 | `README_TRACKING_TOOLS.md` | Tool reference |
-| `TRACKING_IMPLEMENTATION_SUMMARY.md` | Implementation details |
+| `docs/tracking/TRACKING_IMPLEMENTATION_SUMMARY.md` | Implementation details |
 | `TEST_RUN_ANALYSIS.md` | First test run analysis |
 | `BUG_FIX_SESSION_ID_MISMATCH.md` | Bug fix documentation |
-| `TRACKING_VALIDATION_COMPLETE.md` | This summary (you are here) |
+| `docs/tracking/TRACKING_VALIDATION_COMPLETE.md` | This summary (you are here) |
 
 ---
 

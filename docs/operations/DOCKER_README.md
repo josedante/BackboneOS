@@ -40,5 +40,5 @@ Use `Ctrl+Shift+P` > "Tasks: Run Task":
 
 - `docker-compose.yml` - Service definitions
 - `.vscode/tasks.json` - Pre-configured tasks
-- `.vscode/DOCKER_DEVELOPMENT.md` - Detailed instructions
-- `COPILOT_INSTRUCTIONS.md` - Complete project documentation
+- `docs/operations/DOCKER_DEVELOPMENT.md` - Detailed instructions
+- `docs/ai/COPILOT_INSTRUCTIONS.md` - Complete project documentation

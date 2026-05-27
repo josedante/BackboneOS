@@ -95,6 +95,11 @@ BackboneOS/
 │   ├── nuxt.config.ts        # ✅ Configuración completa
 │   └── package.json          # ✅ Nuxt 3.17.4 + TypeScript 5.8.3
 ├── docs/                     # 📚 Documentación modular
+│   ├── README.md             # Índice por categoría
+│   ├── ai/                   # Guías para asistentes IA
+│   ├── operations/           # Docker, deployment, comandos
+│   ├── reports/              # Auditorías y reportes
+│   ├── tracking/             # Historial de implementación tracking
 │   ├── ARCHITECTURE.md       # Arquitectura del sistema
 │   ├── APPS.md              # Documentación de aplicaciones Django
 │   ├── API.md               # Referencia de API
@@ -103,17 +108,14 @@ BackboneOS/
 │   └── PROJECT_STRUCTURE.md # Este archivo
 ├── docker-compose.yml        # ⚠️ Frontend ejecuta localmente
 ├── .env                      # Variables de entorno
-├── CLAUDE.md                 # ✅ Guía técnica del proyecto
-├── COMMANDS.md               # Comandos de desarrollo
-├── DEPLOYMENT.md             # Guía de deployment
-└── README.md                 # README principal (simplificado)
+└── README.md                 # README principal (punto de entrada)
 ```
 
 ## 📚 Documentación Adicional
 
-- **CLAUDE.md**: Guía técnica completa del proyecto
-- **COMMANDS.md**: Lista de comandos de desarrollo
-- **DEPLOYMENT.md**: Guía de deployment y producción
+- **docs/ai/CLAUDE.md**: Guía técnica completa del proyecto
+- **docs/operations/COMMANDS.md**: Lista de comandos de desarrollo
+- **docs/operations/DEPLOYMENT.md**: Guía de deployment y producción
 - **world/INDEX_OPTIMIZATION.md**: Optimización de consultas semánticas
 - **entities/INDEX_OPTIMIZATION.md**: Optimización de performance para entidades
 - **our_institution/README.md**: Documentación completa del sistema organizacional
@@ -122,4 +124,4 @@ BackboneOS/
 - **interactions/README.md**: Documentación del framework de interacciones
 - **offers/README.md**: Documentación del sistema de ofertas comerciales
 - **offers/COMPLETION_REPORT.md**: Reporte de implementación completa y funcionalidades
-- **SECURITY_AUDIT_REPORT.md**: Reporte de auditoría de seguridad
+- **docs/reports/SECURITY_AUDIT_REPORT.md**: Reporte de auditoría de seguridad

@@ -231,9 +231,9 @@ docker-compose exec backend python manage.py test
 
 ### Desarrollo y Deployment
 
-- **Comandos**: `COMMANDS.md`
-- **Docker**: `DOCKER_README.md`
-- **Deployment**: `DEPLOYMENT.md`
+- **Comandos**: `docs/operations/COMMANDS.md`
+- **Docker**: `docs/operations/DOCKER_README.md`
+- **Deployment**: `docs/operations/DEPLOYMENT.md`
 - **Estado del Proyecto**: `docs/PROJECT_STATUS.md`
 - **Offers**: `docs/copilot/COPILOT_OFFERS.md`
 - **Campaigns**: `docs/copilot/COPILOT_CAMPAIGNS.md`
