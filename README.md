@@ -1,10 +1,9 @@
 # 🦴 BackboneOS - Infraestructura, Atribución y Predicción listas para la era de la IA
 
-> 🐳 **CONFIGURACIÓN OBLIGATORIA**: Este proyecto usa Docker Compose. Ver [DOCKER_README.md](docs/operations/DOCKER_README.md) para setup rápido.
-
-> **Sistema de gestión de relaciones con clientes (CRM) construido con arquitectura moderna**
-
 BackboneOS es una **infraestructura "Sovereign First-Party" de código abierto** diseñada para capturar, limpiar y unificar cada punto de contacto de tus clientes directamente dentro de tus propios servidores (PostgreSQL/Redis). Es la Columna Vertebral de tu Sistema de Creación de Clientes: integra todos los puntos de contacto, prueba qué funciona y consigue convertir más a menor costo. BackboneOS te ayudará a conocer qué mueve a tus clientes.
+
+
+> 🐳 **CONFIGURACIÓN OBLIGATORIA**: Este proyecto usa Docker Compose para facilitarte el desarrollo en un ambiente local de tu computadora. Ver [DOCKER_README.md](docs/operations/DOCKER_README.md) para setup rápido.
 
 
 ## 🚀 Inicio Rápido
