@@ -73,7 +73,7 @@ World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (
 
 ## ⚠️ Configuración de Desarrollo Híbrida
 
-**IMPORTANTE**: BackboneOS utiliza una arquitectura híbrida donde el backend y la base de datos están containerizados, pero el frontend se ejecuta localmente para optimizar el desarrollo.
+**IMPORTANTE**: Puedes utilizar una arquitectura híbrida para facilitarte el trabajo con el frontend, donde el backend y la base de datos están containerizados, pero el frontend se ejecute localmente para optimizar el desarrollo.
 
 ### 🌐 URLs de Acceso
 
