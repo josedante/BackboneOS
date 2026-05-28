@@ -9,7 +9,7 @@ Enable dedicated per-tenant environments on Render for BackboneOS customers. The
   - Celery worker and beat
   - Redis (keyvalue service)
   - Postgres (managed database)
-  - Optional Frontend (Next.js)
+  - Django serves operator HTML CRM on the backend web service (no separate Next.js deploy)
   - Optional Flower (operational visibility)
 - Per-tenant staging environment (same topology) for validation and promotion.
 

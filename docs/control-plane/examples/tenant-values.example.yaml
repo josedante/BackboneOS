@@ -3,7 +3,7 @@ plan: pro
 region: oregon
 staging: true
 custom_backend_domain: null
-frontend_origin: https://frontend-staging-acme.example.com
+app_origin: https://backend-staging-acme.example.com
 resources:
   backend_plan: starter
   workers_plan: starter

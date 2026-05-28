@@ -268,7 +268,7 @@ services:
 DEBUG=True
 SECRET_KEY=your-secret-key
 DATABASE_URL=postgresql://user:pass@localhost:5432/backboneos
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+CORS_ALLOWED_ORIGINS=https://your-app.example.com
 JWT_SECRET_KEY=your-jwt-secret
 ```
 
@@ -287,10 +287,8 @@ DATABASES = {
     'default': dj_database_url.parse(config('DATABASE_URL'))
 }
 
-# CORS para desarrollo híbrido
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Frontend Nuxt.js
-]
+# CORS for external API clients (operator CRM is same-origin Django HTML)
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',')
 ```
 
 ## 📊 Monitoring y Logging

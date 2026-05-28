@@ -49,27 +49,8 @@ services:
       - db
       - redis
     environment:
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://backboneos-frontend.onrender.com,https://backend.proyecto-opensource.orb.local,https://frontend.proyecto-opensource.orb.local
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://backend.proyecto-opensource.orb.local
       - DJANGO_LOG_LEVEL=INFO
-    networks:
-      - backboneos-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
-      - NEXT_PRIVATE_API_BASE=https://backend
-    depends_on:
-      - backend
     networks:
       - backboneos-network
 

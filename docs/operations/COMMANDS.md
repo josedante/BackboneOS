@@ -90,22 +90,18 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-### Frontend (Nuxt.js)
+### CRM styles (Tailwind in backend)
 
 ```bash
-cd frontend
+cd backend
 npm install
-npm run dev
-npm run build
-npm run generate
-npm run preview
-npm run test:unit
-npm run lint
+npm run tailwind:build
+npm run tailwind:watch
 ```
 
 ## URLs Importantes
 
-- Frontend: http://localhost:3000
+- CRM: http://localhost:8000/
 - Backend API: http://localhost:8000/api/
 - Django Admin: http://localhost:8000/admin
 - Usuarios API: http://localhost:8000/api/users/

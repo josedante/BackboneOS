@@ -8,8 +8,7 @@
 
 ### Stack Tecnológico
 
-- **Backend**: Django 5.x + DRF (🐳 Docker obligatorio)
-- **Frontend**: Nuxt.js 3.17.4 + TypeScript (💻 local)
+- **Backend + CRM UI**: Django 5.x + DRF + templates (🐳 Docker obligatorio)
 - **Base de Datos**: PostgreSQL 14 (🐳 Docker obligatorio)
 - **Cache & Broker**: Redis 7 (🐳 Docker)
 - **Task Queue**: Celery Worker + Beat (🐳 Docker)
@@ -18,25 +17,20 @@
 
 ### URLs de Desarrollo
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000/api/
+- **CRM**: http://localhost:8000/
+- **API**: http://localhost:8000/api/
 - **Admin**: http://localhost:8000/admin
 - **Flower**: http://localhost:5555
 - **Redis**: localhost:6379
 
 ## 🐳 Comandos Docker CRÍTICOS
 
-### ⚠️ ARQUITECTURA HÍBRIDA OBLIGATORIA
-
-- ✅ **Backend + PostgreSQL + Redis + Celery**: Docker containers
-- ✅ **Frontend**: Local execution only
-
 ### Comandos Correctos
 
 ```bash
 # Iniciar desarrollo
-docker-compose up -d
-cd frontend && npm run dev
+docker compose up -d
+cd backend && npm run tailwind:build   # si cambiaste estilos CRM
 
 # Django (SIEMPRE con docker-compose exec)
 docker-compose exec backend python manage.py startapp
@@ -178,11 +172,10 @@ docker-compose down               # Detener
 docker-compose logs -f backend    # Logs
 ```
 
-### Frontend
+### CRM styles
 
 ```bash
-cd frontend
-npm install && npm run dev
+cd backend && npm run tailwind:build
 ```
 
 ### Django
@@ -242,10 +235,10 @@ docker-compose exec backend python manage.py test
 
 ### Flujo Típico
 
-1. `docker-compose up -d` (iniciar backend)
-2. `cd frontend && npm run dev` (iniciar frontend)
-3. Desarrollar con hot-reload activo
-4. Usar VS Code tasks para comandos comunes
+1. `docker compose up -d` (backend + DB + Redis)
+2. Abrir http://localhost:8000/login/
+3. `cd backend && npm run tailwind:watch` si editas CSS del CRM
+4. Usar VS Code tasks para comandos Django en Docker
 
 ### Testing
 
@@ -253,8 +246,9 @@ docker-compose exec backend python manage.py test
 # Backend tests
 docker-compose exec backend python manage.py test
 
-# Frontend tests (cuando estén configurados)
-cd frontend && npm run test
+# Template HTML tests (consolidation gate)
+docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  python manage.py test dashboard.tests products.tests_template_views
 ```
 
 ## 💡 Mejores Prácticas
@@ -262,7 +256,7 @@ cd frontend && npm run test
 ### Para nuevas funcionalidades:
 
 1. **Backend**: Usar apps existentes como base semántica
-2. **Frontend**: Aprovechar composables existentes
+2. **Templates**: Extender `base_dashboard.html` y selectors/services compartidos
 3. **API**: Extender servicios con capacidades semánticas
 4. **Autenticación**: Ya implementada y funcional
 5. **Entidades**: Utilizar para gestión de personas y organizaciones
@@ -272,9 +266,9 @@ cd frontend && npm run test
 ### Para debugging:
 
 1. **Backend**: `docker-compose logs backend`
-2. **Frontend**: DevTools en http://localhost:3000
-3. **Database**: Acceso directo via docker-compose
+2. **CRM**: DevTools en http://localhost:8000
+3. **Database**: Acceso directo via docker compose
 
 ---
 
-**RECORDATORIO**: Siempre usar Docker para backend. El frontend es la única excepción que corre localmente.
+**RECORDATORIO**: Siempre usar Docker para backend. CRM HTML y API viven en el mismo servicio Django.

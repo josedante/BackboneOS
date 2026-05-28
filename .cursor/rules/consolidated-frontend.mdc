@@ -1,10 +1,10 @@
 ---
-description: Rules for consolidating the single-tenant frontend into native Django views with light JS hydration.
+description: Rules for the consolidated single-tenant operator UI (Django templates + Tailwind).
 globs: backend/**/*
 ---
 # Architectural Rules: Single-Service Frontend & Backend Consolidation
 
-You are refactoring the single-tenant customer infrastructure to eliminate the decoupled Next.js application service. The frontend client dashboard will now be rendered entirely via native Django views and templates.
+The single-tenant operator CRM is rendered via native Django views and templates on the same process as the REST API. The legacy Next.js `frontend/` package was removed in Phase 6.
 
 ## Core Directives
 

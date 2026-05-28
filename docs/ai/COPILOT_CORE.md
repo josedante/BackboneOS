@@ -2,19 +2,18 @@
 
 ## 🎯 Información Esencial
 
-**BackboneOS** es un CRM moderno con arquitectura Django + Nuxt.js + PostgreSQL.
+**BackboneOS** es un CRM con Django (HTML + API) y PostgreSQL.
 
 ### Stack Tecnológico
 
-- **Backend**: Django 5.x + DRF (🐳 Docker obligatorio)
-- **Frontend**: Nuxt.js 3.17.4 + TypeScript (💻 local)
+- **Backend + CRM UI**: Django 5.x + DRF + templates (🐳 Docker obligatorio)
 - **BD**: PostgreSQL 14 (🐳 Docker obligatorio)
 - **Auth**: JWT + Token-based
 
 ### URLs de Desarrollo
 
-- **Frontend**: http://localhost:3000 (Nuxt.js)
-- **Backend API**: http://localhost:8000/api/ (Django)
+- **CRM**: http://localhost:8000/
+- **API**: http://localhost:8000/api/
 - **Admin**: http://localhost:8000/admin (Django)
 
 ## 🐳 Comandos Docker OBLIGATORIOS
@@ -25,8 +24,8 @@
 # Iniciar entorno completo
 docker-compose up -d
 
-# Frontend (único comando local)
-cd frontend && npm run dev
+# CRM CSS (cuando cambien estilos)
+cd backend && npm run tailwind:build
 ```
 
 ### Comandos Django (SIEMPRE con docker-compose exec)

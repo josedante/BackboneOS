@@ -1,5 +1,5 @@
 # BackboneOS Render Blueprint
-# Complete production deployment configuration for Django + Nuxt.js CRM ecosystem
+# Django backend serves HTML CRM + DRF API (single web service; Phase 6 consolidation)
 
 previews:
   generation: automatic # Enable preview environments for testing
@@ -76,11 +76,11 @@ services:
 
       # CORS settings
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://backboneos-backend.onrender.com,https://backboneos-frontend.onrender.com,https://backboneos.com,https://thebackbonegroup.com"
+        value: "https://backboneos-backend.onrender.com,https://backboneos.com,https://thebackbonegroup.com"
       
       # Security headers and CSRF
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://backboneos-backend.onrender.com,https://backboneos-frontend.onrender.com,https://backboneos.com,https://thebackbonegroup.com"
+        value: "https://backboneos-backend.onrender.com,https://backboneos.com,https://thebackbonegroup.com"
       - key: SESSION_COOKIE_SECURE
         value: "True"
       - key: CSRF_COOKIE_SECURE
@@ -119,40 +119,6 @@ services:
         value: "False"
       - key: CELERY_TASK_EAGER_PROPAGATES
         value: "True"
-      
-      # Add shared environment variables
-      - fromGroup: backboneos-shared
-
-# Frontend Service (Next.js 15)
-  - type: web
-    name: backboneos-frontend
-    runtime: docker
-    rootDir: frontend
-    dockerfilePath: Dockerfile
-    plan: starter # Free tier for development
-    region: oregon
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetCPUPercent: 70
-    healthCheckPath: /
-    autoDeploy: true
-    envVars:
-      # API configuration
-      - key: NEXT_PUBLIC_API_BASE
-        value: "https://backboneos-backend.onrender.com"
-      
-      # Next.js configuration
-      - key: NODE_ENV
-        value: "production"
-      - key: NEXT_TELEMETRY_DISABLED
-        value: "1"
-      - key: PORT
-        value: "3000"
-      
-      # Build environment configuration
-      - key: CI
-        value: "true"
       
       # Add shared environment variables
       - fromGroup: backboneos-shared

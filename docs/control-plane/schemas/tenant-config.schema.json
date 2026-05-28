@@ -9,7 +9,10 @@
     "region": { "type": "string" },
     "staging": { "type": "boolean", "default": false },
     "custom_backend_domain": { "type": ["string", "null"] },
-    "frontend_origin": { "type": ["string", "null"] },
+    "app_origin": {
+      "type": ["string", "null"],
+      "description": "Public URL for operator CRM (Django HTML) and CORS/CSRF; often the backend custom domain."
+    },
     "resources": {
       "type": "object",
       "properties": {

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-This is a full-stack application with a Django REST Framework backend and Next.js 15 frontend, using PostgreSQL as the database. The project is containerized with Docker.
+This is a Django application with a REST API and Django-template operator CRM, using PostgreSQL. The stack runs in Docker Compose (backend, DB, Redis, Celery). The legacy Next.js `frontend/` package was removed in Phase 6.
 
 ### Key Components
 
@@ -17,11 +17,7 @@ This is a full-stack application with a Django REST Framework backend and Next.j
   - Token-based authentication with DRF is available, too
   - API endpoints under `/api/`
 
-- **Frontend**: Next.js 15 + TypeScript in `frontend/` directory
-
-  - Uses modern Nuxt 3 features with auto-imports
-  - API services in `src/services/` communicate with Django backend
-  - Components in `src/components/`
+- **Operator UI**: Django templates in `backend/templates/`, Tailwind in `backend/static/`
 
 - **Database**: PostgreSQL 14 containerized
   - Default credentials: `myuser`/`mypassword`/`mydatabase`
@@ -31,12 +27,9 @@ This is a full-stack application with a Django REST Framework backend and Next.j
 
 ### Development Workflow
 
-**Important**: The frontend section in docker-compose.yml is commented out. Frontend development takes place locally while backend runs in Docker.
-
 #### Backend + Database (Docker)
 ```bash
-# Start backend and database services (frontend is commented out)
-docker-compose up --build
+docker compose up --build
 
 # Start in background
 docker-compose up -d
@@ -48,11 +41,9 @@ docker-compose logs -f
 docker-compose down
 ```
 
-#### Frontend (Local Development - Required)
+#### CRM styles (when changing templates/CSS)
 ```bash
-cd frontend
-npm install
-npm run dev
+cd backend && npm run tailwind:build
 ```
 
 ### Django Backend Commands
@@ -74,15 +65,6 @@ docker-compose exec backend python manage.py test
 docker-compose exec backend python manage.py shell
 ```
 
-### Frontend Commands
-
-```bash
-cd frontend
-npm run dev      # Development server
-npm run build    # Production build
-npm run preview  # Preview build
-```
-
 ### Database Commands
 
 ```bash
@@ -95,8 +77,8 @@ docker-compose exec db pg_dump -U myuser mydatabase > backup.sql
 
 ## Development URLs
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000/api/
+- CRM: http://localhost:8000/
+- API: http://localhost:8000/api/
 - Django Admin: http://localhost:8000/admin
 
 ## Configuration

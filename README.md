@@ -13,9 +13,9 @@ BackboneOS es una **infraestructura "Sovereign First-Party" de código abierto**
 ./setup-dev.sh
 
 # O paso a paso:
-docker-compose up -d                                    # Backend + DB
+docker-compose up -d                                    # Backend + DB + Redis
 docker-compose exec backend python manage.py migrate   # Migraciones
-cd frontend && npm run dev                              # Frontend
+cd backend && npm run tailwind:build                    # CSS del CRM (si cambiaste estilos)
 ```
 
 ## 🧪 Testing Status
@@ -45,13 +45,13 @@ cd backend && ./run_tests_docker.sh --coverage --html-report
 
 BackboneOS es una aplicación full-stack moderna que combina:
 
+- **Operator UI**: Django templates + Tailwind CSS (servido por el mismo proceso backend)
 - **Backend**: Django 5.x + Django REST Framework
-- **Frontend**: Nuxt.js 3.17.4 + TypeScript 5.8.3
 - **Base de Datos**: PostgreSQL 14
 - **Caché y Sesiones**: Redis 7 con django-redis
 - **Procesamiento Asíncrono**: Celery con Redis broker
 - **Monitoreo de Tareas**: Flower Dashboard
-- **Containerización**: Docker + Docker Compose (desarrollo híbrido)
+- **Containerización**: Docker + Docker Compose (backend, DB, Redis, Celery)
 
 ### 🎯 Ecosistema de Aplicaciones
 
@@ -71,16 +71,12 @@ BackboneOS incluye **7 aplicaciones Django especializadas** que forman un ecosis
 World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (Comercialización) → Campaigns (Promoción) → Interactions (Journey)
 ```
 
-## ⚠️ Configuración de Desarrollo Híbrida
+## 🌐 URLs de Acceso
 
-**IMPORTANTE**: Puedes utilizar una arquitectura híbrida para facilitarte el trabajo con el frontend, donde el backend y la base de datos están containerizados, pero el frontend se ejecute localmente para optimizar el desarrollo.
-
-### 🌐 URLs de Acceso
-
-- **CRM (Django templates)**: http://localhost:8000/ — session login at `/login/`; products, entities, interactions, campaigns, offers — see [docs/consolidation/FRONTEND_CONSOLIDATION.md](docs/consolidation/FRONTEND_CONSOLIDATION.md)
-- **Next.js (optional dev)**: http://localhost:3000 — users and analytics only; `/products` and `/entities` redirect to Django (Phase 5 complete)
-- **Backend API**: http://localhost:8000/api/ (Docker)
-- **Django Admin**: http://localhost:8000/admin (Docker)
+- **CRM (Django templates)**: http://localhost:8000/ — login en `/login/`; products, entities, interactions, campaigns, offers — ver [docs/consolidation/FRONTEND_CONSOLIDATION.md](docs/consolidation/FRONTEND_CONSOLIDATION.md)
+- **Gestión de usuarios**: http://localhost:8000/admin/ (Django Admin; enlace **Users** en el sidebar)
+- **Backend API**: http://localhost:8000/api/
+- **Django Admin**: http://localhost:8000/admin/
 - **Flower Dashboard**: http://localhost:5555 (Monitoreo de Celery)
 - **Redis**: localhost:6379 (Caché y broker)
 
@@ -113,11 +109,6 @@ docker-compose exec backend python create_campaigns_data.py
 
 # 8. Crear superusuario (opcional)
 docker-compose exec backend python manage.py createsuperuser
-
-# 8. Frontend Next.js (opcional — solo /users y /analytics; el CRM está en :8000)
-cd frontend
-npm install
-npm run dev
 ```
 
 ### Script de Inicio Automático
@@ -147,19 +138,13 @@ docker-compose exec backend python manage.py test
 docker-compose logs -f backend
 ```
 
-### Frontend (Local)
+### Estilos CRM (Tailwind en backend)
 
 ```bash
-cd frontend
-
-# Desarrollo
-npm run dev
-
-# Build para producción
-npm run build
-
-# Linting
-npm run lint
+cd backend
+npm install
+npm run tailwind:build    # compila static/dist/styles.css
+npm run tailwind:watch    # desarrollo con recarga
 ```
 
 ## 📚 Documentación
@@ -174,7 +159,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 - **[🏗️ Arquitectura del Sistema](docs/ARCHITECTURE.md)** - Stack tecnológico y diseño de comunicación API-First
 - **[🖥️ Backend Django](docs/BACKEND.md)** - API REST, aplicaciones Django y containerización
-- **[🌐 Frontend Nuxt.js](docs/FRONTEND.md)** - SPA TypeScript, autenticación y componentes UI
+- **[🌐 Operator UI (Django)](docs/FRONTEND.md)** - Templates, Tailwind, consolidación frontend
 - **[🧪 Testing](docs/TESTING.md)** - Infraestructura de testing moderna con Vitest
 
 ### 📱 Aplicaciones y Funcionalidades
@@ -200,7 +185,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 ### ✅ Funcionalidades Completadas
 
-- ✅ **Arquitectura Full-Stack**: Django + Nuxt.js + PostgreSQL
+- ✅ **Arquitectura Full-Stack**: Django (HTML CRM + API) + PostgreSQL
 - ✅ **Sistema de Autenticación**: JWT + composables + middleware
 - ✅ **7 Aplicaciones Django**: World, Entities, Our Institution, Products, Interactions, Offers, Campaigns
 - ✅ **API REST Completa**: 50+ endpoints con filtrado avanzado

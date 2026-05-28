@@ -6,12 +6,10 @@
 - `backend-${env}-${tenant}`
 - `worker-${env}-${tenant}`
 - `beat-${env}-${tenant}`
-- optional `frontend-${env}-${tenant}`
-
 ### Variables
 - tenant, env (prod/staging), region
 - plans: plan_backend, plan_workers, db_plan, redis_plan
-- domains: custom_backend_domain, frontend_origin
+- domains: custom_backend_domain, app_origin (public CRM URL for CORS/CSRF; same host as backend when HTML and API are co-located)
 - security: sentry_dsn, cors, csrf, SECRET_KEY
 
 ### Reconciliation Loop

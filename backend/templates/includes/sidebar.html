@@ -15,7 +15,7 @@
         </a>
       </li>
       <li>
-        <a href="#" class="is-disabled" title="Coming soon">Users</a>
+        <a href="{% url 'admin:index' %}" title="User management (Django Admin)">Users</a>
       </li>
       <li>
         <a href="{% url 'products_html:list' %}" class="{% if request.resolver_match.namespace == 'products_html' %}is-active{% endif %}">

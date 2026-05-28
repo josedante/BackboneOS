@@ -1,89 +1,58 @@
 #!/bin/bash
 
-# 🐳 BackboneOS Development Environment Setup
-# Este script configura el entorno de desarrollo híbrido con Docker Compose
+# BackboneOS development environment setup (Docker Compose — backend only)
+# Operator CRM is Django templates at http://localhost:8000/
 
 set -e
 
-echo "🐳 Configurando entorno de desarrollo BackboneOS..."
+echo "Configuring BackboneOS development environment..."
 echo
 
-# Verificar que Docker está instalado
 if ! command -v docker &> /dev/null; then
-    echo "❌ Docker no está instalado. Por favor instala Docker Desktop."
+    echo "Docker is not installed. Please install Docker Desktop."
     exit 1
 fi
 
-# Verificar que Docker Compose está disponible
 if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose no está disponible. Por favor instala Docker Compose."
+    echo "Docker Compose is not available. Please install Docker Compose."
     exit 1
 fi
 
-# Verificar que Node.js está instalado para el frontend
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js no está instalado. Por favor instala Node.js para el frontend."
-    exit 1
-fi
-
-echo "✅ Dependencias verificadas"
+echo "Dependencies verified"
 echo
 
-# Crear archivo .env si no existe
 if [ ! -f .env ]; then
-    echo "📝 Creando archivo .env..."
-    cat > .env << EOF
-# Django settings
-DEBUG=True
-SECRET_KEY=your-secret-key-here
-ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-
-# Database settings (Docker)
-DB_NAME=mydatabase
-DB_USER=myuser
-DB_PASSWORD=mypassword
-DB_HOST=db
-DB_PORT=5432
-
-# CORS settings
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-EOF
-    echo "✅ Archivo .env creado"
+    echo "Creating .env from template..."
+    cp .env.example .env
+    echo ".env created"
 else
-    echo "✅ Archivo .env ya existe"
+    echo ".env already exists"
 fi
 
 echo
-echo "🐳 Iniciando servicios Docker..."
+echo "Starting Docker services..."
 
-# Construir e iniciar contenedores
 docker-compose up -d --build
 
-echo "⏳ Esperando que la base de datos esté lista..."
+echo "Waiting for the database..."
 sleep 5
 
-# Ejecutar migraciones
-echo "🔄 Ejecutando migraciones..."
+echo "Running migrations..."
 docker-compose exec backend python manage.py migrate
 
-# Instalar dependencias del frontend
-echo "📦 Instalando dependencias del frontend..."
-cd frontend
-npm install
-cd ..
-
 echo
-echo "🎉 ¡Entorno configurado correctamente!"
+echo "Environment ready."
 echo
-echo "📍 URLs disponibles:"
-echo "   - Backend API: http://localhost:8000/api/"
-echo "   - Django Admin: http://localhost:8000/admin"
-echo "   - Frontend: http://localhost:3000 (ejecutar: cd frontend && npm run dev)"
+echo "URLs:"
+echo "   - CRM dashboard: http://localhost:8000/ (login at /login/)"
+echo "   - Django Admin:  http://localhost:8000/admin/"
+echo "   - REST API:      http://localhost:8000/api/"
 echo
-echo "🛠️  Comandos útiles:"
-echo "   - Ver logs: docker-compose logs -f backend"
-echo "   - Django shell: docker-compose exec backend python manage.py shell"
-echo "   - Crear superuser: docker-compose exec backend python manage.py createsuperuser"
-echo "   - Parar servicios: docker-compose down"
+echo "Useful commands:"
+echo "   - Logs:       docker-compose logs -f backend"
+echo "   - Shell:      docker-compose exec backend python manage.py shell"
+echo "   - Superuser:  docker-compose exec backend python manage.py createsuperuser"
+echo "   - Tailwind:   cd backend && npm run tailwind:build"
+echo "   - Stop:       docker-compose down"
 echo
-echo "⚠️  RECORDATORIO: Todos los comandos Django deben ejecutarse con 'docker-compose exec backend'"
+echo "Run Django management commands with: docker-compose exec backend python manage.py ..."

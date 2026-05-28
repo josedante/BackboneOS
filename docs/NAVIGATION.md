@@ -163,11 +163,10 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 - **[Offers App](../backend/offers/README.md)** - Sistema de ofertas comerciales
 - **[Campaigns App](../backend/campaigns/README.md)** - Sistema de gestión de campañas comerciales
 
-### Frontend Specific
+### Operator UI (Django)
 
-- **[Frontend README](../frontend/README.md)** - Guía de inicio rápido frontend
-- **[Dashboard README](../frontend/DASHBOARD_README.md)** - Documentación del dashboard
-- **[Troubleshooting](../frontend/TROUBLESHOOTING.md)** - Solución de problemas
+- **[FRONTEND.md](FRONTEND.md)** - Pointer to Django templates (Next.js removed Phase 6)
+- **[FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md)** - Migration handoff
 
 ---
 

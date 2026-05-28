@@ -71,7 +71,7 @@ BackboneOS/
 │       ├── migrations/        # Migraciones con índices optimizados
 │       ├── COMPLETION_REPORT.md  # Reporte de implementación completa
 │       └── README.md          # Documentación técnica completa
-├── frontend/                  # Frontend Nuxt.js (NO containerizado)
+├── backend/templates/         # Operator CRM (Django HTML; Next.js removed Phase 6)
 │   ├── composables/
 │   │   └── useAuth.ts        # ✅ Sistema auth JWT completo
 │   ├── src/

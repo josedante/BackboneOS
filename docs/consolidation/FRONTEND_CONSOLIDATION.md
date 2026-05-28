@@ -8,21 +8,24 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**Phase 5 is complete** for dashboard, products, and entities (see [Phase 5 checklist](#phase-5-checklist-dashboard--products--entities)). Next: **Phase 6** — remove the `frontend` Docker service, decommission the Next.js package, and sweep remaining docs (`docs/FRONTEND.md`, hybrid-dev README sections).
+**Consolidation complete (Phases 0–6).** Operator CRM runs as Django templates at `:8000` in a single backend process. The Next.js `frontend/` package and Compose service were removed in Phase 6.
+
+**Follow-ups (not started):**
+- **Users HTML** — template CRUD for staff users (today: Django Admin via sidebar **Users**).
+- **Analytics HTML** — real metrics on dashboard (today: sidebar **Analytics** remains “Coming soon”).
+- **Phase 4 completion** — tighten session auth edge cases if needed beyond current `@login_required` coverage.
 
 Stance recap:
 - **Interactions** = substrate (read-only + touchpoint config); capture via `services.create_interaction`.
 - **Campaigns** = operator CRUD for planned commercial structures and campaign–touchpoint links (not a substrate).
 - **Offers** = operator CRUD for `ProductOffering` (commercial pricing / targeting configuration).
 
-**Remaining on Next.js (:3000) until Phase 6:** `/users`, `/analytics`, `/login`, `/settings` (if added). CRM modules use Django at `:8000` (sidebar links via `NEXT_PUBLIC_DJANGO_UI_BASE`).
-
 ---
 
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA (done) → **Phase 5** (done) → **Phase 6** (Docker/docs)
+dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA (done) → Phase 5 (done) → **Phase 6 (done)**
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -52,13 +55,13 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
 | 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/` |
 | 5 | Remove Next.js routes per app | **done** — dashboard landing + redirects; `products/**`, `entities/**` removed; `api.ts` pruned |
-| 6 | Docker/docs cleanup | **next** — remove `frontend` service from Compose; delete Next package |
+| 6 | Docker/docs cleanup | **done** — `frontend/` removed; Compose + Render blueprint backend-only |
 
 ---
 
 ## Dashboard home (milestone complete)
 
-Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock stats/actions/activity).
+Replaced legacy Next.js dashboard (removed in Phase 6).
 
 | Item | Location |
 |------|----------|
@@ -87,7 +90,7 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 - **Products CRM (Django):** http://localhost:8000/products/ — requires login
 - **Entities CRM (Django):** http://localhost:8000/entities/ — requires login
 - **Offers CRM (Django):** http://localhost:8000/offers/ — requires login
-- **Next.js (partial, Phase 6):** http://localhost:3000/ — landing + `/users`, `/analytics`, `/login`; `/products` and `/entities` redirect to Django
+- **User management:** http://localhost:8000/admin/ (sidebar **Users** → Django Admin)
 
 ### Commit
 
@@ -424,6 +427,21 @@ Removed or replaced:
 - [x] Manual verification: `:3000/products` → `:8000/products/`; `:3000/users` still loads
 - [x] `npm run build` passes (routes: `/`, `/users`, `/analytics`, `/login` only)
 - [ ] Frontend test debt: `AuthContext` / `TokenRefreshManager` tests drift from cookie-based auth (not blocking Phase 5)
+- [ ] Commit hash: _(add after commit)_
+
+---
+
+## Phase 6 checklist (decommission Next.js)
+
+- [x] Django template test gate green before deletions
+- [x] `frontend/` directory removed (Next.js package)
+- [x] `frontend` service removed from [`docker-compose.yml`](../../docker-compose.yml) and [`docker-compose.prod.yml`](../../docker-compose.prod.yml)
+- [x] CORS defaults trimmed (no `localhost:3000` in Compose env)
+- [x] [`render.yaml`](../../render.yaml) and [`docs/control-plane/templates/render-tenant.yaml`](../control-plane/templates/render-tenant.yaml) — backend-only; `app_origin` for tenant CORS/CSRF
+- [x] [`setup-dev.sh`](../../setup-dev.sh), [`start.sh`](../../start.sh), [`.env.example`](../../.env.example) — backend-only dev
+- [x] [`docs/FRONTEND.md`](../FRONTEND.md) replaced with Django UI pointer
+- [x] Sidebar **Users** → Django Admin
+- [x] User management via Admin until users HTML app exists
 - [ ] Commit hash: _(add after commit)_
 
 ---

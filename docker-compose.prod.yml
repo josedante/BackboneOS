@@ -52,19 +52,6 @@ services:
     networks:
       - backboneos-network
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local
-    depends_on:
-      - backend
-    networks:
-      - backboneos-network
-
   redis:
     image: redis:7
     container_name: redis

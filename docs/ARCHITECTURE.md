@@ -4,13 +4,13 @@
 
 BackboneOS es una aplicación full-stack moderna que combina:
 
+- **Operator UI**: Django templates + Tailwind (`backend/templates/`, `backend/static/`)
 - **Backend**: Django 5.x + Django REST Framework
-- **Frontend**: Nuxt.js 3.17.4 + TypeScript 5.8.3
 - **Base de Datos**: PostgreSQL 14
 - **Caché y Sesiones**: Redis 7 con django-redis
 - **Procesamiento Asíncrono**: Celery Worker + Beat
 - **Monitoreo de Tareas**: Flower Dashboard
-- **Containerización**: Docker + Docker Compose (desarrollo híbrido)
+- **Containerización**: Docker + Docker Compose (backend, DB, Redis, Celery)
 
 ## 🎯 Valor Empresarial del Ecosistema
 
@@ -39,15 +39,11 @@ La integración semántica entre todas las apps permite:
 - **Customer Journey Completo**: Tracking desde awareness hasta advocacy
 - **Escalabilidad Empresarial**: Arquitectura preparada para crecimiento masivo
 
-## ⚠️ Configuración de Desarrollo Híbrida
+## URLs de Acceso (desarrollo)
 
-**IMPORTANTE**: BackboneOS utiliza una arquitectura híbrida donde el backend y la base de datos están containerizados, pero el frontend se ejecuta localmente para optimizar el desarrollo.
-
-### URLs de Acceso
-
-- **Frontend**: http://localhost:3000 (Nuxt.js local)
-- **Backend API**: http://localhost:8000/api/ (Docker)
-- **Django Admin**: http://localhost:8000/admin (Docker)
+- **CRM**: http://localhost:8000/ (login en `/login/`)
+- **API REST**: http://localhost:8000/api/
+- **Django Admin**: http://localhost:8000/admin/ (gestión de usuarios)
 
 ## 🛠️ Stack Tecnológico
 
