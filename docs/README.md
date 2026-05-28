@@ -42,9 +42,13 @@ Architecture, APIs, and application docs (repo root: [README.md](../README.md)).
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [BACKEND.md](BACKEND.md)
-- [FRONTEND.md](FRONTEND.md)
+- [BACKEND_API_PATTERNS.md](BACKEND_API_PATTERNS.md)
+- [FRONTEND.md](FRONTEND.md) — Operator UI (Django templates)
+- [FRONTEND_COMPONENTS.md](FRONTEND_COMPONENTS.md) — CRM templates/components
+- [FRONTEND_API.md](FRONTEND_API.md) — REST API + selectors/services data access
 - [APPS.md](APPS.md)
 - [API.md](API.md)
 - [TESTING.md](TESTING.md)
 - [PROJECT_STATUS.md](PROJECT_STATUS.md)
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
+- [consolidation/FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md) — Frontend consolidation handoff

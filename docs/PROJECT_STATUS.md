@@ -4,11 +4,13 @@
 
 ### ✅ Funcionalidades Completadas
 
-- ✅ **Arquitectura Full-Stack**: Django + Nuxt.js + PostgreSQL
+- ✅ **Arquitectura Single-Process**: Django (CRM HTML + API REST) + PostgreSQL
+- ✅ **Consolidación del Frontend**: CRM migrado a plantillas Django; paquete Next.js eliminado (ver [FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md))
+- ✅ **Capa de Servicios/Selectores**: lógica compartida entre API y CRM ([BACKEND.md](BACKEND.md#-capa-de-servicios-y-selectores))
 - ✅ **Infraestructura de Caché**: Redis multi-DB para cache, sesiones y broker
 - ✅ **Procesamiento Asíncrono**: Celery Worker + Beat para tareas en background
 - ✅ **Monitoreo de Tareas**: Flower Dashboard para supervisión de Celery
-- ✅ **Sistema de Autenticación**: JWT + composables + middleware
+- ✅ **Autenticación**: JWT para la API REST + sesión Django (`@login_required`) para el CRM HTML
 - ✅ **Sistema de Entidades**: Gestión de personas y organizaciones con perfilado semántico (Entities App)
 - ✅ **Estructura Organizacional**: Sistema completo de gestión organizacional propietaria (Our Institution App)
 - ✅ **Campo Semántico Empresarial**: Ontología y taxonomías completas (World App)
@@ -31,29 +33,20 @@
 - 🔄 **Deployment**: Configuración de producción
 - 🔄 **Performance**: Optimización adicional de consultas
 
-### ✅ Completado - JWT Frontend Implementation
+### ✅ Completado - Consolidación del Frontend (Fases 0–6)
 
-- ✅ **Refresh Token Storage**: Frontend almacena y utiliza refresh tokens correctamente
-- ✅ **Automatic Token Refresh**: Lógica completa para renovar tokens automáticamente
-- ✅ **Token Expiration Handling**: Usuarios mantienen sesión con renovación automática
-- ✅ **Token Rotation**: Aprovecha la funcionalidad de rotación de tokens del backend
-- ✅ **Proper Logout**: Implementación consistente entre server-actions y API client
-- ✅ **Token Management**: Contexto de autenticación centralizado para manejo de tokens
-- ✅ **Testing Complete**: 25 tests unitarios con 100% de éxito
-- ✅ **Debug Tools**: Herramientas de desarrollo para testing de tokens
+- ✅ **CRM en plantillas Django**: dashboard, products, entities, interactions, campaigns, offers
+- ✅ **Capa selectors/services** extraída por app y compartida con los ViewSets de DRF
+- ✅ **Autenticación de sesión** en el CRM HTML (`/login/`, `/logout/`, `@login_required`)
+- ✅ **Tailwind en build** servido por WhiteNoise; CSS único `static/dist/styles.css`
+- ✅ **Next.js eliminado**: paquete `frontend/` y servicio Compose retirados; CORS recortado
+- ✅ **API REST preservada** para integraciones, webhooks y tracking
 
-### ✅ Testing Completado - JWT Frontend
+### 🔜 Follow-ups de la consolidación
 
-- ✅ **Authentication Context Tests**: Tests unitarios para contexto de autenticación (6 tests)
-- ✅ **Token Refresh Logic Tests**: Tests para lógica de renovación automática de tokens (6 tests)
-- ✅ **Token Storage Tests**: Tests para almacenamiento seguro de tokens (localStorage)
-- ✅ **API Interceptor Tests**: Tests para interceptores de axios (7 tests)
-- ✅ **Logout Flow Tests**: Tests para flujo completo de logout y limpieza de tokens
-- ✅ **Token Expiration Tests**: Tests para manejo de tokens expirados y renovación
-- ✅ **Error Handling Tests**: Tests para manejo de errores de autenticación (401, 403)
-- ✅ **Component Tests**: Tests para componentes de autenticación (3 tests)
-- ✅ **Basic Tests**: Tests básicos de funcionalidad (3 tests)
-- ✅ **Debug Tools**: Herramientas de desarrollo para testing de tokens
+- 🔄 **Users HTML**: CRUD de operador en plantillas (hoy vía Django Admin)
+- 🔄 **Analytics HTML**: métricas reales en el dashboard (hoy "Coming soon")
+- 🔄 **Captura contextual**: UIs de sales/support que llamen a `services.create_interaction`
 
 ### 📋 Roadmap
 
@@ -76,20 +69,16 @@
 - **Campaigns App**: Tests de campañas comerciales
 - **Backend JWT**: Tests de autenticación y tokens (completo)
 
-### Tests Implementados - Frontend
+### Tests del CRM HTML
 
-- ✅ **Frontend JWT**: Tests de autenticación frontend (100% implementado)
-- ✅ **Testing Infrastructure**: Vitest + React Testing Library configurado
-- ✅ **AuthContext Tests**: Tests unitarios para contexto de autenticación
-- ✅ **Token Refresh Tests**: Tests para lógica de renovación de tokens
-- ✅ **API Interceptor Tests**: Tests para interceptores de axios
-- ✅ **Component Tests**: Tests para componentes de autenticación
+- ✅ **Vistas de plantilla**: `tests_template_views.py` por app (products, entities, interactions, campaigns, offers, dashboard)
+- ✅ **Factories**: `test_factories.py` con `factory_boy` para datos de prueba
+- ✅ **Gate consolidado**: dashboard + interactions + entities + campaigns + offers HTML → **67 tests, OK** (ver [TESTING.md](TESTING.md))
 
 ### Tests Pendientes
 
-- 📋 **Frontend Components**: Tests de componentes React adicionales
-- 📋 **Frontend Integration**: Tests de integración frontend-backend
-- 📋 **E2E Tests**: Tests end-to-end para flujos completos
+- 📋 **Users/Analytics HTML**: tests al implementar esas vistas
+- 📋 **E2E Tests**: Tests end-to-end para flujos completos del CRM
 
 ### Métricas de Performance
 
@@ -102,8 +91,8 @@
 
 ### Líneas de Código
 
-- **Backend Django**: ~15,000 líneas
-- **Frontend Nuxt.js**: ~5,000 líneas
+- **Backend Django**: ~15,000 líneas (API + CRM HTML)
+- **Plantillas + CSS del CRM**: server-rendered (sin bundle SPA)
 - **Tests**: ~3,000 líneas
 - **Documentación**: ~2,000 líneas
 

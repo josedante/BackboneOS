@@ -1,66 +1,48 @@
 # Docker Development Setup
 
-This project now has separate Docker configurations for development and production environments.
+Tras la [consolidación del frontend](../consolidation/FRONTEND_CONSOLIDATION.md), el proyecto corre como un **único proceso Django** (API REST + CRM HTML) más PostgreSQL, Redis y Celery. No existe un servicio de frontend separado.
 
 ## Development Setup
 
-For local development, use the development Dockerfile which provides:
-- Hot reloading with `npm run dev`
-- Volume mounting for live code changes
-- Development-optimized environment variables
-- Faster startup times
-
-### Running Development Environment
-
 ```bash
-# Start all services in development mode
-docker-compose up
+# Levantar todos los servicios (backend, db, redis, celery)
+docker-compose up -d
 
-# Or start specific services
-docker-compose up frontend backend
+# Aplicar migraciones
+docker-compose exec backend python manage.py migrate
+
+# Compilar el CSS del CRM cuando cambien los estilos
+cd backend && npm run tailwind:build   # o npm run tailwind:watch
 ```
 
-The development setup uses:
-- `Dockerfile.dev` for the frontend (Next.js dev server)
-- Volume mounting for live code changes
-- Development environment variables
+El setup de desarrollo usa:
+- `backend/Dockerfile` con montaje de volumen (`./backend:/app`) para cambios en caliente del código Python.
+- Variables de entorno de desarrollo desde `.env`.
+
+> Nota: como `docker-compose` monta `./backend:/app`, se sobreescribe el `static/dist/` construido en la imagen. Ejecuta `npm run tailwind:build` (o `tailwind:watch`) en el host al cambiar estilos.
 
 ## Production Setup
 
-For production deployment, use the production configuration:
-
 ```bash
-# Start all services in production mode
-docker-compose -f docker-compose.prod.yml up
-
-# Build and start in detached mode
+# Producción
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-The production setup uses:
-- `Dockerfile` for the frontend (optimized Next.js build)
-- No volume mounting (uses built images)
-- Production environment variables
+El setup de producción usa:
+- `backend/Dockerfile.prod`: la fase builder ejecuta `npm ci`, `npm run tailwind:build` y `collectstatic`.
+- Sin montaje de volumen (usa la imagen construida).
+- Runtime: un único proceso Python; los estáticos se sirven con WhiteNoise.
 
-## Key Differences
+## Diferencias clave
 
 | Feature | Development | Production |
 |---------|-------------|------------|
-| Frontend Dockerfile | `Dockerfile.dev` | `Dockerfile` |
-| Hot Reloading | ✅ Yes | ❌ No |
-| Volume Mounting | ✅ Yes | ❌ No |
-| Build Optimization | ❌ No | ✅ Yes |
-| Environment | `development` | `production` |
-| API Base URL | `http://localhost:8000` | `https://backend.proyecto-opensource.orb.local` |
+| Dockerfile | `Dockerfile` | `Dockerfile.prod` |
+| Hot reloading (Python) | ✅ Sí (volumen) | ❌ No |
+| Volume mounting | ✅ Sí | ❌ No |
+| Tailwind | `tailwind:build`/`watch` en host | compilado en build |
+| Estáticos | `dist/` montado | `collectstatic` + WhiteNoise |
 
-## Environment Variables
+## Variables de entorno
 
-### Development
-- `NODE_ENV=development`
-- `NEXT_TELEMETRY_DISABLED=1`
-- `NEXT_PUBLIC_API_BASE=http://localhost:8000`
-
-### Production
-- `NODE_ENV=production`
-- `NEXT_TELEMETRY_DISABLED=1`
-- `NEXT_PUBLIC_API_BASE=https://backend.proyecto-opensource.orb.local`
+Ver [`.env.example`](../../.env.example). Variables relevantes del backend: `DEBUG`, `SECRET_KEY`, `DATABASE_*`, `DJANGO_REDIS_URL`, `CELERY_*`, `CORS_ALLOWED_ORIGINS` (solo para clientes externos de la API; el CRM es same-origin).

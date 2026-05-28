@@ -1,5 +1,7 @@
 # API Reference - BackboneOS
 
+> **Nota sobre rutas tras la [consolidación del frontend](consolidation/FRONTEND_CONSOLIDATION.md):** la raíz `/` ahora sirve el **dashboard HTML** del CRM (requiere login). El **catálogo JSON de la API** se movió a `/api/` (URL name `api-catalog`) para evitar el conflicto con el `api-root` del router de DRF. Los endpoints REST documentados aquí **no cambiaron**; siguen disponibles bajo `/api/...` y delegan en la capa [`selectors`/`services`](BACKEND.md#-capa-de-servicios-y-selectores). Para patrones de respuesta y filtrado ver [BACKEND_API_PATTERNS.md](BACKEND_API_PATTERNS.md).
+
 ## 🔗 Estructura de la API
 
 ### Endpoints Principales

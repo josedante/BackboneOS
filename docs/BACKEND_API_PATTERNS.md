@@ -1,67 +1,43 @@
-# Backend API Patterns - Django REST Framework
+# Patrones de la API REST - Django REST Framework
 
-## Overview
-This project uses **Django REST Framework (DRF)** as the backend API framework. Understanding DRF patterns is crucial for frontend development.
+## Visión general
 
-## Standard Response Patterns
+Este proyecto usa **Django REST Framework (DRF)** para la API REST. La API es la superficie de integración para clientes externos, webhooks de ingestión (p. ej. Meta/Shopify) y scripts de tracking.
 
-### 1. Paginated List Responses
-DRF automatically paginates list endpoints when `DEFAULT_PAGINATION_CLASS` is configured.
+> El CRM de operador **no** consume esta API por HTTP. Renderiza plantillas Django y comparte la lógica con DRF a través de la capa `selectors`/`services` (ver [BACKEND.md](BACKEND.md#-capa-de-servicios-y-selectores) y [FRONTEND_API.md](FRONTEND_API.md)). Por eso no hay loopback interno hacia `/api/...`.
 
-**Structure:**
+Este documento describe la forma de las respuestas y las capacidades de filtrado para quienes integran contra la API.
+
+## Patrones de respuesta
+
+### 1. Listas paginadas
+
+DRF pagina automáticamente las listas cuando `DEFAULT_PAGINATION_CLASS` está configurado.
+
 ```json
 {
   "count": 23,
-  "next": "http://api.example.com/products/?page=2",
+  "next": "http://api.example.com/api/products/?page=2",
   "previous": null,
   "results": [
-    // Array of actual data objects
+    { "id": 1, "name": "..." }
   ]
 }
 ```
 
-**Frontend Access Pattern:**
-```typescript
-const { data: response } = useQuery({
-  queryKey: ['products'],
-  queryFn: () => productsApi.getProducts()
-})
+Los datos están en `results`; la metadata de paginación en `count`/`next`/`previous`.
 
-// ✅ CORRECT: Access results array
-const products = response?.results || []
+### 2. Objeto único
 
-// ❌ WRONG: Don't access .data
-const products = response?.data || []
-```
-
-### 2. Single Object Responses
-For detail endpoints (GET /api/products/123/), DRF returns the object directly:
+Los endpoints de detalle (`GET /api/products/123/`) devuelven el objeto directamente:
 
 ```json
-{
-  "id": 123,
-  "name": "Product Name",
-  "description": "...",
-  // ... other fields
-}
+{ "id": 123, "name": "Product Name", "description": "..." }
 ```
 
-**Frontend Access Pattern:**
-```typescript
-const { data: product } = useQuery({
-  queryKey: ['product', id],
-  queryFn: () => productsApi.getProduct(id)
-})
+### 3. Errores
 
-// ✅ CORRECT: Access data directly
-const productName = product?.name
-
-// ❌ WRONG: Don't access .results for single objects
-const productName = product?.results?.name
-```
-
-### 3. Error Responses
-DRF returns structured error responses:
+DRF devuelve errores estructurados:
 
 ```json
 {
@@ -70,148 +46,82 @@ DRF returns structured error responses:
 }
 ```
 
-**Frontend Error Handling:**
-```typescript
-try {
-  await productsApi.createProduct(data)
-} catch (error) {
-  if (error.response?.data) {
-    // Handle field-specific errors
-    const fieldErrors = error.response.data
-    // Handle non-field errors
-    const generalErrors = error.response.data.non_field_errors
-  }
-}
+## Patrones de endpoints
+
+### Listas (paginadas)
+
+- `GET /api/products/products/`
+- `GET /api/products/categories/`
+- `GET /api/users/`
+
+### Detalle (objeto único)
+
+- `GET /api/products/products/123/`
+- `GET /api/products/categories/456/`
+- `GET /api/users/789/`
+
+### Acciones
+
+- `POST /api/products/products/` -> objeto creado
+- `PATCH /api/products/products/123/` -> objeto actualizado
+- `DELETE /api/products/products/123/` -> `204 No Content`
+
+## Capacidades comunes de DRF
+
+### Filtrado (`django-filter`)
+
+- `?search=term` -> búsqueda de texto
+- `?category=123` -> match exacto
+- `?min_price=100&max_price=500` -> rangos
+- `?is_active=true` -> booleanos
+
+### Ordenación
+
+- `?ordering=name` -> ascendente
+- `?ordering=-created_at` -> descendente
+- `?ordering=name,-price` -> múltiples campos
+
+### Paginación
+
+- `?page=2` -> página (paginación por página)
+- `?offset=20&limit=50` -> si está habilitada la paginación por límite/offset
+
+## Cómo se implementa internamente
+
+Los ViewSets no contienen lógica de lectura/escritura propia: delegan en la capa compartida.
+
+```python
+class ProductViewSet(viewsets.ModelViewSet):
+    def get_queryset(self):
+        return products_list_queryset()        # selectors.py
+
+    def perform_create(self, serializer):
+        create_product(...)                    # services.py
 ```
 
-## API Endpoint Patterns
+- **Lecturas** -> `selectors.py` (querysets, `select_related`/`prefetch_related`, agregados).
+- **Escrituras** -> `services.py` (mutaciones, transacciones, `validate_*` compartidas).
+- Los serializers **no** llevan lógica de escritura/M2M; las validaciones compartidas se invocan desde el `validate` del serializer y desde el servicio.
 
-### List Endpoints (Paginated)
-- `GET /api/products/products/` → Returns paginated response
-- `GET /api/products/categories/` → Returns paginated response
-- `GET /api/users/` → Returns paginated response
+Detalle completo de la convención en [BACKEND.md](BACKEND.md#-capa-de-servicios-y-selectores).
 
-### Detail Endpoints (Single Object)
-- `GET /api/products/products/123/` → Returns single product object
-- `GET /api/products/categories/456/` → Returns single category object
-- `GET /api/users/789/` → Returns single user object
+## Guía para integradores
 
-### Action Endpoints
-- `POST /api/products/products/` → Returns created object
-- `PATCH /api/products/products/123/` → Returns updated object
-- `DELETE /api/products/products/123/` → Returns 204 No Content
+1. **Verifica la forma de la respuesta**: ¿paginada (`count`/`results`) u objeto único?
+2. **Maneja errores por campo y `non_field_errors`**.
+3. **Usa filtros y ordenación** vía query params en lugar de filtrar en cliente.
+4. **Catálogo de endpoints**: ver [API.md](API.md).
 
-## Frontend API Client Standards
+## Referencia rápida
 
-### 1. Consistent Response Handling
-All API methods should handle DRF patterns consistently:
-
-```typescript
-// For list endpoints (paginated)
-getProducts: async (params?: ApiParams) => {
-  const response = await api.get('/api/products/products/', { params })
-  return response.data // This will be the paginated response
-}
-
-// For detail endpoints (single object)
-getProduct: async (id: number) => {
-  const response = await api.get(`/api/products/products/${id}/`)
-  return response.data // This will be the single object
-}
-```
-
-### 2. TypeScript Interfaces
-Define interfaces that match DRF response patterns:
-
-```typescript
-// Paginated response wrapper
-interface PaginatedResponse<T> {
-  count: number
-  next: string | null
-  previous: string | null
-  results: T[]
-}
-
-// Usage
-interface ProductsResponse extends PaginatedResponse<Product> {}
-```
-
-### 3. Query Hook Patterns
-Use consistent patterns in React Query hooks:
-
-```typescript
-// For paginated data
-const { data: response } = useQuery({
-  queryKey: ['products'],
-  queryFn: () => productsApi.getProducts()
-})
-const products = response?.results || []
-
-// For single object data
-const { data: product } = useQuery({
-  queryKey: ['product', id],
-  queryFn: () => productsApi.getProduct(id)
-})
-```
-
-## Common DRF Features Used
-
-### 1. Filtering
-DRF uses `django-filter` for advanced filtering:
-- `?search=term` → Text search
-- `?category=123` → Exact match
-- `?min_price=100&max_price=500` → Range filters
-- `?is_active=true` → Boolean filters
-
-### 2. Ordering
-- `?ordering=name` → Ascending
-- `?ordering=-created_at` → Descending
-- `?ordering=name,-price` → Multiple fields
-
-### 3. Pagination
-- `?offset=20` → Starting position (0-based)
-- `?limit=50` → Items per page (if allowed)
-
-## Development Guidelines
-
-### 1. Always Check Response Structure
-When working with new endpoints:
-1. Check the actual API response in browser dev tools
-2. Verify if it's paginated (`count`, `results`) or single object
-3. Update frontend code accordingly
-
-### 2. Use TypeScript Strictly
-Define proper interfaces for all API responses to catch mismatches early.
-
-### 3. Test API Responses
-Use browser dev tools or tools like Postman to verify API response structure before implementing frontend code.
-
-### 4. Document Endpoint Patterns
-When adding new endpoints, document whether they return:
-- Paginated list (`PaginatedResponse<T>`)
-- Single object (`T`)
-- Custom response structure
-
-## Troubleshooting Checklist
-
-When API data isn't loading:
-
-1. ✅ **Check Network Tab**: Is the request being made?
-2. ✅ **Check Response Structure**: Is it `{results: [...]}` or `{data: [...]}`?
-3. ✅ **Check Console Logs**: What does the actual response look like?
-4. ✅ **Check DRF Pagination**: Is the endpoint paginated?
-5. ✅ **Check Frontend Access**: Are we accessing the right field?
-
-## Quick Reference
-
-| Endpoint Type | DRF Response | Frontend Access |
-|---------------|--------------|-----------------|
-| List (paginated) | `{count, next, previous, results: [...]}` | `response.results` |
-| List (unpaginated) | `[...]` | `response` |
-| Detail | `{id, name, ...}` | `response` |
-| Create/Update | `{id, name, ...}` | `response` |
-| Delete | `204 No Content` | No response body |
+| Tipo de endpoint | Respuesta DRF | Acceso |
+|------------------|---------------|--------|
+| Lista (paginada) | `{count, next, previous, results: [...]}` | `results` |
+| Lista (sin paginar) | `[...]` | array directo |
+| Detalle | `{id, ...}` | objeto directo |
+| Create/Update | `{id, ...}` | objeto directo |
+| Delete | `204 No Content` | sin cuerpo |
 
 ---
 
-**Remember**: Django REST Framework is opinionated about response structure. When in doubt, check the actual API response in browser dev tools!
+> Relacionado: [API.md](API.md) (catálogo), [BACKEND.md](BACKEND.md) (capa selectors/services), [FRONTEND_API.md](FRONTEND_API.md) (consumidores de datos).

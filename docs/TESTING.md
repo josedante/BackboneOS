@@ -1,408 +1,136 @@
-# Testing Infrastructure - BackboneOS
+# Infraestructura de Testing - BackboneOS
 
-## Overview
+> Tras la [consolidación del frontend](consolidation/FRONTEND_CONSOLIDATION.md), el proyecto es un único proceso Django (API REST + CRM HTML). El testing es **Django/pytest**; la antigua suite de frontend (Vitest/React) se eliminó junto con el paquete Next.js.
 
-The BackboneOS project uses a modern, comprehensive testing infrastructure to ensure code quality and prevent regressions. This document outlines the testing setup, best practices, and maintenance guidelines.
+## Stack de Testing
 
-## Testing Stack
+- **Django TestCase**: tests de modelos, API y vistas HTML
+- **pytest**: runner de tests de Python
+- **factory_boy**: generación de datos de prueba (`test_factories.py` por app)
+- **Coverage.py**: análisis de cobertura
+- **Configuración de tests**: `backend.test_settings` (SQLite + almacenamiento de estáticos simple)
 
-### Frontend Testing
+## Organización de Tests
 
-**Core Testing Framework**:
-- **Vitest**: Modern, fast test runner (replaces Jest)
-- **@testing-library/react**: React component testing utilities
-- **@testing-library/jest-dom**: Custom matchers for DOM testing
-- **@testing-library/user-event**: User interaction simulation
-- **jsdom**: DOM environment for testing
-
-**Why Vitest over Jest?**:
-- ✅ **Faster**: Up to 10x faster than Jest
-- ✅ **Modern**: Native ES modules support
-- ✅ **TypeScript**: First-class TypeScript support
-- ✅ **Vite Integration**: Seamless integration with Vite
-- ✅ **Active Development**: Actively maintained and updated
-- ✅ **No Deprecated Dependencies**: Uses modern, non-deprecated packages
-
-### Backend Testing
-
-**Core Testing Framework**:
-- **pytest**: Python testing framework
-- **Django TestCase**: Django-specific testing utilities
-- **Factory Boy**: Test data generation
-- **Coverage.py**: Code coverage analysis
-
-## Configuration Files
-
-### Frontend Configuration
-
-**vitest.config.ts**:
-```typescript
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    globals: true,
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-})
-```
-
-**vitest.setup.ts**:
-- Global test setup and mocks
-- Next.js router mocking
-- Sonner toast mocking
-- localStorage mocking
-- fetch API mocking
-
-### Backend Configuration
-
-**pytest.ini**:
-- Test discovery patterns
-- Coverage configuration
-- Test output formatting
-
-## Test Structure
-
-### Frontend Test Organization
-
-```
-frontend/src/
-├── __tests__/
-│   ├── auth/                    # Authentication tests
-│   │   └── AuthContext.test.tsx
-│   ├── api/                     # API tests
-│   │   └── interceptors.test.ts
-│   ├── components/              # Component tests
-│   │   ├── auth/
-│   │   │   └── TokenRefreshManager.test.tsx
-│   │   ├── ui/                  # UI component tests
-│   │   └── layout/              # Layout component tests
-│   ├── hooks/                   # Custom hook tests
-│   └── utils/                   # Utility function tests
-```
-
-### Backend Test Organization
+Cada app coloca sus tests junto al código. Las apps con CRM añaden tests de vistas HTML y factories:
 
 ```
 backend/
-├── users/tests.py               # User app tests
-├── products/tests.py            # Product app tests
-├── entities/tests.py            # Entity app tests
-├── world/tests.py               # World app tests
-├── interactions/tests.py        # Interaction app tests
-├── offers/tests.py              # Offer app tests
-├── campaigns/tests.py           # Campaign app tests
-└── test_*.py                    # Integration tests
+├── users/tests.py
+├── world/tests.py
+├── entities/tests.py
+├── entities/tests_template_views.py     # vistas HTML del CRM
+├── entities/test_factories.py           # factory_boy
+├── our_institution/tests.py
+├── products/tests.py
+├── products/tests_template_views.py
+├── interactions/tests.py
+├── interactions/tests_template_views.py
+├── interactions/test_factories.py
+├── campaigns/tests.py
+├── campaigns/tests_template_views.py
+├── campaigns/test_factories.py
+├── offers/tests.py
+├── offers/tests_template_views.py
+├── offers/test_factories.py
+└── dashboard/tests.py
 ```
 
-## Running Tests
+| Tipo | Archivo | Cubre |
+|------|---------|-------|
+| API | `tests.py` | ViewSets DRF, serializers, permisos |
+| CRM HTML | `tests_template_views.py` | vistas de plantilla: login requerido, render, POST de formularios, redirecciones |
+| Datos | `test_factories.py` | factories `factory_boy` reutilizables |
 
-### Frontend Tests
+## Ejecutar Tests
+
+### Todos los tests
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with UI interface
-npm run test:ui
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test AuthContext.test.tsx
-
-# Run tests matching pattern
-npm test -- --grep "authentication"
+docker compose run --rm \
+  -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  python manage.py test
 ```
 
-### Backend Tests
+### App específica / subconjunto
 
 ```bash
-# Run all tests
-python manage.py test
+# App completa
+docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  python manage.py test campaigns
 
-# Run specific app tests
-python manage.py test users
-
-# Run specific test class
-python manage.py test users.tests.UserModelTest
-
-# Run with coverage
-coverage run --source='.' manage.py test
-coverage report
-coverage html
+# Solo las vistas HTML de una app
+docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  python manage.py test products.tests_template_views
 ```
 
-## Test Categories
+### Cobertura
 
-### 1. Unit Tests
-- **Purpose**: Test individual functions, components, or methods
-- **Scope**: Isolated functionality
-- **Examples**: 
-  - AuthContext login/logout functions
-  - Token refresh logic
-  - Utility functions
+```bash
+docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  sh -c "coverage run manage.py test && coverage report"
+```
 
-### 2. Integration Tests
-- **Purpose**: Test interaction between multiple components
-- **Scope**: Component integration, API integration
-- **Examples**:
-  - API interceptors with token refresh
-  - Protected routes with authentication
-  - Database model relationships
+## Gate consolidado (CRM)
 
-### 3. Component Tests
-- **Purpose**: Test React components in isolation
-- **Scope**: Component behavior, user interactions
-- **Examples**:
-  - Login form submission
-  - Token refresh manager
-  - Error boundary handling
+El gate de regresión usado durante la consolidación cubre dashboard + las vistas HTML de interactions, entities, campaigns y offers (más subconjuntos de API). Reporta **67 tests, OK**:
 
-### 4. End-to-End Tests (Planned)
-- **Purpose**: Test complete user workflows
-- **Scope**: Full application flow
-- **Examples**:
-  - Complete authentication flow
-  - Product management workflow
-  - User registration process
+```bash
+docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  python manage.py test \
+    dashboard.tests \
+    products.tests.ProductsAPITests products.tests_template_views \
+    entities.tests.PersonAPITest entities.tests.OrganizationAPITest \
+    entities.tests.PersonViewSetTests entities.tests.OrganizationViewSetTests \
+    entities.tests_template_views \
+    interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
+    interactions.tests_template_views \
+    campaigns.tests campaigns.tests_template_views \
+    offers.tests offers.tests_template_views
+```
 
-## Mocking Strategy
+`python manage.py check` no debe reportar incidencias.
 
-### Frontend Mocking
+## Qué verifican los tests de vistas HTML
 
-**Global Mocks** (vitest.setup.ts):
-- `next/navigation`: Router and navigation
-- `sonner`: Toast notifications
-- `localStorage`: Browser storage
-- `fetch`: HTTP requests
-- `window.location`: Browser location
+Los `tests_template_views.py` cubren, por app, el contrato del CRM:
 
-**Component-Specific Mocks**:
-- API clients
-- External services
-- Complex dependencies
+- **Autenticación**: las páginas requieren login (`@login_required`).
+- **Render**: la vista responde 200 y usa la plantilla correcta que extiende `base_dashboard.html`.
+- **Escritura**: los POST válidos invocan `services.py`, persisten FK/M2M y muestran flash + redirect.
+- **Substrato (interactions)**: no hay rutas de create/edit/delete de interacciones (solo lectura); sí existen para touchpoints.
+- **API intacta**: los subconjuntos de `tests.py` confirman que `/api/...` no cambió.
 
-### Backend Mocking
+## Deuda de tests conocida (no bloqueante)
 
-**Django TestCase**:
-- Database transactions
-- User authentication
-- File uploads
-- External API calls
+- Suite completa de `products`: fixtures de Division y drift de JSON de analytics.
+- Los tests HTML usan `backend.test_settings` (SQLite + staticfiles simple).
 
-**Factory Boy**:
-- Test data generation
-- Model instances
-- Related objects
+## Documentación de testing del backend
 
-## Test Data Management
+Guías operativas más detalladas viven junto al backend:
 
-### Frontend Test Data
-- **Mock Data**: Static test data in test files
-- **Fixtures**: Reusable test data sets
-- **Factories**: Dynamic test data generation
+- [`backend/TESTING.md`](../backend/TESTING.md) - guía de testing del backend
+- [`backend/DOCKER_TESTING.md`](../backend/DOCKER_TESTING.md) - testing dentro de Docker
+- [`backend/TESTING_STATUS.md`](../backend/TESTING_STATUS.md) - estado/resultados
 
-### Backend Test Data
-- **Fixtures**: JSON files with test data
-- **Factory Boy**: Dynamic model instance creation
-- **Database Seeding**: Initial test data setup
+## CI (planificado)
 
-## Coverage Requirements
-
-### Frontend Coverage
-- **Minimum**: 80% line coverage
-- **Target**: 90% line coverage
-- **Critical Paths**: 100% coverage for authentication
-
-### Backend Coverage
-- **Minimum**: 85% line coverage
-- **Target**: 95% line coverage
-- **Critical Paths**: 100% coverage for security features
-
-## Best Practices
-
-### Writing Tests
-
-1. **Arrange-Act-Assert Pattern**:
-   ```typescript
-   it('should login user successfully', async () => {
-     // Arrange
-     const mockUser = { username: 'test', password: 'password' }
-     mockApi.login.mockResolvedValue({ success: true })
-     
-     // Act
-     const result = await login(mockUser)
-     
-     // Assert
-     expect(result.success).toBe(true)
-   })
-   ```
-
-2. **Descriptive Test Names**:
-   - Use "should" statements
-   - Describe the expected behavior
-   - Include context when relevant
-
-3. **Test Isolation**:
-   - Each test should be independent
-   - Clean up after each test
-   - Use beforeEach/afterEach appropriately
-
-4. **Mock External Dependencies**:
-   - Mock API calls
-   - Mock browser APIs
-   - Mock third-party libraries
-
-### Test Maintenance
-
-1. **Keep Tests Updated**:
-   - Update tests when code changes
-   - Remove obsolete tests
-   - Refactor tests for clarity
-
-2. **Monitor Test Performance**:
-   - Keep test execution time low
-   - Optimize slow tests
-   - Use parallel execution
-
-3. **Review Test Coverage**:
-   - Regular coverage reports
-   - Identify untested code paths
-   - Prioritize critical path coverage
-
-## Continuous Integration
-
-### GitHub Actions (Planned)
 ```yaml
 name: Tests
 on: [push, pull_request]
 jobs:
-  frontend-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm ci
-      - run: npm test
-      - run: npm run test:coverage
-  
   backend-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-      - run: pip install -r requirements.txt
-      - run: python manage.py test
-      - run: coverage report
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - run: pip install -r backend/requirements.txt
+      - run: |
+          cd backend
+          DJANGO_SETTINGS_MODULE=backend.test_settings python manage.py test
 ```
-
-## Current Status & Known Issues
-
-### ✅ Working Components
-- **Basic Test Infrastructure**: Vitest + React Testing Library configured and working
-- **Test Configuration**: vitest.config.ts and vitest.setup.ts properly configured
-- **Mocking Setup**: Global mocks for Next.js, localStorage, fetch, etc.
-- **Basic Tests**: Core testing functionality verified
-
-### 🔄 Partially Working Components
-- **AuthContext Tests**: Tests written but localStorage mocking needs refinement
-- **Token Refresh Logic Tests**: Tests written but timer mocking needs fixes
-- **API Interceptor Tests**: Basic tests working, complex scenarios need work
-
-### 📋 Pending Components
-- **Component Tests**: TokenRefreshManager tests need refinement
-- **Integration Tests**: End-to-end authentication flow tests
-- **E2E Tests**: Complete user workflow tests
-
-### Known Issues
-1. **localStorage Mocking**: Complex interactions with React components need refinement
-2. **Timer Mocking**: Fake timers with React components need proper setup
-3. **Async Testing**: Some async operations in tests need better handling
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Test Environment Issues**:
-   - Check vitest.config.ts configuration
-   - Verify setup files are loaded
-   - Ensure proper mocking
-
-2. **Async Test Issues**:
-   - Use proper async/await patterns
-   - Wait for promises to resolve
-   - Use waitFor for DOM updates
-
-3. **Mock Issues**:
-   - Verify mock implementations
-   - Check mock call counts
-   - Ensure proper cleanup
-
-### Debugging Tests
-
-1. **Verbose Output**:
-   ```bash
-   npm test -- --verbose
-   ```
-
-2. **Single Test Debugging**:
-   ```bash
-   npm test -- --grep "specific test name"
-   ```
-
-3. **Coverage Analysis**:
-   ```bash
-   npm run test:coverage
-   open coverage/index.html
-   ```
-
-## Future Improvements
-
-### Planned Enhancements
-- **E2E Testing**: Playwright or Cypress integration
-- **Visual Regression Testing**: Screenshot comparisons
-- **Performance Testing**: Load and stress testing
-- **Accessibility Testing**: Automated a11y checks
-
-### Monitoring and Metrics
-- **Test Execution Time**: Track and optimize
-- **Coverage Trends**: Monitor over time
-- **Flaky Test Detection**: Identify unstable tests
-- **Test Quality Metrics**: Maintain high standards
-
-## Maintenance Checklist
-
-### Weekly
-- [ ] Review test failures
-- [ ] Update test data if needed
-- [ ] Check coverage reports
-
-### Monthly
-- [ ] Review and update test dependencies
-- [ ] Analyze test performance
-- [ ] Update documentation
-
-### Quarterly
-- [ ] Major test infrastructure updates
-- [ ] Test strategy review
-- [ ] Coverage goal assessment
 
 ---
 
-**Last Updated**: December 2024  
-**Maintainer**: BackboneOS Development Team  
-**Version**: 1.0.0
+> Relacionado: [BACKEND.md](BACKEND.md) (capa selectors/services), [FRONTEND_COMPONENTS.md](FRONTEND_COMPONENTS.md) (CRM), [FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md) (historial).

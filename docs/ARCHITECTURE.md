@@ -19,14 +19,15 @@ BackboneOS representa un **ecosistema CRM completo** donde cada aplicación apor
 ### 🔄 Flujo de Valor Comercial
 
 ```
-World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (Comercialización) → Interactions (Journey)
+World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (Comercialización) → Campaigns (Promoción) → Interactions (Journey)
 ```
 
 - **World App**: Define el **vocabulario empresarial** para segmentación precisa
 - **Entities App**: Gestiona **personas y organizaciones** con perfilado semántico
 - **Products App**: Estructura el **catálogo de valor** organizacional
 - **Offers App**: Transforma productos en **ofertas comerciales** con pricing dinámico
-- **Interactions App**: Registra y optimiza el **customer journey** completo
+- **Campaigns App**: Planifica **estructuras de marketing** y enlaces campaña–touchpoint
+- **Interactions App**: Registra y optimiza el **customer journey** completo (substrato)
 - **Our Institution App**: Proporciona **contexto organizacional** para todas las operaciones
 
 ### 💡 Ventaja Competitiva
@@ -58,43 +59,46 @@ La integración semántica entre todas las apps permite:
 - **Autenticación**: JWT + Token-based (implementado)
 - **CORS**: django-cors-headers configurado
 
-### Frontend (Nuxt.js)
+### Interfaz de Operador (Django templates)
 
-- **Framework**: Nuxt.js 3.17.4
-- **Lenguaje**: TypeScript 5.8.3
-- **UI Framework**: Nuxt UI 3.1.3
-- **Módulos**: @nuxt/content, @nuxt/fonts, @nuxt/icon, @nuxt/image, @nuxt/scripts, @nuxt/test-utils
-- **Autenticación**: ✅ Sistema completo implementado
-- **HTTP Client**: API service con $fetch
-- **Linting**: ESLint 9.27.0
+> El paquete standalone Next.js `frontend/` se eliminó en la Fase 6 de la [consolidación del frontend](consolidation/FRONTEND_CONSOLIDATION.md). El CRM ahora se renderiza con plantillas Django en el mismo proceso que la API.
+
+- **Renderizado**: Plantillas Django con herencia (`{% extends "base_dashboard.html" %}`), sin SPA
+- **Estilos**: Tailwind CSS compilado en build (`backend/package.json`, `npm run tailwind:build`), servido como estático por WhiteNoise; `static/dist/` en `.gitignore`
+- **Formularios**: `forms.py` por app (captura server-rendered)
+- **Autenticación**: sesión Django (`@login_required`, `/login/`, `/logout/`)
+- **Hidratación dinámica**: HTMX / Alpine.js permitidos por la regla de arquitectura, **no usados actualmente**
 
 ## 🔄 Arquitectura de Comunicación
 
 ### Flujo de Datos y Servicios
 
+Un único proceso Django sirve el CRM HTML y la API REST, compartiendo la [capa de servicios y selectores](BACKEND.md#-capa-de-servicios-y-selectores):
+
 ```
-Frontend (Nuxt.js) ←→ API REST (Django) ←→ PostgreSQL
-     │                    │                   │
-   Localhost:3000    Docker:8000/api    Docker:5432
-                          │
-                    ┌─────┴─────┐
-                    │  Redis    │
-                    │ :6379     │
-                    └─────┬─────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        │                 │                 │
-   Celery Worker    Celery Beat        Flower
-   (Async Tasks)   (Scheduled)     (Monitor :5555)
-        │                 │                 │
-        └─────────────────┼─────────────────┘
-                          │
-                    Task Results
+Cliente externo / webhooks / tracking ──→ API REST  ┐
+Navegador del operador ──────────────────→ CRM HTML ┤
+                                                     │ (mismo proceso Django :8000)
+                              ┌──────────────────────┴──────────────┐
+                              │  selectors.py (lecturas)             │
+                              │  services.py  (escrituras)           │
+                              └──────────────────────┬──────────────┘
+                                                     │
+                                              PostgreSQL :5432
+                                                     │
+                                              ┌──────┴──────┐
+                                              │  Redis :6379│
+                                              └──────┬──────┘
+                          ┌──────────────────────────┼──────────────────────┐
+                     Celery Worker            Celery Beat                  Flower
+                     (Async Tasks)            (Scheduled)             (Monitor :5555)
 ```
 
 ### Comunicación Entre Servicios
 
-- **Frontend → Backend**: HTTP REST API calls
+- **Navegador (operador) → Backend**: peticiones HTTP a las vistas de plantilla (`template_views`)
+- **Cliente externo / webhooks → Backend**: peticiones HTTP a la API REST (`/api/...`)
+- **CRM y API → datos**: ambas superficies llaman a `selectors`/`services` (sin loopback HTTP interno)
 - **Backend → Redis**: Caché y sesiones
 - **Backend → PostgreSQL**: ORM queries y transacciones
 - **Celery Worker ← Redis**: Consume tareas del broker
@@ -103,21 +107,23 @@ Frontend (Nuxt.js) ←→ API REST (Django) ←→ PostgreSQL
 
 ### Separación de Responsabilidades
 
-**Backend (Django)** 🎯
+**Lógica compartida (selectors / services)** 🧩
 
-- **Lógica de Negocio**: Reglas empresariales y validaciones
-- **API REST**: Endpoints estructurados con filtrado avanzado
-- **Gestión de Datos**: ORM, migraciones, consultas optimizadas
-- **Autenticación**: JWT tokens y middleware de seguridad
-- **Admin Interface**: Gestión administrativa completa
+- **`selectors.py`**: lecturas, querysets optimizados y contextos para plantillas y API
+- **`services.py`**: escrituras, transacciones y validaciones de negocio compartidas
+- Fuente canónica de la convención: [BACKEND.md](BACKEND.md#-capa-de-servicios-y-selectores)
 
-**Frontend (Nuxt.js)** 🖥️
+**API REST (DRF)** 🎯
 
-- **Interfaz de Usuario**: Componentes Vue.js reactivos
-- **Experiencia de Usuario**: Navegación fluida y responsive
-- **Estado de Cliente**: Gestión de estado con composables
-- **Consumo de API**: Servicios HTTP para comunicación con backend
-- **Autenticación Cliente**: Manejo de tokens y sesiones
+- **Superficie de integración**: clientes externos, webhooks (Meta/Shopify) y scripts de tracking
+- **Endpoints estructurados** con filtrado avanzado; delegan en `selectors`/`services`
+- **Autenticación**: JWT tokens
+
+**CRM de Operador (plantillas Django)** 🖥️
+
+- **Interfaz de Usuario**: páginas server-rendered que extienden `base_dashboard.html`
+- **Captura de datos**: formularios Django que escriben vía `services.py`
+- **Autenticación**: sesión Django (`@login_required`)
 
 ## 🚀 Servicios de Infraestructura
 
@@ -164,32 +170,32 @@ Frontend (Nuxt.js) ←→ API REST (Django) ←→ PostgreSQL
   - Interfaz web intuitiva
 - **Acceso**: http://localhost:5555
 
-### Comunicación API-First
+### API preservada para integraciones
 
-El proyecto está diseñado con **arquitectura API-First**:
+La API REST se mantiene como superficie de integración de primera clase, independiente del CRM:
 
 1. **Backend expone API REST** completa e independiente
-2. **Frontend consume API** de manera desacoplada
-3. **Documentación API** permite múltiples clientes futuros
+2. **Clientes externos, webhooks y tracking** la consumen de forma desacoplada
+3. **Documentación API** permite múltiples clientes
 4. **Testing independiente** de cada capa
-5. **Escalabilidad horizontal** de cada componente
+5. **Lógica compartida**: API y CRM reutilizan `selectors`/`services` sin duplicación
 
 ## 🌐 Configuración de Desarrollo
 
-### Ambiente Híbrido Justificado
+### Proceso único containerizado
 
-**¿Por qué Frontend local + Backend containerizado?**
+Tras la consolidación, el desarrollo usa un **único proceso Django containerizado** (no hay servidor frontend separado):
 
-**Ventajas del Frontend Local:**
+```bash
+docker compose up -d
+docker compose exec backend python manage.py migrate
+cd backend && npm run tailwind:build   # solo cuando cambian los estilos
+```
 
-- ⚡ **Hot Reload Instantáneo**: Cambios inmediatos sin rebuild
-- 🛠️ **DevTools Optimizados**: Mejor debugging y desarrollo
-- 📦 **Gestión de Dependencias**: npm/pnpm directo sin overhead
-- 🔄 **Desarrollo Iterativo**: Ciclo de desarrollo más rápido
+**Ventajas:**
 
-**Ventajas del Backend Containerizado:**
-
-- 🔒 **Ambiente Consistente**: PostgreSQL y Django idénticos en todos los ambientes
-- 🚀 **Deploy Fácil**: Imagen Docker lista para producción
-- 🔧 **Dependencias Aisladas**: Sin conflictos de Python/pip locales
-- 📊 **Datos Persistentes**: Base de datos compartida entre desarrolladores
+- 🔒 **Ambiente Consistente**: PostgreSQL, Redis y Django idénticos en todos los ambientes
+- 🚀 **Deploy Simple**: una sola imagen Docker; en runtime un único proceso Python
+- 🔧 **Dependencias Aisladas**: sin conflictos de Python/pip locales
+- 📊 **Datos Persistentes**: base de datos compartida entre desarrolladores
+- 🎨 **CSS en build**: Tailwind se compila en build (o con `tailwind:watch` en el host durante desarrollo, ya que `docker-compose` monta `./backend:/app` y sobreescribe el `dist/` de la imagen)

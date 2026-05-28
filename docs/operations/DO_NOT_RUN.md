@@ -37,4 +37,4 @@ docker-compose exec backend python manage.py makemigrations
 2. **NUNCA sugerir instalación local de Python/Django**
 3. **SIEMPRE anteponer `docker-compose exec backend` a comandos Django**
 4. **Usar las tareas de VS Code cuando sea posible**
-5. **Solo el frontend (Nuxt.js) se ejecuta localmente**
+5. **No hay frontend separado**: el CRM HTML lo sirve el backend Django. Lo único que puede ejecutarse en el host es `npm run tailwind:build`/`tailwind:watch` (compilación de CSS)

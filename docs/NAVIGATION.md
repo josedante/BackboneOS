@@ -44,14 +44,12 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 
 ### 🌐 [FRONTEND.md](FRONTEND.md)
 
-**Documentación completa del frontend Nuxt.js**
+**Interfaz de operador en plantillas Django** (Next.js eliminado en la Fase 6)
 
-- Stack tecnológico frontend
-- Arquitectura de componentes
-- Sistema de autenticación
-- Páginas y funcionalidades
-- Configuración y personalización
-- Integración con backend
+- Stack del CRM: plantillas Django + Tailwind (build) + WhiteNoise
+- Autenticación de sesión (`/login/`, `/logout/`)
+- Punteros a la documentación de componentes y a la consolidación
+- Ver también [FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md)
 
 ---
 
@@ -67,6 +65,7 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 - Products App: Catálogo de productos
 - Interactions App: Customer journey
 - Offers App: Ofertas comerciales
+- Campaigns App: Campañas comerciales
 
 ### 🔗 [API.md](API.md)
 
@@ -165,8 +164,10 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 
 ### Operator UI (Django)
 
-- **[FRONTEND.md](FRONTEND.md)** - Pointer to Django templates (Next.js removed Phase 6)
-- **[FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md)** - Migration handoff
+- **[FRONTEND.md](FRONTEND.md)** - Puntero a las plantillas Django (Next.js eliminado en la Fase 6)
+- **[FRONTEND_COMPONENTS.md](FRONTEND_COMPONENTS.md)** - Componentes/plantillas del CRM (base_dashboard, includes, por app)
+- **[FRONTEND_API.md](FRONTEND_API.md)** - API REST para integraciones + capa selectors/services del CRM
+- **[FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md)** - Handoff de la migración
 
 ---
 

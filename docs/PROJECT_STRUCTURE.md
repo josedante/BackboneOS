@@ -62,38 +62,41 @@ BackboneOS/
 │   │   ├── urls.py            # 27 API endpoints funcionales
 │   │   ├── migrations/        # Migraciones con índices para performance
 │   │   └── README.md          # Documentación completa del sistema
-│   └── offers/                # ✅ Sistema de Ofertas Comerciales (COMPLETA)
-│       ├── models.py          # ProductOffering con segmentación semántica avanzada
-│       ├── views.py           # ViewSets con analytics empresariales y filtros avanzados
-│       ├── serializers.py     # Serializers contextuales para ofertas comerciales
-│       ├── admin.py           # Interface administrativa con acciones en lote
-│       ├── urls.py            # 10 API endpoints con analytics y duplicación
-│       ├── migrations/        # Migraciones con índices optimizados
-│       ├── COMPLETION_REPORT.md  # Reporte de implementación completa
-│       └── README.md          # Documentación técnica completa
-├── backend/templates/         # Operator CRM (Django HTML; Next.js removed Phase 6)
-│   ├── composables/
-│   │   └── useAuth.ts        # ✅ Sistema auth JWT completo
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── UserList.vue
-│   │   └── services/
-│   │       ├── api.ts        # ✅ API service centralizado
-│   │       └── userService.ts
-│   ├── pages/
-│   │   ├── index.vue
-│   │   ├── login.vue         # ✅ Autenticación implementada
-│   │   ├── analytics/        # Páginas de analytics
-│   │   ├── customers/        # Gestión de clientes
-│   │   ├── leads/           # Gestión de leads
-│   │   ├── products/        # Gestión de productos
-│   │   └── reports/         # Reportes y dashboards
-│   ├── middleware/
-│   │   └── auth.ts           # ✅ Middleware de autenticación
-│   ├── plugins/
-│   │   └── auth.client.ts    # ✅ Plugin cliente
-│   ├── nuxt.config.ts        # ✅ Configuración completa
-│   └── package.json          # ✅ Nuxt 3.17.4 + TypeScript 5.8.3
+│   ├── offers/                # ✅ Sistema de Ofertas Comerciales (COMPLETA)
+│   │   ├── models.py          # ProductOffering con segmentación semántica avanzada
+│   │   ├── views.py           # ViewSets con analytics empresariales y filtros avanzados
+│   │   ├── serializers.py     # Serializers contextuales para ofertas comerciales
+│   │   ├── admin.py           # Interface administrativa con acciones en lote
+│   │   ├── urls.py            # 10 API endpoints con analytics y duplicación
+│   │   ├── migrations/        # Migraciones con índices optimizados
+│   │   ├── COMPLETION_REPORT.md  # Reporte de implementación completa
+│   │   └── README.md          # Documentación técnica completa
+│   ├── campaigns/             # ✅ Campañas Comerciales (COMPLETA) + CRM HTML
+│   │   ├── models.py          # Campaign, CampaignTouchpoint con targeting semántico
+│   │   ├── selectors.py       # Lecturas compartidas (hub, detalle, analytics)
+│   │   ├── services.py        # Escrituras compartidas (CRUD, duplicate, validate_*)
+│   │   ├── serializers.py     # DRF (sin lógica de escritura)
+│   │   ├── views.py           # ViewSets DRF (delegan en selectors/services)
+│   │   ├── forms.py           # Formularios del CRM
+│   │   ├── template_views.py  # Vistas HTML del CRM
+│   │   ├── template_urls.py   # URLconf HTML (namespace campaigns_html)
+│   │   └── templates/campaigns/  # Plantillas que extienden base_dashboard.html
+│   └── dashboard/             # ✅ Home del CRM y layout compartido
+│       ├── selectors.py       # get_home_context()
+│       └── template_views.py  # Vista home
+│
+│   # Las apps products, entities, interactions y offers siguen el mismo patrón
+│   # de módulos: selectors.py · services.py · forms.py · template_views.py ·
+│   # template_urls.py · templates/<app>/ · tests_template_views.py · test_factories.py
+│
+├── backend/templates/         # Plantillas raíz compartidas del CRM
+│   ├── base_dashboard.html    # Layout base (extends por todas las páginas)
+│   ├── dashboard/home.html    # Home del CRM
+│   ├── includes/              # header.html, sidebar.html
+│   └── registration/login.html# Login de sesión
+├── backend/static/            # src/input.css (fuente Tailwind) → dist/styles.css (build, gitignored)
+├── backend/package.json       # Toolchain Tailwind (tailwind:build / tailwind:watch)
+├── backend/tailwind.config.js # Configuración de Tailwind
 ├── docs/                     # 📚 Documentación modular
 │   ├── README.md             # Índice por categoría
 │   ├── ai/                   # Guías para asistentes IA
@@ -106,10 +109,12 @@ BackboneOS/
 │   ├── USE_CASES.md         # Casos de uso del sistema
 │   ├── PROJECT_STATUS.md    # Estado del proyecto
 │   └── PROJECT_STRUCTURE.md # Este archivo
-├── docker-compose.yml        # ⚠️ Frontend ejecuta localmente
+├── docker-compose.yml        # Backend + PostgreSQL + Redis + Celery (single-process backend)
 ├── .env                      # Variables de entorno
 └── README.md                 # README principal (punto de entrada)
 ```
+
+> El paquete Next.js `frontend/` se eliminó en la Fase 6 de la [consolidación del frontend](consolidation/FRONTEND_CONSOLIDATION.md). El CRM de operador se sirve ahora como plantillas Django desde el propio backend.
 
 ## 📚 Documentación Adicional
 
@@ -124,4 +129,6 @@ BackboneOS/
 - **interactions/README.md**: Documentación del framework de interacciones
 - **offers/README.md**: Documentación del sistema de ofertas comerciales
 - **offers/COMPLETION_REPORT.md**: Reporte de implementación completa y funcionalidades
+- **campaigns/README.md**: Documentación del sistema de campañas comerciales
+- **docs/consolidation/FRONTEND_CONSOLIDATION.md**: Handoff de la migración del CRM a plantillas Django
 - **docs/reports/SECURITY_AUDIT_REPORT.md**: Reporte de auditoría de seguridad

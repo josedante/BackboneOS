@@ -1,4 +1,4 @@
-# Comandos Útiles para el Proyecto Django + Nuxt.js + PostgreSQL
+# Comandos Útiles para el Proyecto Django (API + CRM HTML) + PostgreSQL
 
 ## Docker Commands
 
@@ -111,9 +111,8 @@ npm run tailwind:watch
 ### Puerto ocupado
 
 ```bash
-# Verificar qué proceso usa el puerto
+# Verificar qué proceso usa el puerto (backend único en :8000)
 lsof -ti:8000
-lsof -ti:3000
 
 # Matar proceso en puerto específico
 kill -9 $(lsof -ti:8000)

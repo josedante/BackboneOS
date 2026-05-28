@@ -47,32 +47,21 @@ CELERY_RESULT_BACKEND=redis://redis.yourdomain.com:6379/2
 CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 ```
 
-### Frontend (.env)
-
-```bash
-# API Configuration
-NUXT_PUBLIC_API_BASE=https://api.yourdomain.com
-NODE_ENV=production
-```
+> Tras la [consolidación del frontend](../consolidation/FRONTEND_CONSOLIDATION.md) no hay servicio de frontend separado: el CRM HTML lo sirve el propio backend Django. El CSS (Tailwind) se compila en la fase builder de `Dockerfile.prod` (`npm ci && npm run tailwind:build`) y se sirve con WhiteNoise tras `collectstatic`.
 
 ## Security Checklist for Production
 
-### Backend (Django)
+### Backend (Django) + CRM HTML
 
 - ✅ Set `DEBUG=False`
 - ✅ Use strong `SECRET_KEY`
 - ✅ Configure `ALLOWED_HOSTS`
-- ✅ Set specific `CORS_ALLOWED_ORIGINS`
-- ✅ Use HTTPS
+- ✅ Set specific `CORS_ALLOWED_ORIGINS` (solo clientes externos de la API; el CRM es same-origin)
+- ✅ Configurar `CSRF_TRUSTED_ORIGINS` para el dominio del CRM
+- ✅ Use HTTPS; cookies de sesión `Secure`/`HttpOnly`
 - ✅ Secure database credentials
 - ✅ Enable Django security middleware
-
-### Frontend (Nuxt.js)
-
-- ✅ Set `NODE_ENV=production`
-- ✅ Use HTTPS API URLs
-- ✅ Cookies automatically secure in production
-- ✅ Build with `npm run build`
+- ✅ `collectstatic` ejecutado y WhiteNoise sirviendo `static/dist/`
 
 ### Infrastructure
 
@@ -86,30 +75,20 @@ NODE_ENV=production
 ### Staging
 
 ```bash
-# Backend
 export DEBUG=False
 export CORS_ALLOWED_ORIGINS=https://staging.yourdomain.com
 docker-compose -f docker-compose.staging.yml up --build
-
-# Frontend
-export NODE_ENV=staging
-export NUXT_PUBLIC_API_BASE=https://api-staging.yourdomain.com
-npm run build
 ```
 
 ### Production
 
 ```bash
-# Backend
 export DEBUG=False
 export CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 docker-compose -f docker-compose.prod.yml up --build
-
-# Frontend
-export NODE_ENV=production
-export NUXT_PUBLIC_API_BASE=https://api.yourdomain.com
-npm run build
 ```
+
+> El CRM HTML se despliega con el backend (misma imagen/proceso); no hay paso de build de frontend separado.
 
 ## Cookie Security by Environment
 

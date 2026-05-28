@@ -160,11 +160,11 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 - **[🏗️ Arquitectura del Sistema](docs/ARCHITECTURE.md)** - Stack tecnológico y diseño de comunicación API-First
 - **[🖥️ Backend Django](docs/BACKEND.md)** - API REST, aplicaciones Django y containerización
 - **[🌐 Operator UI (Django)](docs/FRONTEND.md)** - Templates, Tailwind, consolidación frontend
-- **[🧪 Testing](docs/TESTING.md)** - Infraestructura de testing moderna con Vitest
+- **[🧪 Testing](docs/TESTING.md)** - Infraestructura de testing (Django/pytest + factory_boy)
 
 ### 📱 Aplicaciones y Funcionalidades
 
-- **[🔧 Aplicaciones Django](docs/APPS.md)** - 6 apps especializadas del ecosistema CRM
+- **[🔧 Aplicaciones Django](docs/APPS.md)** - 7 apps especializadas del ecosistema CRM
 - **[🔗 API Reference](docs/API.md)** - 50+ endpoints REST con filtrado avanzado
 - **[🎯 Casos de Uso](docs/USE_CASES.md)** - Ejemplos prácticos con código Python
 
@@ -185,8 +185,8 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 ### ✅ Funcionalidades Completadas
 
-- ✅ **Arquitectura Full-Stack**: Django (HTML CRM + API) + PostgreSQL
-- ✅ **Sistema de Autenticación**: JWT + composables + middleware
+- ✅ **Arquitectura Single-Process**: Django (HTML CRM + API REST) + PostgreSQL
+- ✅ **Sistema de Autenticación**: JWT (API REST) + sesión Django (`@login_required`) para el CRM
 - ✅ **7 Aplicaciones Django**: World, Entities, Our Institution, Products, Interactions, Offers, Campaigns
 - ✅ **API REST Completa**: 50+ endpoints con filtrado avanzado
 - ✅ **Optimización DB**: Índices estratégicos y consultas optimizadas

@@ -4,7 +4,12 @@
 
 ### 📋 Información General
 
-El backend de BackboneOS está construido con Django 5.x + Django REST Framework, diseñado como una **API REST robusta** que sirve datos al frontend y cualquier cliente futuro de manera completamente desacoplada.
+El backend de BackboneOS está construido con Django 5.x + Django REST Framework. Tras la [consolidación del frontend](consolidation/FRONTEND_CONSOLIDATION.md) (el paquete Next.js `frontend/` se eliminó en la Fase 6), el backend es un **único proceso Django** que sirve dos superficies sobre la misma base de datos y la misma lógica de negocio:
+
+- **API REST** (`/api/...`) para clientes externos, webhooks de ingestión (p. ej. Meta/Shopify) y scripts de tracking.
+- **CRM de operador** renderizado con plantillas Django (`/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/`) protegido con autenticación de sesión.
+
+Ambas superficies comparten la lógica de lectura y escritura a través de la [capa de servicios y selectores](#-capa-de-servicios-y-selectores), de modo que no existe duplicación ni llamadas HTTP internas (loopback) entre el CRM y la API.
 
 ## 🛠️ Stack Tecnológico Backend
 
@@ -22,14 +27,22 @@ El backend de BackboneOS está construido con Django 5.x + Django REST Framework
 ### Configuración y Seguridad
 
 - **python-decouple**: Gestión de variables de entorno
-- **django-cors-headers**: Configuración CORS para frontend
-- **JWT Authentication**: Autenticación basada en tokens
-- **Django Admin**: Interface administrativa completa
+- **django-cors-headers**: CORS para clientes externos de la API (el CRM es same-origin)
+- **JWT Authentication**: Autenticación basada en tokens para la API REST
+- **Autenticación de sesión**: `@login_required`, `/login/`, `/logout/` para el CRM HTML
+- **Django Admin**: Interface administrativa completa (gestión de usuarios)
+
+### Interfaz de Operador (CRM HTML)
+
+- **Plantillas Django**: herencia con `{% extends "base_dashboard.html" %}` (sin SPA)
+- **Tailwind CSS**: compilado en tiempo de build (`backend/package.json`, `npm run tailwind:build`) y servido como estático por WhiteNoise; `static/dist/` está en `.gitignore`
+- **Formularios Django**: `forms.py` por app para captura server-rendered
+- **Hidratación dinámica**: HTMX / Alpine.js están permitidos por la regla de arquitectura para necesidades futuras, pero **no se usan actualmente**
 
 ### Containerización
 
-- **Docker**: Containerización del backend
-- **Docker Compose**: Orquestación de servicios (backend + PostgreSQL)
+- **Docker**: Containerización del backend (proceso Python único en runtime)
+- **Docker Compose**: Orquestación de servicios (backend, PostgreSQL, Redis, Celery)
 
 ## 🏗️ Arquitectura Backend
 
@@ -38,20 +51,46 @@ El backend de BackboneOS está construido con Django 5.x + Django REST Framework
 ```
 backend/
 ├── 📁 backend/              # Configuración principal de Django
-│   ├── settings.py         # Configuración con python-decouple
-│   ├── urls.py            # URLs principales y API routing
+│   ├── settings/           # Configuración modular con python-decouple
+│   ├── urls.py            # URLs principales, API routing y montaje de rutas HTML
 │   ├── wsgi.py            # WSGI application
 │   └── fields.py          # Campos personalizados
 ├── 📁 users/               # ✅ Gestión de usuarios y autenticación
 ├── 📁 world/               # ✅ Campo semántico empresarial (COMPLETO)
-├── 📁 entities/            # ✅ Gestión de entidades (COMPLETO)
+├── 📁 entities/            # ✅ Gestión de entidades (COMPLETO) + CRM HTML
 ├── 📁 our_institution/     # ✅ Estructura organizacional (COMPLETO)
-├── 📁 products/            # ✅ Sistema de productos (COMPLETO)
-├── 📁 interactions/        # ✅ Framework de interacciones (COMPLETO)
-├── 📁 offers/              # ✅ Sistema de ofertas (COMPLETO)
+├── 📁 products/            # ✅ Sistema de productos (COMPLETO) + CRM HTML
+├── 📁 interactions/        # ✅ Framework de interacciones (COMPLETO) + CRM HTML (substrato)
+├── 📁 offers/              # ✅ Sistema de ofertas (COMPLETO) + CRM HTML
+├── 📁 campaigns/           # ✅ Campañas comerciales (COMPLETO) + CRM HTML
+├── 📁 dashboard/           # ✅ Home del CRM y layout compartido (base_dashboard.html)
+├── 📁 templates/           # Plantillas raíz compartidas (base_dashboard, includes/, registration/)
+├── 📁 static/              # src/input.css (fuente Tailwind) → dist/styles.css (build)
+├── 📄 package.json         # Toolchain Tailwind (tailwind:build / tailwind:watch)
 ├── 📄 manage.py            # CLI de Django
 ├── 📄 requirements.txt     # Dependencias Python
 └── 📄 Dockerfile          # Configuración Docker
+```
+
+#### Estructura típica de una app con CRM HTML
+
+Las apps que exponen tanto API como CRM siguen este patrón de módulos:
+
+```
+products/
+├── models.py              # Modelos de datos
+├── selectors.py           # 🔵 Lecturas: querysets, agregados, contextos de plantilla
+├── services.py            # 🟢 Escrituras: mutaciones y transacciones (API + HTML)
+├── serializers.py         # DRF (sin lógica de escritura/M2M; delega en services)
+├── views.py               # ViewSets DRF (delegan en selectors/services)
+├── forms.py               # Formularios Django para el CRM HTML
+├── template_views.py      # Vistas HTML del CRM (leen selectors, escriben services)
+├── template_urls.py       # URLconf HTML (namespace `<app>_html`)
+├── urls.py                # URLconf de la API REST
+├── templates/<app>/       # Plantillas que extienden base_dashboard.html
+├── tests.py               # Tests de API
+├── tests_template_views.py# Tests de las vistas HTML
+└── test_factories.py      # factory_boy para datos de prueba
 ```
 
 ### Aplicaciones Django Especializadas
@@ -91,13 +130,61 @@ backend/
 - **Propósito**: Centro de comercialización con pricing
 - **Modelos**: ProductOffering con segmentación avanzada
 - **API**: Ofertas con targeting y analytics
+- **CRM**: CRUD de operador en `/offers/`
+
+**🎯 Campaigns App - Campañas Comerciales**
+
+- **Propósito**: Estructuras de marketing planificadas y enlaces campaña–touchpoint
+- **Modelos**: Campaign, CampaignTouchpoint con targeting semántico
+- **API**: Campañas con analytics y acción `duplicate`
+- **CRM**: CRUD de operador en `/campaigns/`
+
+**🧭 Dashboard App - Home del CRM**
+
+- **Propósito**: Página de inicio del CRM y layout compartido para todas las apps
+- **Plantillas**: `base_dashboard.html`, `includes/header.html`, `includes/sidebar.html`
+- **Selector**: `get_home_context()` (v1 estático; conteos reales en una versión posterior)
+
+## 🧩 Capa de Servicios y Selectores
+
+> Convención **obligatoria** introducida en la consolidación del frontend. Es la fuente canónica; otros documentos enlazan aquí en lugar de re-explicarla.
+
+Toda la lógica de datos vive en dos módulos por app, y **tanto las vistas DRF como las vistas de plantilla llaman exactamente a las mismas funciones**:
+
+| Módulo | Responsabilidad | Usado por |
+|--------|-----------------|-----------|
+| `selectors.py` | Solo lectura: querysets, agregados, optimizaciones (`select_related`/`prefetch_related`), diccionarios de contexto para el dashboard | ViewSets DRF (`get_queryset`, acciones `analytics`), `template_views` |
+| `services.py` | Escrituras: mutaciones, transacciones, validaciones de negocio compartidas (`validate_*`) | Acciones DRF (`perform_create`/`perform_update`/`perform_destroy`), handlers POST del CRM |
+
+Reglas derivadas (ver [`.cursor/rules/consolidated-frontend.mdc`](../.cursor/rules/consolidated-frontend.mdc)):
+
+1. **Proceso único**: el contenedor en runtime es un único proceso Python/Django. Node/npm solo se usa en build para compilar Tailwind.
+2. **Preservar la API REST**: no eliminar ni modificar los endpoints públicos de DRF; son obligatorios para webhooks externos y tracking.
+3. **Sin loopback**: las vistas HTML nunca hacen peticiones HTTP a la propia API; obtienen datos vía `selectors`.
+4. **Serializers sin lógica de escritura**: la lógica de escritura y M2M se retiró de `serializers.py`; los ViewSets delegan en `services.py`. Las validaciones compartidas (p. ej. `validate_interaction_entities`) se invocan desde el serializer `validate` y desde el servicio.
+5. **Herencia de plantillas**: las páginas del CRM usan `{% extends "base_dashboard.html" %}`.
+
+```mermaid
+flowchart LR
+  API["DRF /api/..."]
+  HTML["template_views (CRM)"]
+  Sel["selectors.py (lecturas)"]
+  Svc["services.py (escrituras)"]
+  DB[("PostgreSQL")]
+  API --> Sel
+  API --> Svc
+  HTML --> Sel
+  HTML --> Svc
+  Sel --> DB
+  Svc --> DB
+```
 
 ## 🔌 API REST Architecture
 
 ### Estructura de URLs Base
 
 ```
-/api/
+/api/                       # Catálogo JSON de la API (URL name `api-catalog`)
 ├── auth/                   # Autenticación JWT
 ├── users/                  # Gestión de usuarios
 ├── world/                  # Campo semántico empresarial
@@ -105,8 +192,14 @@ backend/
 ├── our-institution/        # Estructura organizacional
 ├── products/               # Catálogo de productos
 ├── interactions/           # Framework de interacciones
-└── offers/                 # Ofertas comerciales
+├── offers/                 # Ofertas comerciales
+└── campaigns/              # Campañas comerciales
 ```
+
+Las rutas HTML del CRM se montan en paralelo desde los `template_urls.py` de cada app
+(`/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/`, `/login/`, `/logout/`).
+El catálogo JSON, que antes vivía en `/`, se movió a `/api/` con el nombre `api-catalog`
+para evitar el conflicto con el `api-root` del router de DRF.
 
 ### Características de la API
 
@@ -194,10 +287,15 @@ python manage.py test
 # Tests de una app específica
 python manage.py test our_institution
 
+# Tests de las vistas HTML del CRM (por app)
+python manage.py test products.tests_template_views
+
 # Tests con coverage
 coverage run manage.py test
 coverage report
 ```
+
+> Las apps con CRM incluyen `tests_template_views.py` (vistas HTML) y `test_factories.py` (datos de prueba con `factory_boy`). Ver [TESTING.md](TESTING.md) para el gate consolidado y la configuración `backend.test_settings`.
 
 ### Gestión de Base de Datos
 
@@ -398,6 +496,8 @@ def health_check(request):
 - **[Products App](../backend/products/README.md)** - Sistema de productos
 - **[Interactions App](../backend/interactions/README.md)** - Framework de interacciones
 - **[Offers App](../backend/offers/README.md)** - Sistema de ofertas comerciales
+- **[Campaigns App](../backend/campaigns/README.md)** - Sistema de campañas comerciales
+- **[Consolidación del Frontend](consolidation/FRONTEND_CONSOLIDATION.md)** - Migración del CRM a plantillas Django
 
 ---
 

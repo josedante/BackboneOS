@@ -42,18 +42,18 @@ This guide will help you deploy your BackboneOS CRM ecosystem to Render using th
 1. **Ensure your repository structure matches:**
 ```
 backboneos/
-├── render.yaml              # Render blueprint (already created)
+├── render.yaml              # Render blueprint (backend-only)
 ├── backend/
-│   ├── Dockerfile.prod      # Production Dockerfile (already created)
+│   ├── Dockerfile.prod      # Production Dockerfile (builder compila Tailwind + collectstatic)
+│   ├── package.json         # Tailwind toolchain (build-time)
 │   ├── requirements.txt     # Python dependencies
 │   └── backend/
-│       ├── settings.py      # Django settings (updated for Render)
-│       └── urls.py          # Django URLs (with health check)
-├── frontend/
-│   ├── package.json         # Node.js dependencies
-│   └── nuxt.config.ts       # Nuxt configuration
+│       ├── settings/        # Django settings (updated for Render)
+│       └── urls.py          # Django URLs (API + CRM HTML + health check)
 └── README.md
 ```
+
+> El paquete Next.js `frontend/` se eliminó en la Fase 6. El CRM HTML lo sirve el backend Django; el blueprint de Render es backend-only.
 
 2. **Commit and push your changes:**
 ```bash
@@ -114,11 +114,9 @@ Your deployment will create the following services:
   - ⚠️ **OPTIONAL**: Costs ~$7/month on Starter Plan
   - **Recommendation**: Delete this service to save costs if monitoring is not needed
 
-### 🎨 Frontend Service
-- **Nuxt.js App** (`backboneos-frontend`)
-  - Runtime: Node.js
-  - Build command: `npm install && npm run build`
-  - Start command: `npm run preview`
+### 🎨 Interfaz de Operador (CRM)
+- Servida por el servicio **Django** (`backboneos-backend`) como plantillas HTML; no hay servicio de frontend separado.
+- El CSS (Tailwind) se compila en la fase builder de `Dockerfile.prod` y se sirve con WhiteNoise.
 
 ## 🔧 Configuration Details
 
@@ -148,8 +146,10 @@ REDIS_URL: redis://host:port
 DEBUG: False
 ALLOWED_HOSTS: backboneos-backend.onrender.com
 
-# CORS
-CORS_ALLOWED_ORIGINS: https://backboneos-frontend.onrender.com
+# CORS (solo clientes externos de la API; el CRM es same-origin)
+CORS_ALLOWED_ORIGINS: https://your-external-client.example.com
+# CSRF para el CRM HTML same-origin
+CSRF_TRUSTED_ORIGINS: https://backboneos-backend.onrender.com
 
 # Celery
 CELERY_BROKER_URL: redis://host:port
@@ -174,7 +174,7 @@ You'll need to set these in the Render dashboard:
 
 ### Health Check Endpoints
 - **Backend**: `https://backboneos-backend.onrender.com/health/`
-- **Frontend**: `https://backboneos-frontend.onrender.com/`
+- **CRM HTML**: `https://backboneos-backend.onrender.com/` (servido por el backend, requiere login)
 
 ### Monitoring
 - **Logs**: Available in Render dashboard
@@ -290,21 +290,19 @@ render deploy backboneos-backend
 ## 💰 Cost Estimation
 
 ### Free Tier (Development)
-- **Backend**: Free (750 hours/month)
-- **Frontend**: Free (750 hours/month)
+- **Backend** (API + CRM HTML): Free (750 hours/month)
 - **Workers**: Free (750 hours/month)
 - **Database**: Free (90 days)
 - **Redis**: Free (25MB)
 - **Total**: $0/month
 
 ### Starter Plan (Production)
-- **Backend**: $7/month (auto-scaling 2-3 instances)
-- **Frontend**: $7/month (auto-scaling 2-3 instances)
+- **Backend** (API + CRM HTML): $7/month (auto-scaling 2-3 instances)
 - **Workers**: $7/month each
 - **Database**: $7/month
 - **Redis**: $6/month (Starter plan for stability)
 - **Flower Monitor**: $7/month (optional - can be deleted)
-- **Total**: ~$34-41/month (depending on Flower service)
+- **Total**: ~$27-34/month (depending on Flower service)
 
 ## 🔐 Security Best Practices
 
