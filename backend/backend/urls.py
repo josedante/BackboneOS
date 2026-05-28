@@ -85,6 +85,7 @@ def api_root_view(request):
             'dashboard': '/',
                 'products_ui': '/products/',
                 'entities_ui': '/entities/',
+                'interactions_ui': '/interactions/',
                 'api': {
                 'world': '/api/world/',
                 'products': '/api/products/',
@@ -105,6 +106,7 @@ urlpatterns = [
     path('', include('dashboard.urls')),
     path('products/', include('products.template_urls')),
     path('entities/', include('entities.template_urls')),
+    path('interactions/', include('interactions.template_urls')),
     path('users/', include('users.urls')),
     path('api/', api_root_view, name='api-catalog'),
     path('api/auth/', include('users.urls')),

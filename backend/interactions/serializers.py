@@ -267,6 +267,13 @@ class TouchpointCreateUpdateSerializer(serializers.ModelSerializer):
             'related_industries', 'related_functions', 'related_skills', 'related_descriptors',
             'is_active'
         ]
+        # ``code``/``url`` are blank=True on the model but appear in
+        # unique_together(['code','url']); DRF otherwise forces them required.
+        # Defaults honor the model's optionality so creation without a URL works.
+        extra_kwargs = {
+            'code': {'required': False, 'default': ''},
+            'url': {'required': False, 'default': ''},
+        }
 
 
 class TouchpointChoiceSerializer(serializers.ModelSerializer):
@@ -394,11 +401,8 @@ class InteractionCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, data):
-        """Validación personalizada"""
-        # Validar que al menos una entidad esté presente
-        if not data.get('person') and not data.get('organization') and not data.get('agent'):
-            raise serializers.ValidationError(
-                "Debe especificar al menos una persona, organización o agente."
-            )
-        
+        """Entity/agent rule lives in ``services.validate_interaction_entities_for_drf``."""
+        from .services import validate_interaction_entities_for_drf
+
+        validate_interaction_entities_for_drf(data)
         return data

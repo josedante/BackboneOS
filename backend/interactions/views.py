@@ -1,5 +1,11 @@
-from django.shortcuts import render
-from django.db.models import Count, Q, Avg, Sum
+"""
+DRF viewsets for the interactions app.
+
+Interaction and Touchpoint mutations delegate to ``services.py``; lookup catalog
+viewsets (Medium, Channel, Action, etc.) still use serializer.save() until Phase 2b.
+"""
+
+from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
@@ -27,6 +33,22 @@ from .serializers import (
     TouchpointTypeSerializer, TouchpointTypeChoiceSerializer,
     TouchpointListSerializer, TouchpointDetailSerializer, TouchpointCreateUpdateSerializer, TouchpointChoiceSerializer,
     InteractionListSerializer, InteractionDetailSerializer, InteractionCreateUpdateSerializer
+)
+from .selectors import (
+    get_interaction_analytics_summary,
+    interactions_base_queryset,
+    interactions_list_filter,
+    paginated_touchpoint_interactions,
+    touchpoints_base_queryset,
+)
+from .services import (
+    create_interaction,
+    create_touchpoint,
+    delete_interaction,
+    delete_touchpoint,
+    interaction_write_payload_from_request,
+    update_interaction,
+    update_touchpoint,
 )
 
 
@@ -235,11 +257,7 @@ class TouchpointTypeViewSet(viewsets.ModelViewSet):
 
 class TouchpointViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar touchpoints"""
-    queryset = Touchpoint.objects.select_related(
-        'touchpoint_type', 'assigned_staff', 'product', 'channel', 'medium'
-    ).prefetch_related(
-        'related_industries', 'related_functions', 'related_skills', 'related_descriptors'
-    ).all()
+    queryset = touchpoints_base_queryset()
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
@@ -257,6 +275,22 @@ class TouchpointViewSet(viewsets.ModelViewSet):
             return TouchpointCreateUpdateSerializer
         else:
             return TouchpointDetailSerializer
+
+    def perform_create(self, serializer):
+        touchpoint = create_touchpoint(data=dict(serializer.validated_data))
+        serializer.instance = touchpoint
+
+    def perform_update(self, serializer):
+        partial = self.action == 'partial_update'
+        touchpoint = update_touchpoint(
+            serializer.instance,
+            data=dict(serializer.validated_data),
+            partial=partial,
+        )
+        serializer.instance = touchpoint
+
+    def perform_destroy(self, instance):
+        delete_touchpoint(instance)
     
     @action(detail=False, methods=['get'])
     def choices(self, request):
@@ -281,22 +315,17 @@ class TouchpointViewSet(viewsets.ModelViewSet):
     def interactions(self, request, pk=None):
         """Obtener interacciones de un touchpoint específico"""
         touchpoint = self.get_object()
-        interactions = touchpoint.interaction_set.filter(is_active=True).order_by('-occurred_at')
-        
-        # Paginación manual simple
         page_size = int(request.query_params.get('page_size', 20))
         page = int(request.query_params.get('page', 1))
-        start = (page - 1) * page_size
-        end = start + page_size
-        
-        paginated_interactions = interactions[start:end]
-        serializer = InteractionListSerializer(paginated_interactions, many=True)
-        
+        page_data = paginated_touchpoint_interactions(
+            touchpoint, page=page, page_size=page_size
+        )
+        serializer = InteractionListSerializer(page_data['results'], many=True)
         return Response({
-            'count': interactions.count(),
+            'count': page_data['count'],
             'results': serializer.data,
-            'page': page,
-            'page_size': page_size
+            'page': page_data['page'],
+            'page_size': page_data['page_size'],
         })
     
     @action(detail=False, methods=['get'])
@@ -341,10 +370,7 @@ class TouchpointViewSet(viewsets.ModelViewSet):
 
 class InteractionViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar interactions"""
-    queryset = Interaction.objects.select_related(
-        'person', 'organization', 'touchpoint', 'action',
-        'agent', 'representative', 'product'
-    ).select_related('touchpoint__channel').all()
+    queryset = interactions_base_queryset()
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = [
@@ -367,64 +393,39 @@ class InteractionViewSet(viewsets.ModelViewSet):
             return InteractionDetailSerializer
     
     def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        # Filtro por fecha
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-        
-        if start_date:
-            queryset = queryset.filter(occurred_at__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(occurred_at__lte=end_date)
-        
-        # Filtro por geolocalización
-        has_location = self.request.query_params.get('has_location')
-        if has_location == 'true':
-            queryset = queryset.filter(latitude__isnull=False, longitude__isnull=False)
-        elif has_location == 'false':
-            queryset = queryset.filter(Q(latitude__isnull=True) | Q(longitude__isnull=True))
-        
-        # Filtro por duración
-        has_duration = self.request.query_params.get('has_duration')
-        if has_duration == 'true':
-            queryset = queryset.filter(duration_seconds__gt=0)
-        elif has_duration == 'false':
-            queryset = queryset.filter(Q(duration_seconds__isnull=True) | Q(duration_seconds=0))
-        
-        return queryset
+        params = self.request.query_params
+        return interactions_list_filter(
+            super().get_queryset(),
+            start_date=params.get('start_date'),
+            end_date=params.get('end_date'),
+            has_location=params.get('has_location'),
+            has_duration=params.get('has_duration'),
+        )
+
+    def perform_create(self, serializer):
+        payload = interaction_write_payload_from_request(
+            self.request.data, serializer.validated_data
+        )
+        interaction = create_interaction(data=payload)
+        serializer.instance = interaction
+
+    def perform_update(self, serializer):
+        payload = interaction_write_payload_from_request(
+            self.request.data, serializer.validated_data
+        )
+        partial = self.action == 'partial_update'
+        interaction = update_interaction(
+            serializer.instance, data=payload, partial=partial
+        )
+        serializer.instance = interaction
+
+    def perform_destroy(self, instance):
+        delete_interaction(instance)
     
     @action(detail=False, methods=['get'])
     def analytics(self, request):
         """Endpoint para analytics básicos de interacciones"""
-        queryset = self.get_queryset().filter(is_active=True)
-        
-        # Métricas básicas
-        total_interactions = queryset.count()
-        unique_sessions = queryset.exclude(session_id='').values('session_id').distinct().count()
-        
-        # Interacciones por canal (through touchpoint)
-        by_channel = queryset.filter(touchpoint__channel__isnull=False).values('touchpoint__channel__name').annotate(
-            count=Count('id')
-        ).order_by('-count')[:10]
-        
-        # Interacciones por acción
-        by_action = queryset.values('action__name').annotate(
-            count=Count('id')
-        ).order_by('-count')[:10]
-        
-        # Duración promedio
-        avg_duration = queryset.filter(duration_seconds__gt=0).aggregate(
-            avg_duration=Avg('duration_seconds')
-        )
-        
-        return Response({
-            'total_interactions': total_interactions,
-            'unique_sessions': unique_sessions,
-            'avg_duration_seconds': avg_duration['avg_duration'],
-            'by_channel': list(by_channel),
-            'by_action': list(by_action),
-        })
+        return Response(get_interaction_analytics_summary())
     
     @action(detail=False, methods=['get'])
     def geographic_distribution(self, request):
@@ -455,9 +456,11 @@ class InteractionViewSet(viewsets.ModelViewSet):
         
         serializer = InteractionCreateUpdateSerializer(data=request.data, many=True)
         if serializer.is_valid():
-            interactions = serializer.save()
+            created = []
+            for item in serializer.validated_data:
+                created.append(create_interaction(data=dict(item)))
             return Response(
-                {'created': len(interactions), 'message': 'Interacciones creadas exitosamente'},
+                {'created': len(created), 'message': 'Interacciones creadas exitosamente'},
                 status=status.HTTP_201_CREATED
             )
         

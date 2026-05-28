@@ -1,0 +1,41 @@
+{% comment %}
+Read-only interaction timeline for a person/organization detail page.
+Expects ``interactions_timeline`` (list of Interaction) in context.
+{% endcomment %}
+<details class="dashboard-card dashboard-details dashboard-section" open>
+  <summary>Interacciones ({{ interactions_timeline|length }})</summary>
+  <div class="dashboard-card-body">
+    {% if interactions_timeline %}
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Touchpoint</th>
+            <th>Acción</th>
+            <th>Canal</th>
+            <th>Duración</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in interactions_timeline %}
+          <tr>
+            <td>{{ item.occurred_at|date:"Y-m-d H:i"|default:"—" }}</td>
+            <td>{{ item.touchpoint.name|default:"—" }}</td>
+            <td>{{ item.action.name|default:"—" }}</td>
+            <td>{{ item.touchpoint.channel.name|default:"—" }}</td>
+            <td>{{ item.duration_display }}</td>
+            <td>
+              <a href="{% url 'interactions_html:interaction_detail' pk=item.pk %}" class="dashboard-btn dashboard-btn-outline dashboard-btn-sm">Ver</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="dashboard-muted">Sin interacciones registradas.</p>
+    {% endif %}
+  </div>
+</details>

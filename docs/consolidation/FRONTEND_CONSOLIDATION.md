@@ -8,11 +8,14 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**Do Phase 1 + Phase 2 for `interactions`** — extract selectors/services, then HTML at `/interactions/` (same pattern as products and entities).
+**`interactions` is done (substrate stance — see section below).** Next: **Phase 1 + Phase 2 for `campaigns`**, then `offers`.
 
-1. Add `interactions/selectors.py` and `interactions/services.py` for shared reads/writes.
-2. Add template views, templates, and `template_urls.py` with a dedicated HTML namespace.
-3. Mount under [`backend/backend/urls.py`](../../backend/backend/urls.py); enable sidebar link when ready.
+Note the stance change for `interactions` (and a model for future apps where data is machine-captured): interactions are a **system-of-record substrate**. The dashboard does **not** hand-enter them; capture happens in contextual apps / tracking scripts via `services.create_interaction`. The interactions section is therefore thin: read-only interaction views + analytics, full **Touchpoint config** CRUD, and a **per-entity interaction timeline** surfaced on entities pages.
+
+For `campaigns`:
+1. Add `campaigns/selectors.py` and `campaigns/services.py` for shared reads/writes.
+2. Decide per-surface whether it is operator-editable (CRUD) or substrate (read + contextual capture), like interactions.
+3. Add template views, templates, and `template_urls.py` with a dedicated HTML namespace; mount under [`backend/backend/urls.py`](../../backend/backend/urls.py); enable sidebar link when ready.
 4. Run `dashboard.tests` + relevant regression tests; update this doc with commit SHA.
 
 ---
@@ -20,7 +23,7 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (next) → …
+dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (next) → offers → …
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -45,10 +48,10 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | This tracking document | done |
-| 1 | Service/selector extraction per app | in_progress — **`products`**, **`entities`** done |
-| 2 | Django template views per app | in_progress — **`products`**, **`entities`** done; **`interactions` next** |
+| 1 | Service/selector extraction per app | in_progress — **`products`**, **`entities`**, **`interactions`** done |
+| 2 | Django template views per app | in_progress — **`products`**, **`entities`** done; **`interactions`** done (substrate: read-only + touchpoint config); **`campaigns` next** |
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
-| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/` |
+| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/` |
 | 5 | Remove Next.js routes per app | pending |
 | 6 | Docker/docs cleanup | pending |
 
@@ -194,6 +197,64 @@ Replaces [`frontend/src/app/entities/page.tsx`](../../frontend/src/app/entities/
 
 ---
 
+## Interactions HTML (Phase 2 — substrate stance)
+
+**Stance:** interactions are a **system-of-record substrate**, not an end-user data-entry destination. Capture happens in contextual apps (sales/support) and tracking scripts via `services.create_interaction` (and the unchanged DRF API). The dashboard section is intentionally thin.
+
+| Item | Location |
+|------|----------|
+| Reads | [`interactions/selectors.py`](../../backend/interactions/selectors.py) — `get_interactions_hub_context`, `get_interaction_detail_context` (read-only), `get_interaction_analytics_summary`, `get_touchpoint_detail_context`, `get_touchpoint_form_options`, **`get_entity_interactions_timeline`** |
+| Writes | [`interactions/services.py`](../../backend/interactions/services.py) — `create_interaction`/`update_interaction`/`delete_interaction` (API + future contextual apps), `create_touchpoint`/`update_touchpoint`/`delete_touchpoint` (HTML + API), `validate_interaction_entities`, `apply_interaction_defaults` |
+| Forms | [`interactions/forms.py`](../../backend/interactions/forms.py) — **Touchpoint only** (no interaction hand-entry form) |
+| Views | [`interactions/template_views.py`](../../backend/interactions/template_views.py) |
+| URLconf | [`interactions/template_urls.py`](../../backend/interactions/template_urls.py) — namespace `interactions_html` |
+| Templates | [`interactions/templates/interactions/`](../../backend/interactions/templates/interactions/) — `list.html`, `interaction_detail.html` (read-only), `touchpoint_create.html`, `touchpoint_detail.html`, `_touchpoint_form_fields.html` |
+| Entity timeline | [`entities/templates/entities/_interactions_timeline.html`](../../backend/entities/templates/entities/_interactions_timeline.html) included on person/org detail |
+| Tests | [`interactions/tests_template_views.py`](../../backend/interactions/tests_template_views.py), [`interactions/test_factories.py`](../../backend/interactions/test_factories.py) |
+
+### URLs
+
+| Path | Handler |
+|------|---------|
+| `/interactions/` | Tabbed hub (`?tab=interactions\|touchpoints`) — `interactions_html:list` |
+| `/interactions/<uuid>/` | **Read-only** interaction detail (`interactions_html:interaction_detail`) |
+| `/interactions/touchpoints/new/` | Create touchpoint (`interactions_html:touchpoint_create`) |
+| `/interactions/touchpoints/<uuid>/` | Touchpoint detail + edit (`interactions_html:touchpoint_detail`) |
+| `/interactions/touchpoints/<uuid>/delete/` | POST delete touchpoint (`interactions_html:touchpoint_delete`) |
+| `/api/interactions/` | DRF (unchanged) |
+
+There is **no** interaction create/edit/delete HTML route — by design.
+
+### Access
+
+- http://localhost:8000/interactions/ (hub: read-only interactions + touchpoint config)
+- Per-customer timeline on http://localhost:8000/entities/people/<uuid>/ and `/entities/organizations/<uuid>/`
+- Sidebar **Interactions** → `interactions_html:list`; dashboard quick action **Log Interaction** demoted to "Coming soon" (logging is contextual)
+
+### DRF integration
+
+`InteractionViewSet` and `TouchpointViewSet` delegate mutations to [`services.py`](../../backend/interactions/services.py) via `perform_create`/`perform_update`/`perform_destroy`; `get_queryset` and `analytics` delegate to selectors. Interaction entity-or-agent validation lives in `validate_interaction_entities` (shared by serializer `validate` and the service). Fixed a pre-existing DRF issue: `TouchpointCreateUpdateSerializer` forced `url` required via `unique_together(['code','url'])`; added `code`/`url` serializer defaults to honor the model's `blank=True`.
+
+### UI notes
+
+- Read-only interaction detail shows resolved entity, touchpoint/channel, technical context, and `payload`/`metadata`.
+- Touchpoint detail lists recent interactions inline (no REST loopback).
+- Per-entity timeline ORs direct + agent-resolved relations to mirror `resolved_person`/`resolved_organization`.
+- Interactions-specific CSS: `/* Interactions CRM */` block in [`input.css`](../../backend/static/src/input.css).
+
+### Deferred (follow-up)
+
+- **Contextual capture UIs** (sales/support) calling `create_interaction` — the intended logging experience.
+- Lookup catalog HTML (Medium, Channel, ActionType, Action, Agent, TouchpointType) — currently DRF + Django admin.
+- Touchpoint world-M2M editor (industries/functions/skills/descriptors); date-range filter; geographic map; richer analytics page.
+- Timeline pagination / date filtering on entity pages (currently latest 25).
+
+### Commit
+
+*(fill SHA on commit)* — feat(interactions): thin read-only interactions section + touchpoint config + per-entity timeline (substrate stance)
+
+---
+
 ## App rollout
 
 | App | Phase 1 | Phase 2 | Notes |
@@ -201,8 +262,8 @@ Replaces [`frontend/src/app/entities/page.tsx`](../../frontend/src/app/entities/
 | **dashboard** | n/a | home done | Shared shell for all apps |
 | **products** | done | **done** | P1: `87ac531`, `fb3ded6`; P2: `8091756` |
 | **entities** | **done** | **done** | selectors + services + HTML; commit SHA TBD |
-| interactions | pending | pending | — |
-| campaigns | pending | pending | — |
+| **interactions** | **done** | **done** | Substrate stance: read-only interaction views + analytics, Touchpoint config CRUD, per-entity timeline. No hand-entry UI. Commit SHA TBD |
+| campaigns | pending | pending | **next** |
 | offers | pending | pending | — |
 
 ---
@@ -281,7 +342,7 @@ cd backend && npm install && npm run tailwind:build
 
 docker build -f backend/Dockerfile -t backboneos-test backend
 
-# Dashboard + products + entities API + HTML (33 tests):
+# Dashboard + products + entities + interactions API + HTML:
 docker run --rm -v "$(pwd)/backend:/app" -w /app \
   -e DJANGO_SETTINGS_MODULE=backend.test_settings \
   backboneos-test python manage.py test \
@@ -289,8 +350,21 @@ docker run --rm -v "$(pwd)/backend:/app" -w /app \
     products.tests.ProductsAPITests products.tests_template_views \
     entities.tests.PersonAPITest entities.tests.OrganizationAPITest \
     entities.tests.PersonViewSetTests entities.tests.OrganizationViewSetTests \
-    entities.tests_template_views
+    entities.tests_template_views \
+    interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
+    interactions.tests_template_views
 ```
+
+With docker-compose running, the equivalent is:
+
+```bash
+docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
+  python manage.py test dashboard.tests \
+    interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
+    interactions.tests_template_views entities.tests_template_views
+```
+
+The interactions + entities-timeline + dashboard subset reports **37 tests, OK**.
 
 `manage.py check` should report no issues.
 
@@ -321,6 +395,33 @@ docker run --rm -v "$(pwd)/backend:/app" -w /app \
 - [x] Sidebar Entities link → `entities_html:list`
 - [x] `dashboard.tests` + entities API subset + `tests_template_views` green (33 tests in gate)
 - [x] Doc updated — commit SHA TBD
+
+---
+
+## Phase 2 checklist (`interactions` — substrate stance)
+
+- [x] `selectors.py` + `services.py`; DRF `perform_*` delegation on Interaction + Touchpoint viewsets
+- [x] Interaction HTML is **read-only** (list + detail + analytics); no create/edit/delete views
+- [x] Touchpoint config CRUD via `template_views.py` + `forms.py` (writes via `services.py`)
+- [x] Per-entity interaction timeline (`get_entity_interactions_timeline`) on entities person/org detail
+- [x] `templates/interactions/*.html` extend `base_dashboard.html`
+- [x] `/interactions/` URL mount (`interactions.template_urls`, namespace `interactions_html`)
+- [x] Sidebar Interactions link → `interactions_html:list`; dashboard quick action demoted
+- [x] `interactions` API subset + `tests_template_views` + entity timeline + `dashboard.tests` green (37 tests)
+- [x] Doc updated — commit SHA TBD
+
+---
+
+## Manual verification (`interactions` substrate)
+
+Automated gate covers auth redirect, hub tabs, read-only detail, touchpoint CRUD, 404, and the person timeline. Before Phase 5, manually confirm:
+
+- [ ] Login required on `/interactions/`
+- [ ] Hub: interactions tab is read-only (no create/edit/delete controls); touchpoints tab offers config
+- [ ] Create/edit/delete a touchpoint → flash + redirect
+- [ ] Open a person/org detail → interaction timeline renders, "Ver" opens read-only detail
+- [ ] `/api/interactions/` unchanged (`InteractionAPITests`, `TouchpointAPITests`)
+- [ ] Confirm interaction capture intent: writes still flow through `services.create_interaction` (API/contextual apps)
 
 ---
 
@@ -358,6 +459,8 @@ flowchart LR
     Home["GET /"]
     ProductsUI["GET /products/"]
     EntitiesUI["GET /entities/"]
+    InteractionsUI["GET /interactions/ (read + touchpoint config)"]
+    ContextualApps["Contextual apps / tracking (future)"]
     API["DRF /api/..."]
   end
   subgraph dashboard_app [dashboard]
@@ -374,13 +477,24 @@ flowchart LR
     SelE["selectors.py"]
     SvcE["services.py"]
   end
+  subgraph interactions_app [interactions]
+    TVI["template_views (read + touchpoint)"]
+    SelI["selectors.py"]
+    SvcI["services.py (create_interaction)"]
+  end
   Home --> SelD --> Base
   ProductsUI --> TVP --> SelP --> Base
   EntitiesUI --> TVE --> SelE --> Base
+  InteractionsUI --> TVI --> SelI --> Base
   TVP --> SvcP
   TVE --> SvcE
+  TVI --> SvcI
+  EntitiesUI -->|"interaction timeline"| SelI
+  ContextualApps -->|"capture"| SvcI
   API --> SelP
   API --> SvcP
   API --> SelE
   API --> SvcE
+  API --> SelI
+  API --> SvcI
 ```

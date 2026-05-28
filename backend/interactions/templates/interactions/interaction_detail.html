@@ -1,0 +1,79 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ page_title }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'interactions_html:list' %}" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Interacciones</a>
+    <h1 class="dashboard-page-title">{{ entity_display }}</h1>
+    <p class="dashboard-page-subtitle">
+      {% if interaction.touchpoint %}{{ interaction.touchpoint.name }}{% else %}Sin touchpoint{% endif %}
+      — {{ interaction.duration_display }}
+    </p>
+  </div>
+  {% if interaction.is_active %}
+  <span class="dashboard-badge">Activo</span>
+  {% else %}
+  <span class="dashboard-badge dashboard-badge-muted">Inactivo</span>
+  {% endif %}
+</div>
+
+<p class="dashboard-muted">
+  Vista de solo lectura. Las interacciones se registran desde las apps de contexto
+  (ventas, soporte, scripts de seguimiento), no se editan aquí.
+</p>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <dl class="entities-dl">
+      <dt>Entidad</dt><dd>{{ entity_display }}</dd>
+      <dt>Persona</dt><dd>{{ interaction.person|default:"—" }}</dd>
+      <dt>Organización</dt><dd>{{ interaction.organization|default:"—" }}</dd>
+      <dt>Agente</dt><dd>{{ interaction.agent|default:"—" }}</dd>
+      <dt>Representante</dt><dd>{{ interaction.representative|default:"—" }}</dd>
+      <dt>Touchpoint</dt>
+      <dd>
+        {% if interaction.touchpoint %}
+        <a href="{% url 'interactions_html:touchpoint_detail' pk=interaction.touchpoint.pk %}">{{ interaction.touchpoint.name }}</a>
+        {% else %}—{% endif %}
+      </dd>
+      <dt>Acción</dt><dd>{{ interaction.action.name|default:"—" }}</dd>
+      <dt>Canal</dt><dd>{{ interaction.touchpoint.channel.name|default:"—" }}</dd>
+      <dt>Producto</dt><dd>{{ interaction.product|default:"—" }}</dd>
+      <dt>Ocurrió en</dt><dd>{{ interaction.occurred_at|date:"Y-m-d H:i"|default:"—" }}</dd>
+      <dt>Duración</dt><dd>{{ interaction.duration_display }}</dd>
+      <dt>Sesión</dt><dd>{{ interaction.session_id|default:"—" }}</dd>
+      <dt>Fuente</dt><dd>{{ interaction.source|default:"—" }}</dd>
+    </dl>
+  </div>
+</section>
+
+<details class="dashboard-card dashboard-details dashboard-section">
+  <summary>Contexto técnico</summary>
+  <div class="dashboard-card-body">
+    <dl class="entities-dl">
+      <dt>Referrer</dt><dd>{{ interaction.referrer_url|default:"—" }}</dd>
+      <dt>User agent</dt><dd>{{ interaction.user_agent|default:"—" }}</dd>
+      <dt>IP</dt><dd>{{ interaction.ip_address|default:"—" }}</dd>
+      <dt>Ubicación</dt><dd>{{ interaction.geographic_location|default:"—" }}</dd>
+    </dl>
+  </div>
+</details>
+
+{% if interaction.payload or interaction.metadata %}
+<details class="dashboard-card dashboard-details dashboard-section">
+  <summary>Payload / metadata</summary>
+  <div class="dashboard-card-body">
+    {% if interaction.payload %}
+    <h3 class="dashboard-section-title">Payload</h3>
+    <pre class="interactions-json-field">{{ interaction.payload }}</pre>
+    {% endif %}
+    {% if interaction.metadata %}
+    <h3 class="dashboard-section-title">Metadata</h3>
+    <pre class="interactions-json-field">{{ interaction.metadata }}</pre>
+    {% endif %}
+  </div>
+</details>
+{% endif %}
+{% endblock %}

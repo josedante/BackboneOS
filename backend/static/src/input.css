@@ -983,4 +983,57 @@
     color: #6b7280;
     font-size: 0.875rem;
   }
+
+  /* Interactions CRM — tabbed hub, JSON fields, agent hints */
+  .interactions-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .interactions-tab {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .interactions-tab:hover {
+    color: #374151;
+  }
+
+  .interactions-tab.is-active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .interactions-json-field {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8125rem;
+  }
+
+  .dashboard-field-hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  .dashboard-btn-danger {
+    color: #b91c1c;
+    border-color: #fecaca;
+    background-color: #fef2f2;
+  }
+
+  .dashboard-btn-danger:hover {
+    background-color: #fee2e2;
+  }
+
+  .dashboard-btn-sm {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+  }
 }

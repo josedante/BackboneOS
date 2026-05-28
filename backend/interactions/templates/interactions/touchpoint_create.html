@@ -1,0 +1,29 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nuevo touchpoint — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Nuevo touchpoint</h1>
+    <p class="dashboard-page-subtitle">Clasificación canal / medium / tipo (sin M2M world en MVP).</p>
+  </div>
+  <a href="{% url 'interactions_html:list' %}?tab=touchpoints" class="dashboard-btn dashboard-btn-outline">Volver al listado</a>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% include "interactions/_touchpoint_form_fields.html" %}
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear touchpoint</button>
+        <a href="{% url 'interactions_html:list' %}?tab=touchpoints" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

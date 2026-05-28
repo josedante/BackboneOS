@@ -1,0 +1,194 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Interacciones — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Interacciones</h1>
+    <p class="dashboard-page-subtitle">Registro (solo lectura) y configuración de touchpoints</p>
+  </div>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <a href="{% url 'interactions_html:touchpoint_create' %}" class="dashboard-btn dashboard-btn-primary">Nuevo touchpoint</a>
+  </div>
+</div>
+
+<section class="dashboard-stats-grid" aria-label="Resumen de interacciones">
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Total interacciones</p>
+      <span class="dashboard-stat-value">{{ analytics.total_interactions }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Sesiones únicas</p>
+      <span class="dashboard-stat-value">{{ analytics.unique_sessions }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Duración media (s)</p>
+      <span class="dashboard-stat-value">{{ analytics.avg_duration_seconds|default:"—" }}</span>
+    </div>
+  </article>
+</section>
+
+<nav class="interactions-tabs" aria-label="Vista de interacciones">
+  <a href="?tab=interactions&q={{ search|urlencode }}&page_size={{ page_size }}"
+     class="interactions-tab {% if tab == 'interactions' %}is-active{% endif %}">
+    Interacciones ({{ interactions_count }})
+  </a>
+  <a href="?tab=touchpoints&q={{ search|urlencode }}&page_size={{ page_size }}"
+     class="interactions-tab {% if tab == 'touchpoints' %}is-active{% endif %}">
+    Touchpoints ({{ touchpoints_count }})
+  </a>
+</nav>
+
+<section class="dashboard-section dashboard-card">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Filtros</h2>
+    <form method="get" class="dashboard-filters">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <input type="search" name="q" value="{{ search }}" placeholder="Buscar…" aria-label="Buscar">
+      {% if tab == 'interactions' %}
+      <select name="touchpoint" aria-label="Touchpoint">
+        <option value="">Todos los touchpoints</option>
+        {% for tp in filter_options.touchpoints %}
+        <option value="{{ tp.pk }}" {% if touchpoint_id == tp.pk|stringformat:"s" %}selected{% endif %}>{{ tp.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="action" aria-label="Acción">
+        <option value="">Todas las acciones</option>
+        {% for act in filter_options.actions %}
+        <option value="{{ act.pk }}" {% if action_id == act.pk|stringformat:"s" %}selected{% endif %}>{{ act.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="channel" aria-label="Canal">
+        <option value="">Todos los canales</option>
+        {% for ch in filter_options.channels %}
+        <option value="{{ ch.pk }}" {% if channel_id == ch.pk|stringformat:"s" %}selected{% endif %}>{{ ch.name }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <select name="channel" aria-label="Canal">
+        <option value="">Todos los canales</option>
+        {% for ch in filter_options.channels %}
+        <option value="{{ ch.pk }}" {% if channel_id == ch.pk|stringformat:"s" %}selected{% endif %}>{{ ch.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="medium" aria-label="Medium">
+        <option value="">Todos los mediums</option>
+        {% for m in filter_options.mediums %}
+        <option value="{{ m.pk }}" {% if medium_id == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="touchpoint_type" aria-label="Tipo">
+        <option value="">Todos los tipos</option>
+        {% for tt in filter_options.touchpoint_types %}
+        <option value="{{ tt.pk }}" {% if touchpoint_type_id == tt.pk|stringformat:"s" %}selected{% endif %}>{{ tt.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="page_size" aria-label="Tamaño de página">
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+      </select>
+      <button type="submit" class="dashboard-btn dashboard-btn-outline">Filtrar</button>
+    </form>
+
+    {% if tab == 'interactions' %}
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Entidad</th>
+            <th>Touchpoint</th>
+            <th>Acción</th>
+            <th>Canal</th>
+            <th>Duración</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in interaction_rows %}
+          {% with interaction=row.interaction %}
+          <tr>
+            <td>{{ interaction.occurred_at|date:"Y-m-d H:i"|default:"—" }}</td>
+            <td>
+              <a href="{% url 'interactions_html:interaction_detail' pk=interaction.pk %}">{{ row.entity_display }}</a>
+            </td>
+            <td>{{ interaction.touchpoint.name|default:"—" }}</td>
+            <td>{{ interaction.action.name|default:"—" }}</td>
+            <td>{{ interaction.touchpoint.channel.name|default:"—" }}</td>
+            <td>{{ interaction.duration_display }}</td>
+            <td>
+              <a href="{% url 'interactions_html:interaction_detail' pk=interaction.pk %}" class="dashboard-btn dashboard-btn-outline dashboard-btn-sm">Ver</a>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr><td colspan="7">No hay interacciones registradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if interactions_page_obj %}
+    <nav class="dashboard-pagination" aria-label="Paginación">
+      {% if interactions_page_obj.has_previous %}
+      <a href="?tab=interactions&q={{ search|urlencode }}&page={{ interactions_page_obj.previous_page_number }}&page_size={{ page_size }}&touchpoint={{ touchpoint_id|default:'' }}&action={{ action_id|default:'' }}&channel={{ channel_id|default:'' }}">Anterior</a>
+      {% endif %}
+      <span>Página {{ interactions_page_obj.number }} de {{ interactions_page_obj.paginator.num_pages }}</span>
+      {% if interactions_page_obj.has_next %}
+      <a href="?tab=interactions&q={{ search|urlencode }}&page={{ interactions_page_obj.next_page_number }}&page_size={{ page_size }}&touchpoint={{ touchpoint_id|default:'' }}&action={{ action_id|default:'' }}&channel={{ channel_id|default:'' }}">Siguiente</a>
+      {% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Código</th>
+            <th>Canal</th>
+            <th>Medium</th>
+            <th>Tipo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tp in touchpoints_page_obj %}
+          <tr>
+            <td><a href="{% url 'interactions_html:touchpoint_detail' pk=tp.pk %}">{{ tp.name }}</a></td>
+            <td>{{ tp.code|default:"—" }}</td>
+            <td>{{ tp.channel.name|default:"—" }}</td>
+            <td>{{ tp.medium.name|default:"—" }}</td>
+            <td>{{ tp.touchpoint_type.name|default:"—" }}</td>
+            <td>
+              <a href="{% url 'interactions_html:touchpoint_detail' pk=tp.pk %}" class="dashboard-btn dashboard-btn-outline dashboard-btn-sm">Ver</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">No hay touchpoints.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if touchpoints_page_obj %}
+    <nav class="dashboard-pagination" aria-label="Paginación">
+      {% if touchpoints_page_obj.has_previous %}
+      <a href="?tab=touchpoints&q={{ search|urlencode }}&page={{ touchpoints_page_obj.previous_page_number }}&page_size={{ page_size }}">Anterior</a>
+      {% endif %}
+      <span>Página {{ touchpoints_page_obj.number }} de {{ touchpoints_page_obj.paginator.num_pages }}</span>
+      {% if touchpoints_page_obj.has_next %}
+      <a href="?tab=touchpoints&q={{ search|urlencode }}&page={{ touchpoints_page_obj.next_page_number }}&page_size={{ page_size }}">Siguiente</a>
+      {% endif %}
+    </nav>
+    {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

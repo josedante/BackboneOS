@@ -1,0 +1,56 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ page_title }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'interactions_html:list' %}?tab=touchpoints" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Touchpoints</a>
+    <h1 class="dashboard-page-title">{{ touchpoint.name }}</h1>
+    <p class="dashboard-page-subtitle">{{ touchpoint.code|default:"Sin código" }}</p>
+  </div>
+  {% if touchpoint.is_active %}
+  <span class="dashboard-badge">Activo</span>
+  {% else %}
+  <span class="dashboard-badge dashboard-badge-muted">Inactivo</span>
+  {% endif %}
+</div>
+
+{% if recent_interactions %}
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Interacciones recientes</h2>
+    <ul class="dashboard-activity-list">
+      {% for item in recent_interactions %}
+      <li class="dashboard-activity-item">
+        <a href="{% url 'interactions_html:interaction_detail' pk=item.pk %}">
+          {{ item.occurred_at|date:"Y-m-d H:i"|default:"—" }} — {{ item.action.name|default:"Sin acción" }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% include "interactions/_touchpoint_form_fields.html" %}
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Guardar</button>
+        <a href="{% url 'interactions_html:list' %}?tab=touchpoints" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+
+    <form method="post" action="{% url 'interactions_html:touchpoint_delete' pk=touchpoint.pk %}" class="dashboard-form-actions" style="margin-top:1rem;" onsubmit="return confirm('¿Eliminar este touchpoint?');">
+      {% csrf_token %}
+      <button type="submit" class="dashboard-btn dashboard-btn-danger">Eliminar touchpoint</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

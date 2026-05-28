@@ -60,10 +60,12 @@ def get_home_context() -> dict:
             'href': '/entities/people/new/',
         },
         {
+            # Interaction capture lives in contextual apps (sales/support/tracking),
+            # not a generic form — disabled until those surfaces exist.
             'name': 'Log Interaction',
-            'description': 'Record a new interaction',
+            'description': 'Captured in context (sales/support apps)',
             'href': '#',
-            'title': 'Coming soon',
+            'title': 'Coming soon — logged from contextual apps',
         },
     ]
 

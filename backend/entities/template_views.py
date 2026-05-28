@@ -18,6 +18,8 @@ from .forms import (
     organization_create_to_service_payload,
     person_create_to_service_payload,
 )
+from interactions.selectors import get_entity_interactions_timeline
+
 from .selectors import (
     get_entities_list_context,
     get_organization_detail_context,
@@ -108,6 +110,8 @@ def person_detail(request, pk):
         **detail,
         'form': form,
         'page_title': person.full_name or 'Persona',
+        # Cross-cutting read: everything this customer has done across touchpoints.
+        'interactions_timeline': get_entity_interactions_timeline(person=person),
     }
     return render(request, 'entities/person_detail.html', context)
 
@@ -175,6 +179,7 @@ def organization_detail(request, pk):
         **detail,
         'form': form,
         'page_title': organization.name,
+        'interactions_timeline': get_entity_interactions_timeline(organization=organization),
     }
     return render(request, 'entities/organization_detail.html', context)
 
