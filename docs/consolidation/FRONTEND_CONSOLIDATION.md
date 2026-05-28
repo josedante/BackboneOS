@@ -8,24 +8,28 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**`offers` is done (operator CRUD — see section below).** Next: **manual verification** of all migrated HTML apps, fill **commit SHAs** (entities, interactions, campaigns, offers), then **Phase 5** (remove Next.js routes per verified app).
+**Phase 2 + manual QA are complete** (commits recorded below). Next: **Phase 5** — remove superseded Next.js routes **per app** after a quick smoke check that Django HTML still serves each path.
 
 Stance recap:
 - **Interactions** = substrate (read-only + touchpoint config); capture via `services.create_interaction`.
 - **Campaigns** = operator CRUD for planned commercial structures and campaign–touchpoint links (not a substrate).
 - **Offers** = operator CRUD for `ProductOffering` (commercial pricing / targeting configuration).
 
-Before Phase 5:
-1. Manually verify `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/` (checklists below).
-2. Commit consolidated work with SHAs recorded in this doc.
-3. Remove Next.js pages only after HTML parity is confirmed (no standalone `/offers` Next route exists today).
+Phase 5 order (see [Next.js to retire later](#nextjs-to-retire-later-phase-5)):
+1. `frontend/src/app/page.tsx` (dashboard → Django `/`)
+2. `frontend/src/app/products/**`
+3. `frontend/src/app/entities/**`
+4. Prune unused API client helpers in [`frontend/src/lib/api.ts`](../../frontend/src/lib/api.ts) only where no other consumer remains.
+5. **Do not** remove the `frontend` Docker service until Phase 6 (other routes may still exist).
+
+No standalone Next `/offers` or `/campaigns` or `/interactions` page existed — those were API-only in Next.
 
 ---
 
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA + Phase 5
+dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA (done) → **Phase 5** (remove Next.js routes)
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -54,7 +58,7 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | 2 | Django template views per app | **done** — **`products`**, **`entities`**, **`interactions`**, **`campaigns`**, **`offers`** |
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
 | 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/` |
-| 5 | Remove Next.js routes per app | pending |
+| 5 | Remove Next.js routes per app | **in progress** — manual QA + commits done; retire `page.tsx`, `products/**`, `entities/**` |
 | 6 | Docker/docs cleanup | pending |
 
 ---
@@ -196,7 +200,7 @@ Replaces [`frontend/src/app/entities/page.tsx`](../../frontend/src/app/entities/
 
 ### Commit
 
-*(fill SHA on commit)* — feat(entities): Django HTML CRM at /entities/ with selectors and services
+`fd57b8d` — feat(entities): implement entities management UI and backend integration
 
 ---
 
@@ -254,7 +258,7 @@ There is **no** interaction create/edit/delete HTML route — by design.
 
 ### Commit
 
-*(fill SHA on commit)* — feat(interactions): thin read-only interactions section + touchpoint config + per-entity timeline (substrate stance)
+`c895c21` — feat(interactions): implement interactions management UI and backend integration (substrate: read-only interaction HTML + touchpoint config + per-entity timeline)
 
 ---
 
@@ -315,7 +319,7 @@ Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
 
 ### Commit
 
-*(fill SHA on commit)* — feat(campaigns): Django HTML CRM at /campaigns/ with selectors and services
+`95c7e0b` — feat(campaigns): implement campaigns management UI and backend integration
 
 ---
 
@@ -368,7 +372,7 @@ Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
 
 ### Commit
 
-*(fill SHA on commit)* — feat(offers): Django HTML CRM at /offers/ with selectors and services
+`94c6ba9` — feat(offers): implement offers management UI and backend integration
 
 ---
 
@@ -378,10 +382,10 @@ Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
 |-----|---------|---------|-------|
 | **dashboard** | n/a | home done | Shared shell for all apps |
 | **products** | done | **done** | P1: `87ac531`, `fb3ded6`; P2: `8091756` |
-| **entities** | **done** | **done** | selectors + services + HTML; commit SHA TBD |
-| **interactions** | **done** | **done** | Substrate stance: read-only interaction views + analytics, Touchpoint config CRUD, per-entity timeline. No hand-entry UI. Commit SHA TBD |
-| **campaigns** | **done** | **done** | Operator CRUD: campaigns + campaign–touchpoint links. Commit SHA TBD |
-| **offers** | **done** | **done** | Operator CRUD: `ProductOffering`. No Next.js page to retire. Commit SHA TBD |
+| **entities** | **done** | **done** | P2: `fd57b8d` |
+| **interactions** | **done** | **done** | Substrate stance; P2: `c895c21` |
+| **campaigns** | **done** | **done** | Operator CRUD; P2: `95c7e0b`; no Next page to retire |
+| **offers** | **done** | **done** | Operator CRUD; P2: `94c6ba9`; no Next page to retire |
 
 ---
 
@@ -504,6 +508,7 @@ The consolidated gate (dashboard + interactions + entities + campaigns + offers 
 - [x] Sidebar Products link → `products_html:list`
 - [x] `ProductsAPITests` + `dashboard.tests` + `tests_template_views` green
 - [x] Doc updated — commit `8091756`
+- [x] Manual verification complete
 
 ---
 
@@ -515,7 +520,8 @@ The consolidated gate (dashboard + interactions + entities + campaigns + offers 
 - [x] `/entities/` URL mount (`entities.template_urls`, namespace `entities_html`)
 - [x] Sidebar Entities link → `entities_html:list`
 - [x] `dashboard.tests` + entities API subset + `tests_template_views` green (33 tests in gate)
-- [x] Doc updated — commit SHA TBD
+- [x] Doc updated — commit `fd57b8d`
+- [x] Manual verification complete
 
 ---
 
@@ -529,7 +535,8 @@ The consolidated gate (dashboard + interactions + entities + campaigns + offers 
 - [x] `/interactions/` URL mount (`interactions.template_urls`, namespace `interactions_html`)
 - [x] Sidebar Interactions link → `interactions_html:list`; dashboard quick action demoted
 - [x] `interactions` API subset + `tests_template_views` + entity timeline + `dashboard.tests` green (37 tests)
-- [x] Doc updated — commit SHA TBD
+- [x] Doc updated — commit `c895c21`
+- [x] Manual verification complete
 
 ---
 
@@ -542,7 +549,8 @@ The consolidated gate (dashboard + interactions + entities + campaigns + offers 
 - [x] `/campaigns/` URL mount (`campaigns.template_urls`, namespace `campaigns_html`)
 - [x] Sidebar Campaigns link → `campaigns_html:list`
 - [x] `campaigns.tests` + `tests_template_views` + `dashboard.tests` green (47 tests in gate)
-- [x] Doc updated — commit SHA TBD
+- [x] Doc updated — commit `95c7e0b`
+- [x] Manual verification complete
 
 ---
 
@@ -554,73 +562,74 @@ The consolidated gate (dashboard + interactions + entities + campaigns + offers 
 - [x] `/offers/` URL mount (`offers.template_urls`, namespace `offers_html`)
 - [x] Sidebar Offers link → `offers_html:list`
 - [x] `offers.tests` + `tests_template_views` + `dashboard.tests` green (67 tests in gate)
-- [x] Doc updated — commit SHA TBD
+- [x] Doc updated — commit `94c6ba9`
+- [x] Manual verification complete
 
 ---
 
 ## Manual verification (`offers` Phase 2)
 
-Automated gate covers auth redirect, list filters, create, update, delete, and 404. Before Phase 5, manually confirm:
+Verified (automated gate + browser QA before Phase 5):
 
-- [ ] Login required on `/offers/`
-- [ ] List filters (product, currency, validity, active) behave as expected
-- [ ] Create at `/offers/new/` → detail with flash
-- [ ] Detail save persists FK + M2M (channels, segments, tags)
-- [ ] Delete from detail returns to list
-- [ ] `/api/offers/offerings/` unchanged (`offers.tests` API subset)
+- [x] Login required on `/offers/`
+- [x] List filters (product, currency, validity, active) behave as expected
+- [x] Create at `/offers/new/` → detail with flash
+- [x] Detail save persists FK + M2M (channels, segments, tags)
+- [x] Delete from detail returns to list
+- [x] `/api/offers/offerings/` unchanged (`offers.tests` API subset)
 
 ---
 
 ## Manual verification (`campaigns` Phase 2)
 
-Automated gate covers auth redirect, hub tabs, campaign create/update/delete, touchpoint link CRUD, and 404. Before Phase 5, manually confirm:
+Verified (automated gate + browser QA before Phase 5):
 
-- [ ] Login required on `/campaigns/`
-- [ ] Hub: campaigns tab lists campaigns; touchpoints tab lists links
-- [ ] Create at `/campaigns/new/` → detail with flash
-- [ ] Detail save persists FKs and M2M (channels, products, categories, offers)
-- [ ] Create/edit/delete a campaign–touchpoint link
-- [ ] Delete campaign returns to list
-- [ ] `/api/campaigns/` unchanged (`CampaignAPITests`, `CampaignTouchpointAPITests`)
+- [x] Login required on `/campaigns/`
+- [x] Hub: campaigns tab lists campaigns; touchpoints tab lists links
+- [x] Create at `/campaigns/new/` → detail with flash
+- [x] Detail save persists FKs and M2M (channels, products, categories, offers)
+- [x] Create/edit/delete a campaign–touchpoint link
+- [x] Delete campaign returns to list
+- [x] `/api/campaigns/` unchanged (`CampaignAPITests`, `CampaignTouchpointAPITests`)
 
 ---
 
 ## Manual verification (`interactions` substrate)
 
-Automated gate covers auth redirect, hub tabs, read-only detail, touchpoint CRUD, 404, and the person timeline. Before Phase 5, manually confirm:
+Verified (automated gate + browser QA before Phase 5):
 
-- [ ] Login required on `/interactions/`
-- [ ] Hub: interactions tab is read-only (no create/edit/delete controls); touchpoints tab offers config
-- [ ] Create/edit/delete a touchpoint → flash + redirect
-- [ ] Open a person/org detail → interaction timeline renders, "Ver" opens read-only detail
-- [ ] `/api/interactions/` unchanged (`InteractionAPITests`, `TouchpointAPITests`)
-- [ ] Confirm interaction capture intent: writes still flow through `services.create_interaction` (API/contextual apps)
+- [x] Login required on `/interactions/`
+- [x] Hub: interactions tab is read-only (no create/edit/delete controls); touchpoints tab offers config
+- [x] Create/edit/delete a touchpoint → flash + redirect
+- [x] Open a person/org detail → interaction timeline renders, "Ver" opens read-only detail
+- [x] `/api/interactions/` unchanged (`InteractionAPITests`, `TouchpointAPITests`)
+- [x] Confirm interaction capture intent: writes still flow through `services.create_interaction` (API/contextual apps)
 
 ---
 
 ## Manual verification (`entities` Phase 2)
 
-Automated gate covers auth, tabs, search, person/org create/update/delete, profile create, 404. Before Phase 5, manually confirm:
+Verified (automated gate + browser QA before Phase 5):
 
-- [ ] Login required on `/entities/`
-- [ ] Tab switch people ↔ organizations preserves search
-- [ ] Create person → detail with flash; create org → detail
-- [ ] Person detail: save FK fields; create profile when missing
-- [ ] Delete from list and detail
-- [ ] `/api/entities/` unchanged (`PersonAPITest`, `OrganizationAPITest`, viewset tests)
+- [x] Login required on `/entities/`
+- [x] Tab switch people ↔ organizations preserves search
+- [x] Create person → detail with flash; create org → detail
+- [x] Person detail: save FK fields; create profile when missing
+- [x] Delete from list and detail
+- [x] `/api/entities/` unchanged (`PersonAPITest`, `OrganizationAPITest`, viewset tests)
 
 ---
 
 ## Manual verification (`products` Phase 2)
 
-Automated gate (22 tests) covers auth redirects, list/search/filter, create, update, delete, and 404. Before Phase 5, manually confirm in the browser:
+Verified (automated gate + browser QA before Phase 5):
 
-- [ ] Login required on `/products/`
-- [ ] List pagination and category filter behave as expected with real data
-- [ ] Create at `/products/new/` → detail page with flash message
-- [ ] Detail save persists M2M fields (modalities, tags, bundle members)
-- [ ] Delete from detail returns to list
-- [ ] `/api/products/` unchanged for API clients (`ProductsAPITests`)
+- [x] Login required on `/products/`
+- [x] List pagination and category filter behave as expected with real data
+- [x] Create at `/products/new/` → detail page with flash message
+- [x] Detail save persists M2M fields (modalities, tags, bundle members)
+- [x] Delete from detail returns to list
+- [x] `/api/products/` unchanged for API clients (`ProductsAPITests`)
 
 ---
 
