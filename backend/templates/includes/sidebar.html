@@ -33,7 +33,9 @@
         </a>
       </li>
       <li>
-        <a href="#" class="is-disabled" title="Coming soon">Campaigns</a>
+        <a href="{% url 'campaigns_html:list' %}" class="{% if request.resolver_match.namespace == 'campaigns_html' %}is-active{% endif %}">
+          Campaigns
+        </a>
       </li>
       <li>
         <a href="#" class="is-disabled" title="Coming soon">Offers</a>

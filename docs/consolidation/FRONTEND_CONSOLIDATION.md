@@ -8,14 +8,16 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**`interactions` is done (substrate stance — see section below).** Next: **Phase 1 + Phase 2 for `campaigns`**, then `offers`.
+**`campaigns` is done (operator CRUD — see section below).** Next: **Phase 1 + Phase 2 for `offers`**.
 
-Note the stance change for `interactions` (and a model for future apps where data is machine-captured): interactions are a **system-of-record substrate**. The dashboard does **not** hand-enter them; capture happens in contextual apps / tracking scripts via `services.create_interaction`. The interactions section is therefore thin: read-only interaction views + analytics, full **Touchpoint config** CRUD, and a **per-entity interaction timeline** surfaced on entities pages.
+Stance recap:
+- **Interactions** = substrate (read-only + touchpoint config); capture via `services.create_interaction`.
+- **Campaigns** = operator CRUD for planned commercial structures and campaign–touchpoint links (not a substrate).
 
-For `campaigns`:
-1. Add `campaigns/selectors.py` and `campaigns/services.py` for shared reads/writes.
-2. Decide per-surface whether it is operator-editable (CRUD) or substrate (read + contextual capture), like interactions.
-3. Add template views, templates, and `template_urls.py` with a dedicated HTML namespace; mount under [`backend/backend/urls.py`](../../backend/backend/urls.py); enable sidebar link when ready.
+For `offers`:
+1. Add `offers/selectors.py` and `offers/services.py` for shared reads/writes.
+2. Decide per-surface operator CRUD vs substrate (likely CRUD for `ProductOffering`).
+3. Add template views, templates, and `template_urls.py`; mount under [`backend/backend/urls.py`](../../backend/backend/urls.py); enable sidebar link when ready.
 4. Run `dashboard.tests` + relevant regression tests; update this doc with commit SHA.
 
 ---
@@ -23,7 +25,7 @@ For `campaigns`:
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (next) → offers → …
+dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (next) → …
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -48,10 +50,10 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | This tracking document | done |
-| 1 | Service/selector extraction per app | in_progress — **`products`**, **`entities`**, **`interactions`** done |
-| 2 | Django template views per app | in_progress — **`products`**, **`entities`** done; **`interactions`** done (substrate: read-only + touchpoint config); **`campaigns` next** |
+| 1 | Service/selector extraction per app | in_progress — **`products`**, **`entities`**, **`interactions`**, **`campaigns`** done |
+| 2 | Django template views per app | in_progress — **`products`**, **`entities`**, **`interactions`**, **`campaigns`** done; **`offers` next** |
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
-| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/` |
+| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/` |
 | 5 | Remove Next.js routes per app | pending |
 | 6 | Docker/docs cleanup | pending |
 
@@ -255,6 +257,67 @@ There is **no** interaction create/edit/delete HTML route — by design.
 
 ---
 
+## Campaigns HTML (Phase 2 complete)
+
+**Stance:** campaigns are **operator-editable configuration** (planned marketing structures). The dashboard provides full **Campaign** CRUD and **CampaignTouchpoint** junction CRUD. Interaction logging remains in contextual apps / the interactions substrate.
+
+| Item | Location |
+|------|----------|
+| Reads | [`campaigns/selectors.py`](../../backend/campaigns/selectors.py) — `get_campaigns_hub_context`, `get_campaign_detail_context`, `get_campaign_analytics_overview`, `get_campaign_analytics_full`, touchpoint list/detail contexts |
+| Writes | [`campaigns/services.py`](../../backend/campaigns/services.py) — `create_campaign`, `update_campaign`, `delete_campaign`, `duplicate_campaign`, campaign–touchpoint CRUD, shared `validate_*` |
+| Forms | [`campaigns/forms.py`](../../backend/campaigns/forms.py) |
+| Views | [`campaigns/template_views.py`](../../backend/campaigns/template_views.py) |
+| URLconf | [`campaigns/template_urls.py`](../../backend/campaigns/template_urls.py) — namespace `campaigns_html` |
+| Templates | [`campaigns/templates/campaigns/`](../../backend/campaigns/templates/campaigns/) — `list.html`, `create.html`, `detail.html`, `touchpoint_create.html`, `touchpoint_detail.html` |
+| Tests | [`campaigns/tests_template_views.py`](../../backend/campaigns/tests_template_views.py), [`campaigns/test_factories.py`](../../backend/campaigns/test_factories.py) |
+
+### URLs
+
+| Path | Handler |
+|------|---------|
+| `/campaigns/` | Tabbed hub (`?tab=campaigns\|touchpoints`) — `campaigns_html:list` |
+| `/campaigns/new/` | Create campaign (`campaigns_html:create`) |
+| `/campaigns/<uuid>/` | Campaign detail + edit (`campaigns_html:detail`) |
+| `/campaigns/<uuid>/delete/` | POST delete campaign (`campaigns_html:delete`) |
+| `/campaigns/touchpoints/new/` | Create campaign–touchpoint link (`campaigns_html:touchpoint_create`) |
+| `/campaigns/touchpoints/<int>/` | Link detail + edit (`campaigns_html:touchpoint_detail`) |
+| `/campaigns/touchpoints/<int>/delete/` | POST delete link (`campaigns_html:touchpoint_delete`) |
+| `/api/campaigns/` | DRF (unchanged) |
+
+Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
+
+### Access
+
+- http://localhost:8000/campaigns/ (hub)
+- http://localhost:8000/campaigns/new/ (create)
+- Sidebar **Campaigns** → `campaigns_html:list`
+- No Next.js `/campaigns` page yet (API client in [`frontend/src/lib/api.ts`](../../frontend/src/lib/api.ts) only)
+
+### DRF integration
+
+`CampaignViewSet` and `CampaignTouchpointViewSet` delegate mutations to [`services.py`](../../backend/campaigns/services.py) via `perform_create` / `perform_update` / `perform_destroy`. `get_queryset` and `analytics` delegate to selectors. `duplicate` action calls `duplicate_campaign`. Serializer `create`/`update` removed from write serializers; validation calls shared `validate_*` helpers.
+
+### UI notes
+
+- Tabbed hub mirrors interactions: campaigns table + campaign–touchpoint links table.
+- Analytics overview cards on list (totals, active, scheduled, budget).
+- Detail page: subcampaigns list, linked touchpoints, targeting summary, M2M for channels/products/categories/offers.
+- Campaigns-specific CSS: `/* Campaigns CRM */` block in [`input.css`](../../backend/static/src/input.css).
+
+### Deferred (follow-up)
+
+- World semantic M2M editor (industries, functions, segments, descriptors, tags) on campaign detail.
+- Subcampaign inline create from parent detail.
+- Duplicate campaign button in HTML (API `duplicate` action remains).
+- Rich analytics HTML (`product_analytics`, `bundle_analytics`); use API or later page.
+- `metadata` JSON editor on campaign detail.
+
+### Commit
+
+*(fill SHA on commit)* — feat(campaigns): Django HTML CRM at /campaigns/ with selectors and services
+
+---
+
 ## App rollout
 
 | App | Phase 1 | Phase 2 | Notes |
@@ -263,8 +326,8 @@ There is **no** interaction create/edit/delete HTML route — by design.
 | **products** | done | **done** | P1: `87ac531`, `fb3ded6`; P2: `8091756` |
 | **entities** | **done** | **done** | selectors + services + HTML; commit SHA TBD |
 | **interactions** | **done** | **done** | Substrate stance: read-only interaction views + analytics, Touchpoint config CRUD, per-entity timeline. No hand-entry UI. Commit SHA TBD |
-| campaigns | pending | pending | **next** |
-| offers | pending | pending | — |
+| **campaigns** | **done** | **done** | Operator CRUD: campaigns + campaign–touchpoint links. Commit SHA TBD |
+| offers | pending | pending | **next** |
 
 ---
 
@@ -342,7 +405,7 @@ cd backend && npm install && npm run tailwind:build
 
 docker build -f backend/Dockerfile -t backboneos-test backend
 
-# Dashboard + products + entities + interactions API + HTML:
+# Dashboard + products + entities + interactions + campaigns API + HTML:
 docker run --rm -v "$(pwd)/backend:/app" -w /app \
   -e DJANGO_SETTINGS_MODULE=backend.test_settings \
   backboneos-test python manage.py test \
@@ -352,7 +415,8 @@ docker run --rm -v "$(pwd)/backend:/app" -w /app \
     entities.tests.PersonViewSetTests entities.tests.OrganizationViewSetTests \
     entities.tests_template_views \
     interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
-    interactions.tests_template_views
+    interactions.tests_template_views \
+    campaigns.tests campaigns.tests_template_views
 ```
 
 With docker-compose running, the equivalent is:
@@ -361,10 +425,11 @@ With docker-compose running, the equivalent is:
 docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
   python manage.py test dashboard.tests \
     interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
-    interactions.tests_template_views entities.tests_template_views
+    interactions.tests_template_views entities.tests_template_views \
+    campaigns.tests campaigns.tests_template_views
 ```
 
-The interactions + entities-timeline + dashboard subset reports **37 tests, OK**.
+The consolidated gate (dashboard + interactions + entities HTML + campaigns) reports **47 tests, OK**.
 
 `manage.py check` should report no issues.
 
@@ -409,6 +474,33 @@ The interactions + entities-timeline + dashboard subset reports **37 tests, OK**
 - [x] Sidebar Interactions link → `interactions_html:list`; dashboard quick action demoted
 - [x] `interactions` API subset + `tests_template_views` + entity timeline + `dashboard.tests` green (37 tests)
 - [x] Doc updated — commit SHA TBD
+
+---
+
+## Phase 2 checklist (`campaigns` — operator CRUD)
+
+- [x] `selectors.py` + `services.py`; DRF `perform_*` delegation on Campaign + CampaignTouchpoint viewsets
+- [x] `template_views.py` + `forms.py` (writes via `services.py`)
+- [x] Tabbed hub: campaigns + campaign–touchpoint links
+- [x] `templates/campaigns/*.html` extend `base_dashboard.html`
+- [x] `/campaigns/` URL mount (`campaigns.template_urls`, namespace `campaigns_html`)
+- [x] Sidebar Campaigns link → `campaigns_html:list`
+- [x] `campaigns.tests` + `tests_template_views` + `dashboard.tests` green (47 tests in gate)
+- [x] Doc updated — commit SHA TBD
+
+---
+
+## Manual verification (`campaigns` Phase 2)
+
+Automated gate covers auth redirect, hub tabs, campaign create/update/delete, touchpoint link CRUD, and 404. Before Phase 5, manually confirm:
+
+- [ ] Login required on `/campaigns/`
+- [ ] Hub: campaigns tab lists campaigns; touchpoints tab lists links
+- [ ] Create at `/campaigns/new/` → detail with flash
+- [ ] Detail save persists FKs and M2M (channels, products, categories, offers)
+- [ ] Create/edit/delete a campaign–touchpoint link
+- [ ] Delete campaign returns to list
+- [ ] `/api/campaigns/` unchanged (`CampaignAPITests`, `CampaignTouchpointAPITests`)
 
 ---
 
@@ -460,6 +552,7 @@ flowchart LR
     ProductsUI["GET /products/"]
     EntitiesUI["GET /entities/"]
     InteractionsUI["GET /interactions/ (read + touchpoint config)"]
+    CampaignsUI["GET /campaigns/ (operator CRUD)"]
     ContextualApps["Contextual apps / tracking (future)"]
     API["DRF /api/..."]
   end
@@ -482,10 +575,17 @@ flowchart LR
     SelI["selectors.py"]
     SvcI["services.py (create_interaction)"]
   end
+  subgraph campaigns_app [campaigns]
+    TVC["template_views"]
+    SelC["selectors.py"]
+    SvcC["services.py"]
+  end
   Home --> SelD --> Base
   ProductsUI --> TVP --> SelP --> Base
   EntitiesUI --> TVE --> SelE --> Base
   InteractionsUI --> TVI --> SelI --> Base
+  CampaignsUI --> TVC --> SelC --> Base
+  TVC --> SvcC
   TVP --> SvcP
   TVE --> SvcE
   TVI --> SvcI
@@ -497,4 +597,6 @@ flowchart LR
   API --> SvcE
   API --> SelI
   API --> SvcI
+  API --> SelC
+  API --> SvcC
 ```

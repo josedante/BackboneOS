@@ -1,0 +1,133 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ campaign.name }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'campaigns_html:list' %}" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Campañas</a>
+    <h1 class="dashboard-page-title">{{ campaign.name }}</h1>
+    <p class="dashboard-page-subtitle">Código: {{ campaign.code }} — {{ status_label }}</p>
+  </div>
+  <div>
+    <a href="{% url 'campaigns_html:touchpoint_create' %}?campaign={{ campaign.pk }}" class="dashboard-btn dashboard-btn-outline">Añadir touchpoint</a>
+  </div>
+</div>
+
+{% if target_summary %}
+<section class="dashboard-stats-grid" aria-label="Targeting">
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Productos</p>
+      <span class="dashboard-stat-value">{{ target_summary.products.total }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Categorías</p>
+      <span class="dashboard-stat-value">{{ target_summary.categories.total }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Ofertas</p>
+      <span class="dashboard-stat-value">{{ target_summary.offers.total }}</span>
+    </div>
+  </article>
+</section>
+{% endif %}
+
+{% if subcampaigns %}
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Subcampañas</h2>
+    <ul>
+      {% for sub in subcampaigns %}
+      <li><a href="{% url 'campaigns_html:detail' pk=sub.pk %}">{{ sub.name }}</a> ({{ sub.code }})</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+{% if campaign_touchpoints %}
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Touchpoints vinculados</h2>
+    <ul>
+      {% for link in campaign_touchpoints %}
+      <li>
+        <a href="{% url 'campaigns_html:touchpoint_detail' pk=link.pk %}">{{ link.touchpoint.name }}</a>
+        (peso {{ link.weight }}, prioridad {{ link.priority }})
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <details class="dashboard-details" open>
+        <summary>Información básica</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          {% for field in form %}
+          {% if field.name in 'name,code,description,start_date,end_date,budget,content_type,funnel_stage,is_active' %}
+          <div class="dashboard-form-field {% if field.name == 'description' %}dashboard-form-full{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </details>
+
+      <details class="dashboard-details" open>
+        <summary>Organización</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          {% for field in form %}
+          {% if field.name in 'division,team,parent' %}
+          <div class="dashboard-form-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Canales y objetivos (productos, categorías, ofertas)</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          {% for field in form %}
+          {% if field.name in 'channels,target_products,target_categories,target_offers' %}
+          <div class="dashboard-form-field dashboard-form-full">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </details>
+
+      <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Guardar</button>
+      </div>
+    </form>
+
+    <form method="post" action="{% url 'campaigns_html:delete' pk=campaign.pk %}" style="margin-top:1.5rem;" onsubmit="return confirm('¿Eliminar esta campaña?');">
+      {% csrf_token %}
+      <button type="submit" class="dashboard-btn dashboard-btn-danger">Eliminar campaña</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

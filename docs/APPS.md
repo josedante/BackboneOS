@@ -119,6 +119,8 @@
 
 **Framework completo de campañas de marketing y ventas**
 
+- **HTML CRM (consolidated frontend):** http://localhost:8000/campaigns/ — operator CRUD for campaigns and campaign–touchpoint links (`campaigns_html` namespace). DRF remains at `/api/campaigns/`.
+
 - **🎯 Campañas**: `Campaign` (estructura planificada para promoción multi-canal)
 - **📍 Touchpoints**: `CampaignTouchpoint` (relación campaña-punto de contacto)
 - **📈 Embudo de Ventas**: Gestión por etapas (Ver, Pensar, Hacer, Cuidar)

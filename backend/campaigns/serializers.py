@@ -1,5 +1,12 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+
 from .models import Campaign, CampaignTouchpoint
+from .services import (
+    validate_campaign_code,
+    validate_campaign_dates,
+    validate_campaign_touchpoint_data,
+)
 
 # Importaciones de otras apps
 from world.serializers import (
@@ -220,107 +227,6 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
         else:
             return "finalizada"
     
-    def create(self, validated_data):
-        # Extraer IDs de relaciones M2M
-        channels_ids = validated_data.pop('channels_ids', [])
-        related_industries_ids = validated_data.pop('related_industries_ids', [])
-        related_functions_ids = validated_data.pop('related_functions_ids', [])
-        target_segments_ids = validated_data.pop('target_segments_ids', [])
-        descriptors_ids = validated_data.pop('descriptors_ids', [])
-        tags_ids = validated_data.pop('tags_ids', [])
-        
-        # NEW: Product integration IDs
-        target_products_ids = validated_data.pop('target_products_ids', [])
-        target_categories_ids = validated_data.pop('target_categories_ids', [])
-        target_offers_ids = validated_data.pop('target_offers_ids', [])
-        
-        # Asignar IDs de FK
-        if 'division_id' in validated_data:
-            validated_data['division_id'] = validated_data.pop('division_id')
-        if 'team_id' in validated_data:
-            validated_data['team_id'] = validated_data.pop('team_id')
-        if 'parent_id' in validated_data:
-            validated_data['parent_id'] = validated_data.pop('parent_id')
-        
-        # Crear campaña
-        campaign = Campaign.objects.create(**validated_data)
-        
-        # Asignar relaciones M2M
-        if channels_ids:
-            campaign.channels.set(channels_ids)
-        if related_industries_ids:
-            campaign.related_industries.set(related_industries_ids)
-        if related_functions_ids:
-            campaign.related_functions.set(related_functions_ids)
-        if target_segments_ids:
-            campaign.target_segments.set(target_segments_ids)
-        if descriptors_ids:
-            campaign.descriptors.set(descriptors_ids)
-        if tags_ids:
-            campaign.tags.set(tags_ids)
-        
-        # NEW: Set product integration relationships
-        if target_products_ids:
-            campaign.target_products.set(target_products_ids)
-        if target_categories_ids:
-            campaign.target_categories.set(target_categories_ids)
-        if target_offers_ids:
-            campaign.target_offers.set(target_offers_ids)
-        
-        return campaign
-    
-    def update(self, instance, validated_data):
-        # Extraer IDs de relaciones M2M
-        channels_ids = validated_data.pop('channels_ids', None)
-        related_industries_ids = validated_data.pop('related_industries_ids', None)
-        related_functions_ids = validated_data.pop('related_functions_ids', None)
-        target_segments_ids = validated_data.pop('target_segments_ids', None)
-        descriptors_ids = validated_data.pop('descriptors_ids', None)
-        tags_ids = validated_data.pop('tags_ids', None)
-        
-        # NEW: Product integration IDs
-        target_products_ids = validated_data.pop('target_products_ids', None)
-        target_categories_ids = validated_data.pop('target_categories_ids', None)
-        target_offers_ids = validated_data.pop('target_offers_ids', None)
-        
-        # Asignar IDs de FK
-        if 'division_id' in validated_data:
-            instance.division_id = validated_data.pop('division_id')
-        if 'team_id' in validated_data:
-            instance.team_id = validated_data.pop('team_id')
-        if 'parent_id' in validated_data:
-            instance.parent_id = validated_data.pop('parent_id')
-        
-        # Actualizar campos regulares
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        
-        # Actualizar relaciones M2M
-        if channels_ids is not None:
-            instance.channels.set(channels_ids)
-        if related_industries_ids is not None:
-            instance.related_industries.set(related_industries_ids)
-        if related_functions_ids is not None:
-            instance.related_functions.set(related_functions_ids)
-        if target_segments_ids is not None:
-            instance.target_segments.set(target_segments_ids)
-        if descriptors_ids is not None:
-            instance.descriptors.set(descriptors_ids)
-        if tags_ids is not None:
-            instance.tags.set(tags_ids)
-        
-        # NEW: Update product integration relationships
-        if target_products_ids is not None:
-            instance.target_products.set(target_products_ids)
-        if target_categories_ids is not None:
-            instance.target_categories.set(target_categories_ids)
-        if target_offers_ids is not None:
-            instance.target_offers.set(target_offers_ids)
-        
-        return instance
-
-
 class CampaignCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer simplificado para crear/actualizar campañas"""
     
@@ -335,108 +241,24 @@ class CampaignCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_code(self, value):
-        """Validar que el código sea único"""
-        if self.instance:
-            # En actualización, excluir la instancia actual
-            if Campaign.objects.filter(code=value).exclude(id=self.instance.id).exists():
-                raise serializers.ValidationError("Ya existe una campaña con este código.")
-        else:
-            # En creación, verificar que no exista
-            if Campaign.objects.filter(code=value).exists():
-                raise serializers.ValidationError("Ya existe una campaña con este código.")
+        """Unique code — delegates to ``services.validate_campaign_code``."""
+        exclude = self.instance.pk if self.instance else None
+        try:
+            validate_campaign_code(value, exclude_pk=exclude)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict.get('code', exc.messages))
         return value
-    
+
     def validate(self, data):
-        """Validaciones de negocio"""
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
-        
-        if start_date and end_date and start_date > end_date:
-            raise serializers.ValidationError("La fecha de inicio no puede ser posterior a la fecha de fin.")
-        
-        budget = data.get('budget')
-        if budget and budget < 0:
-            raise serializers.ValidationError("El presupuesto no puede ser negativo.")
-        
+        """Business rules — delegates to ``services.validate_campaign_dates``."""
+        start = data.get('start_date', getattr(self.instance, 'start_date', None))
+        end = data.get('end_date', getattr(self.instance, 'end_date', None))
+        budget = data.get('budget', getattr(self.instance, 'budget', None))
+        try:
+            validate_campaign_dates(start, end, budget=budget)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict)
         return data
-    
-    def create(self, validated_data):
-        """Crear campaña con relaciones ManyToMany"""
-        # Extraer relaciones ManyToMany
-        target_products = validated_data.pop('target_products', [])
-        target_categories = validated_data.pop('target_categories', [])
-        target_offers = validated_data.pop('target_offers', [])
-        channels = validated_data.pop('channels', [])
-        related_industries = validated_data.pop('related_industries', [])
-        related_functions = validated_data.pop('related_functions', [])
-        target_segments = validated_data.pop('target_segments', [])
-        descriptors = validated_data.pop('descriptors', [])
-        tags = validated_data.pop('tags', [])
-        
-        # Crear campaña
-        campaign = Campaign.objects.create(**validated_data)
-        
-        # Asignar relaciones ManyToMany
-        if target_products:
-            campaign.target_products.set(target_products)
-        if target_categories:
-            campaign.target_categories.set(target_categories)
-        if target_offers:
-            campaign.target_offers.set(target_offers)
-        if channels:
-            campaign.channels.set(channels)
-        if related_industries:
-            campaign.related_industries.set(related_industries)
-        if related_functions:
-            campaign.related_functions.set(related_functions)
-        if target_segments:
-            campaign.target_segments.set(target_segments)
-        if descriptors:
-            campaign.descriptors.set(descriptors)
-        if tags:
-            campaign.tags.set(tags)
-        
-        return campaign
-    
-    def update(self, instance, validated_data):
-        """Actualizar campaña con relaciones ManyToMany"""
-        # Extraer relaciones ManyToMany
-        target_products = validated_data.pop('target_products', None)
-        target_categories = validated_data.pop('target_categories', None)
-        target_offers = validated_data.pop('target_offers', None)
-        channels = validated_data.pop('channels', None)
-        related_industries = validated_data.pop('related_industries', None)
-        related_functions = validated_data.pop('related_functions', None)
-        target_segments = validated_data.pop('target_segments', None)
-        descriptors = validated_data.pop('descriptors', None)
-        tags = validated_data.pop('tags', None)
-        
-        # Actualizar campos normales
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        
-        # Actualizar relaciones ManyToMany si se proporcionaron
-        if target_products is not None:
-            instance.target_products.set(target_products)
-        if target_categories is not None:
-            instance.target_categories.set(target_categories)
-        if target_offers is not None:
-            instance.target_offers.set(target_offers)
-        if channels is not None:
-            instance.channels.set(channels)
-        if related_industries is not None:
-            instance.related_industries.set(related_industries)
-        if related_functions is not None:
-            instance.related_functions.set(related_functions)
-        if target_segments is not None:
-            instance.target_segments.set(target_segments)
-        if descriptors is not None:
-            instance.descriptors.set(descriptors)
-        if tags is not None:
-            instance.tags.set(tags)
-        
-        return instance
 
 
 class CampaignChoiceSerializer(serializers.ModelSerializer):
@@ -506,19 +328,19 @@ class CampaignTouchpointCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, data):
-        """Validaciones de negocio"""
-        weight = data.get('weight')
-        if weight and weight < 0:
-            raise serializers.ValidationError("El peso no puede ser negativo.")
-        
-        expected_conversions = data.get('expected_conversions')
-        if expected_conversions and expected_conversions < 0:
-            raise serializers.ValidationError("Las conversiones esperadas no pueden ser negativas.")
-        
-        budget_allocated = data.get('budget_allocated')
-        if budget_allocated and budget_allocated < 0:
-            raise serializers.ValidationError("El presupuesto asignado no puede ser negativo.")
-        
+        """Delegates to ``services.validate_campaign_touchpoint_data``."""
+        merged = {}
+        if self.instance:
+            merged = {
+                'weight': self.instance.weight,
+                'expected_conversions': self.instance.expected_conversions,
+                'budget_allocated': self.instance.budget_allocated,
+            }
+        merged.update(data)
+        try:
+            validate_campaign_touchpoint_data(merged)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict)
         return data
 
 

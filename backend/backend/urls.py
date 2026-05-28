@@ -107,6 +107,7 @@ urlpatterns = [
     path('products/', include('products.template_urls')),
     path('entities/', include('entities.template_urls')),
     path('interactions/', include('interactions.template_urls')),
+    path('campaigns/', include('campaigns.template_urls')),
     path('users/', include('users.urls')),
     path('api/', api_root_view, name='api-catalog'),
     path('api/auth/', include('users.urls')),

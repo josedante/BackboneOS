@@ -1,0 +1,34 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nuevo enlace — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'campaigns_html:list' %}?tab=touchpoints" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Enlaces</a>
+    <h1 class="dashboard-page-title">Nuevo enlace campaña–touchpoint</h1>
+    <p class="dashboard-page-subtitle">Vincula un touchpoint configurado en Interacciones a una campaña.</p>
+  </div>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate class="dashboard-form-grid">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form %}
+      <div class="dashboard-form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+      <div class="dashboard-form-field dashboard-form-full">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear enlace</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,22 +1,31 @@
-from django.shortcuts import render
-from django.db.models import Q, Count, Avg, Sum, Min, Max, Prefetch
+from django.db.models import Q, Count, Avg, Sum
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from django.core.exceptions import ValidationError
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 import django_filters
-from datetime import datetime, timedelta
 from django.utils import timezone
 
 from .models import Campaign, CampaignTouchpoint
+from .selectors import campaigns_active_queryset, get_campaign_analytics_full
 from .serializers import (
     CampaignListSerializer, CampaignDetailSerializer, CampaignCreateUpdateSerializer,
     CampaignChoiceSerializer, CampaignTouchpointListSerializer, CampaignTouchpointDetailSerializer,
     CampaignTouchpointCreateUpdateSerializer, CampaignAnalyticsSerializer, CampaignsChoicesSerializer
+)
+from .services import (
+    campaign_touchpoint_write_payload_from_request,
+    campaign_write_payload_from_request,
+    create_campaign,
+    create_campaign_touchpoint,
+    delete_campaign,
+    delete_campaign_touchpoint,
+    duplicate_campaign,
+    update_campaign,
+    update_campaign_touchpoint,
 )
 
 
@@ -97,12 +106,7 @@ class CampaignFilter(django_filters.FilterSet):
 
 class CampaignViewSet(viewsets.ModelViewSet):
     """ViewSet completo para gestión de campañas"""
-    queryset = Campaign.objects.select_related(
-        'division', 'team', 'parent'
-    ).prefetch_related(
-        'channels', 'related_industries', 'related_functions', 
-        'target_segments', 'descriptors', 'tags', 'subcampaigns'
-    ).filter(is_active=True)
+    queryset = campaigns_active_queryset(action='list')
     
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = CampaignFilter
@@ -132,25 +136,23 @@ class CampaignViewSet(viewsets.ModelViewSet):
             return CampaignDetailSerializer
     
     def get_queryset(self):
-        """Queryset con optimizaciones según acción"""
-        queryset = super().get_queryset()
-        
-        if self.action == 'list':
-            return queryset.select_related(
-                'division', 'team', 'parent'
-            ).prefetch_related(
-                'channels', 'target_segments', 'subcampaigns'
-            )
-        elif self.action == 'retrieve':
-            return queryset.select_related(
-                'division', 'team', 'parent'
-            ).prefetch_related(
-                'channels', 'related_industries', 'related_functions',
-                'target_segments', 'descriptors', 'tags', 'subcampaigns',
-                'campaigntouchpoint_set__touchpoint'
-            )
-        
-        return queryset
+        """Delegate queryset shaping to selectors (list vs retrieve prefetch)."""
+        action = 'retrieve' if self.action == 'retrieve' else 'list'
+        return campaigns_active_queryset(action=action)
+
+    def perform_create(self, serializer):
+        payload = campaign_write_payload_from_request(self.request, serializer.validated_data)
+        campaign = create_campaign(data=payload)
+        serializer.instance = campaign
+
+    def perform_update(self, serializer):
+        payload = campaign_write_payload_from_request(self.request, serializer.validated_data)
+        partial = self.action == 'partial_update'
+        campaign = update_campaign(serializer.instance, data=payload, partial=partial)
+        serializer.instance = campaign
+
+    def perform_destroy(self, instance):
+        delete_campaign(instance)
     
     @action(detail=False, methods=['get'])
     def choices(self, request):
@@ -251,179 +253,17 @@ class CampaignViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def duplicate(self, request, pk=None):
-        """Duplicar una campaña"""
+        """Duplicar una campaña (inactive copy with M2M + touchpoint links)."""
         original_campaign = self.get_object()
-        
-        # Crear nueva campaña
-        new_campaign_data = {
-            'name': f"{original_campaign.name} (Copia)",
-            'code': f"{original_campaign.code}_copy_{timezone.now().strftime('%Y%m%d_%H%M%S')}",
-            'description': original_campaign.description,
-            'start_date': original_campaign.start_date,
-            'end_date': original_campaign.end_date,
-            'budget': original_campaign.budget,
-            'division': original_campaign.division,
-            'team': original_campaign.team,
-            'metadata': original_campaign.metadata,
-            'is_active': False  # Las copias inician inactivas
-        }
-        
-        new_campaign = Campaign.objects.create(**new_campaign_data)
-        
-        # Copiar relaciones M2M
-        new_campaign.channels.set(original_campaign.channels.all())
-        new_campaign.related_industries.set(original_campaign.related_industries.all())
-        new_campaign.related_functions.set(original_campaign.related_functions.all())
-        new_campaign.target_segments.set(original_campaign.target_segments.all())
-        new_campaign.descriptors.set(original_campaign.descriptors.all())
-        new_campaign.tags.set(original_campaign.tags.all())
-        
-        # Copiar touchpoints
-        for ct in original_campaign.campaigntouchpoint_set.all():
-            CampaignTouchpoint.objects.create(
-                campaign=new_campaign,
-                touchpoint=ct.touchpoint,
-                weight=ct.weight,
-                priority=ct.priority,
-                expected_conversions=ct.expected_conversions,
-                budget_allocated=ct.budget_allocated,
-                metadata=ct.metadata
-            )
-        
+        new_campaign = duplicate_campaign(original_campaign)
         serializer = CampaignDetailSerializer(new_campaign)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     @action(detail=False, methods=['get'])
     @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
     def analytics(self, request):
         """Analytics completo de campañas"""
-        queryset = Campaign.objects.all()  # Incluir inactivas para analytics
-        today = timezone.now().date()
-        
-        # Métricas básicas
-        total_campaigns = queryset.count()
-        active_campaigns = queryset.filter(
-            is_active=True,
-            start_date__lte=today
-        ).filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=today)
-        ).count()
-        
-        scheduled_campaigns = queryset.filter(
-            is_active=True,
-            start_date__gt=today
-        ).count()
-        
-        finished_campaigns = queryset.filter(
-            end_date__lt=today
-        ).count()
-        
-        # Análisis por división
-        by_division = queryset.values(
-            'division__name'
-        ).annotate(
-            count=Count('id'),
-            total_budget=Sum('budget'),
-            avg_budget=Avg('budget')
-        ).order_by('-count')
-        
-        # Análisis por equipo
-        by_team = queryset.values(
-            'team__name'
-        ).annotate(
-            count=Count('id'),
-            total_budget=Sum('budget')
-        ).order_by('-count')
-        
-        # Análisis por canal
-        by_channel = queryset.values(
-            'channels__name'
-        ).annotate(
-            count=Count('id', distinct=True)
-        ).order_by('-count')
-        
-        # Análisis por industria
-        by_industry = queryset.values(
-            'related_industries__name'
-        ).annotate(
-            count=Count('id', distinct=True)
-        ).order_by('-count')
-        
-        # Análisis por segmento
-        by_segment = queryset.values(
-            'target_segments__name'
-        ).annotate(
-            count=Count('id', distinct=True)
-        ).order_by('-count')
-        
-        # Estadísticas de presupuesto
-        budget_stats = queryset.filter(budget__gt=0).aggregate(
-            total_budget=Sum('budget'),
-            avg_budget=Avg('budget'),
-            min_budget=Min('budget'),
-            max_budget=Max('budget')
-        )
-        
-        # Estadísticas de duración
-        campaigns_with_dates = queryset.filter(
-            start_date__isnull=False,
-            end_date__isnull=False
-        )
-        
-        duration_stats = {
-            'total_campaigns_with_duration': campaigns_with_dates.count(),
-            'avg_duration_days': 0,
-            'min_duration_days': 0,
-            'max_duration_days': 0
-        }
-        
-        if campaigns_with_dates.exists():
-            durations = [(c.end_date - c.start_date).days for c in campaigns_with_dates]
-            duration_stats.update({
-                'avg_duration_days': sum(durations) / len(durations),
-                'min_duration_days': min(durations),
-                'max_duration_days': max(durations)
-            })
-        
-        # Top campañas por presupuesto
-        top_campaigns = queryset.filter(
-            budget__gt=0
-        ).order_by('-budget')[:5].values(
-            'id', 'name', 'code', 'budget', 'start_date', 'end_date'
-        )
-        
-        # Campañas recientes
-        recent_campaigns = queryset.filter(
-            is_active=True
-        ).order_by('-created_at')[:5].values(
-            'id', 'name', 'code', 'start_date', 'created_at'
-        )
-        
-        # Próximas campañas
-        upcoming_campaigns = queryset.filter(
-            is_active=True,
-            start_date__gt=today
-        ).order_by('start_date')[:5].values(
-            'id', 'name', 'code', 'start_date'
-        )
-        
-        analytics_data = {
-            'total_campaigns': total_campaigns,
-            'active_campaigns': active_campaigns,
-            'scheduled_campaigns': scheduled_campaigns,
-            'finished_campaigns': finished_campaigns,
-            'by_division': list(by_division),
-            'by_team': list(by_team),
-            'by_channel': list(by_channel),
-            'by_industry': list(by_industry),
-            'by_segment': list(by_segment),
-            'budget_statistics': budget_stats,
-            'duration_statistics': duration_stats,
-            'top_campaigns': list(top_campaigns),
-            'recent_campaigns': list(recent_campaigns),
-            'upcoming_campaigns': list(upcoming_campaigns)
-        }
-        
+        analytics_data = get_campaign_analytics_full()
         serializer = CampaignAnalyticsSerializer(analytics_data)
         return Response(serializer.data)
     
@@ -496,9 +336,27 @@ class CampaignTouchpointFilter(django_filters.FilterSet):
 
 class CampaignTouchpointViewSet(viewsets.ModelViewSet):
     """ViewSet para gestión de relaciones campaña-touchpoint"""
-    queryset = CampaignTouchpoint.objects.select_related(
-        'campaign', 'touchpoint'
-    ).all()
+    queryset = CampaignTouchpoint.objects.select_related('campaign', 'touchpoint').all()
+
+    def perform_create(self, serializer):
+        payload = campaign_touchpoint_write_payload_from_request(
+            self.request, serializer.validated_data
+        )
+        link = create_campaign_touchpoint(data=payload)
+        serializer.instance = link
+
+    def perform_update(self, serializer):
+        payload = campaign_touchpoint_write_payload_from_request(
+            self.request, serializer.validated_data
+        )
+        partial = self.action == 'partial_update'
+        link = update_campaign_touchpoint(
+            serializer.instance, data=payload, partial=partial
+        )
+        serializer.instance = link
+
+    def perform_destroy(self, instance):
+        delete_campaign_touchpoint(instance)
     
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = CampaignTouchpointFilter

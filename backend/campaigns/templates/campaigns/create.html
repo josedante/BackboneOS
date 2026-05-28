@@ -1,0 +1,33 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nueva campaña — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'campaigns_html:list' %}" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Campañas</a>
+    <h1 class="dashboard-page-title">Nueva campaña</h1>
+  </div>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate class="dashboard-form-grid">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form %}
+      <div class="dashboard-form-field {% if field.name == 'description' %}dashboard-form-full{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+      <div class="dashboard-form-field dashboard-form-full">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear campaña</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

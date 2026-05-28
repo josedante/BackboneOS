@@ -1,0 +1,181 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Campañas — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Campañas</h1>
+    <p class="dashboard-page-subtitle">Planificación comercial y enlaces a touchpoints</p>
+  </div>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <a href="{% url 'campaigns_html:create' %}" class="dashboard-btn dashboard-btn-primary">Nueva campaña</a>
+    <a href="{% url 'campaigns_html:touchpoint_create' %}" class="dashboard-btn dashboard-btn-outline">Nuevo enlace touchpoint</a>
+  </div>
+</div>
+
+{% if analytics %}
+<section class="dashboard-stats-grid" aria-label="Resumen de campañas">
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Total</p>
+      <span class="dashboard-stat-value">{{ analytics.total_campaigns }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Activas ahora</p>
+      <span class="dashboard-stat-value">{{ analytics.active_campaigns }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Programadas</p>
+      <span class="dashboard-stat-value">{{ analytics.scheduled_campaigns }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Presupuesto total</p>
+      <span class="dashboard-stat-value">{{ analytics.total_budget }}</span>
+    </div>
+  </article>
+</section>
+{% endif %}
+
+<nav class="interactions-tabs" aria-label="Vista de campañas">
+  <a href="?tab=campaigns&q={{ search|urlencode }}&page_size={{ page_size }}"
+     class="interactions-tab {% if tab == 'campaigns' %}is-active{% endif %}">
+    Campañas ({{ campaigns_count }})
+  </a>
+  <a href="?tab=touchpoints&q={{ search|urlencode }}&page_size={{ page_size }}"
+     class="interactions-tab {% if tab == 'touchpoints' %}is-active{% endif %}">
+    Enlaces touchpoint ({{ touchpoints_count }})
+  </a>
+</nav>
+
+<section class="dashboard-section dashboard-card">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Filtros</h2>
+    <form method="get" class="dashboard-filters">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <input type="search" name="q" value="{{ search }}" placeholder="Buscar…" aria-label="Buscar">
+      {% if tab == 'campaigns' %}
+      <select name="status" aria-label="Estado">
+        <option value="">Todos los estados</option>
+        <option value="active_now" {% if status == 'active_now' %}selected{% endif %}>Activas ahora</option>
+        <option value="scheduled" {% if status == 'scheduled' %}selected{% endif %}>Programadas</option>
+        <option value="finished" {% if status == 'finished' %}selected{% endif %}>Finalizadas</option>
+      </select>
+      <select name="content_type" aria-label="Tipo de contenido">
+        <option value="">Todos los tipos</option>
+        {% for value, label in content_type_choices %}
+        <option value="{{ value }}" {% if content_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="funnel_stage" aria-label="Embudo">
+        <option value="">Todas las etapas</option>
+        {% for value, label in funnel_stage_choices %}
+        <option value="{{ value }}" {% if funnel_stage == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="division" aria-label="División">
+        <option value="">Todas las divisiones</option>
+        {% for div in divisions %}
+        <option value="{{ div.pk }}" {% if division_id == div.pk|stringformat:"s" %}selected{% endif %}>{{ div.name }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <select name="campaign" aria-label="Campaña">
+        <option value="">Todas las campañas</option>
+        {% for c in filter_campaigns %}
+        <option value="{{ c.pk }}" {% if campaign_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="page_size" aria-label="Tamaño de página">
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+      </select>
+      <button type="submit" class="dashboard-btn dashboard-btn-outline">Filtrar</button>
+    </form>
+
+    <div class="dashboard-table-wrap">
+      {% if tab == 'campaigns' %}
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Campaña</th>
+            <th>Código</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Presupuesto</th>
+            <th>División</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for campaign in campaigns %}
+          <tr>
+            <td>
+              <a href="{% url 'campaigns_html:detail' pk=campaign.pk %}">{{ campaign.name }}</a>
+            </td>
+            <td>{{ campaign.code }}</td>
+            <td>{{ campaign.start_date }}</td>
+            <td>{{ campaign.end_date|default:"—" }}</td>
+            <td>{{ campaign.budget }}</td>
+            <td>{{ campaign.division.name|default:"—" }}</td>
+            <td>
+              <a href="{% url 'campaigns_html:detail' pk=campaign.pk %}" class="dashboard-btn dashboard-btn-outline dashboard-btn-sm">Ver</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="dashboard-muted">No hay campañas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Campaña</th>
+            <th>Touchpoint</th>
+            <th>Peso</th>
+            <th>Prioridad</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for link in campaign_touchpoints %}
+          <tr>
+            <td>{{ link.campaign.name }}</td>
+            <td>{{ link.touchpoint.name }}</td>
+            <td>{{ link.weight }}</td>
+            <td>{{ link.priority }}</td>
+            <td>
+              <a href="{% url 'campaigns_html:touchpoint_detail' pk=link.pk %}" class="dashboard-btn dashboard-btn-outline dashboard-btn-sm">Ver</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="dashboard-muted">No hay enlaces.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="dashboard-pagination" aria-label="Paginación">
+      {% if page_obj.has_previous %}
+      <a href="?tab={{ tab }}&amp;q={{ search|urlencode }}&amp;page={{ page_obj.previous_page_number }}&amp;page_size={{ page_size }}{% if status %}&amp;status={{ status }}{% endif %}{% if content_type %}&amp;content_type={{ content_type }}{% endif %}{% if funnel_stage %}&amp;funnel_stage={{ funnel_stage }}{% endif %}{% if division_id %}&amp;division={{ division_id }}{% endif %}{% if campaign_id %}&amp;campaign={{ campaign_id }}{% endif %}">Anterior</a>
+      {% endif %}
+      <span class="dashboard-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a href="?tab={{ tab }}&amp;q={{ search|urlencode }}&amp;page={{ page_obj.next_page_number }}&amp;page_size={{ page_size }}{% if status %}&amp;status={{ status }}{% endif %}{% if content_type %}&amp;content_type={{ content_type }}{% endif %}{% if funnel_stage %}&amp;funnel_stage={{ funnel_stage }}{% endif %}{% if division_id %}&amp;division={{ division_id }}{% endif %}{% if campaign_id %}&amp;campaign={{ campaign_id }}{% endif %}">Siguiente</a>
+      {% endif %}
+    </nav>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
