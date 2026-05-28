@@ -15,7 +15,7 @@ docker-compose exec backend python manage.py test <app_label>
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | This tracking document | done |
-| 1 | Service/selector extraction per app | in_progress |
+| 1 | Service/selector extraction per app | in_progress (`products` complete) |
 | 2 | Django template views + `templates/<app>/` per app | pending |
 | 3 | Shared base layout, HTMX/Alpine static assets | pending |
 | 4 | URL mount + session auth gates for HTML | pending |
@@ -26,7 +26,7 @@ docker-compose exec backend python manage.py test <app_label>
 
 | App | Phase 1 | Phase 2 | Commit (Phase 1) |
 |-----|---------|---------|------------------|
-| products | done | pending | (commit below) |
+| products | done | pending | `87ac531` |
 | entities | pending | pending | — |
 | interactions | pending | pending | — |
 | campaigns | pending | pending | — |
