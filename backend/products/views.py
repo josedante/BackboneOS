@@ -16,7 +16,22 @@ from .serializers import (
     ProductListSerializer, ProductDetailSerializer,
     ProductCreateUpdateSerializer,
 )
-from .services import duplicate_product, get_division_summary, get_product_stats
+from .selectors import (
+    categories_base_queryset,
+    category_tree_roots,
+    division_active_categories,
+    division_active_products,
+    divisions_queryset,
+    get_bundle_info,
+    get_division_summary,
+    get_product_stats,
+    product_included_queryset,
+    product_parent_bundles_queryset,
+    products_for_category_tree,
+    products_list_queryset,
+    products_search_advanced,
+)
+from .services import duplicate_product
 
 
 class DivisionFilter(django_filters.FilterSet):
@@ -45,13 +60,13 @@ class DivisionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Division.objects.select_related().prefetch_related('categories')
+        return divisions_queryset()
 
     @action(detail=True, methods=['get'])
     def categories(self, request, pk=None):
         """Obtener todas las categorías de una división"""
         division = self.get_object()
-        categories = division.categories.filter(is_active=True)
+        categories = division_active_categories(division)
         serializer = ProductCategorySerializer(categories, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -59,11 +74,7 @@ class DivisionViewSet(viewsets.ModelViewSet):
     def products(self, request, pk=None):
         """Obtener todos los productos de una división"""
         division = self.get_object()
-        products = Product.objects.filter(
-            category__division=division,
-            is_active=True
-        ).select_related('category', 'customization').prefetch_related('modalities')
-        
+        products = division_active_products(division)
         serializer = ProductListSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -250,17 +261,12 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
-        queryset = super().get_queryset()
-        # Anotar con contadores para optimización
-        return queryset.annotate(
-            products_count=Count('product', filter=Q(product__is_active=True)),
-            subcategories_count=Count('subcategories', filter=Q(subcategories__is_active=True))
-        )
-    
+        return categories_base_queryset()
+
     @action(detail=False, methods=['get'])
     def tree(self, request):
         """Endpoint para obtener el árbol completo de categorías"""
-        root_categories = self.get_queryset().filter(parent__isnull=True)
+        root_categories = category_tree_roots(base_queryset=self.get_queryset())
         serializer = ProductCategoryTreeSerializer(root_categories, many=True, context={'request': request})
         return Response(serializer.data)
     
@@ -268,13 +274,7 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
     def products(self, request, pk=None):
         """Obtener productos de una categoría (incluyendo subcategorías)"""
         category = self.get_object()
-        descendant_categories = category.get_descendants()
-        category_ids = [category.id] + [cat.id for cat in descendant_categories]
-        
-        products = Product.objects.filter(
-            category__id__in=category_ids,
-            is_active=True
-        ).select_related('category', 'customization').prefetch_related('modalities')
+        products = products_for_category_tree(category)
         
         # Aplicar paginación
         page = self.paginate_queryset(products)
@@ -339,24 +339,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [ProductViewPermission]
     
     def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        # Optimizaciones de consulta
-        if self.action == 'list':
-            return queryset.select_related(
-                'category', 'customization'
-            ).prefetch_related(
-                'modalities', 'target_segments'
-            )
-        elif self.action == 'retrieve':
-            return queryset.select_related(
-                'category', 'customization'
-            ).prefetch_related(
-                'modalities', 'target_segments', 'related_industries',
-                'related_functions', 'related_skills', 'descriptors', 'tags'
-            )
-        
-        return queryset
+        if self.action in ('list', 'retrieve'):
+            return products_list_queryset(action=self.action)
+        return super().get_queryset()
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -381,18 +366,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if not query:
             return Response({'error': 'Parámetro q requerido'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Búsqueda en múltiples campos con pesos
-        queryset = self.get_queryset().filter(
-            Q(name__icontains=query) |  # Peso alto
-            Q(description__icontains=query) |  # Peso medio
-            Q(category__name__icontains=query) |  # Peso medio
-            Q(tags__name__icontains=query) |  # Peso bajo
-            Q(descriptors__name__icontains=query) |  # Peso bajo
-            Q(related_skills__name__icontains=query) |  # Peso bajo
-            Q(related_industries__name__icontains=query)  # Peso bajo
-        ).distinct()
-        
-        # Aplicar filtros adicionales
+        queryset = products_search_advanced(query=query, base_qs=self.get_queryset())
         queryset = self.filter_queryset(queryset)
         
         # Paginación
@@ -416,7 +390,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def included_products(self, request, pk=None):
         """Obtener productos incluidos en este producto"""
         product = self.get_object()
-        included = product.included_products.filter(is_active=True)
+        included = product_included_queryset(product)
         
         # Aplicar paginación
         page = self.paginate_queryset(included)
@@ -488,7 +462,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def parent_products(self, request, pk=None):
         """Obtener productos que incluyen a este producto"""
         product = self.get_object()
-        parents = product.included_in_products.filter(is_active=True)
+        parents = product_parent_bundles_queryset(product)
         
         # Aplicar paginación
         page = self.paginate_queryset(parents)
@@ -503,18 +477,17 @@ class ProductViewSet(viewsets.ModelViewSet):
     def bundle_info(self, request, pk=None):
         """Información completa del bundle (producto + incluidos)"""
         product = self.get_object()
-        
-        bundle_data = {
+        raw = get_bundle_info(product)
+
+        return Response({
             'main_product': ProductDetailSerializer(product, context={'request': request}).data,
             'included_products': ProductListSerializer(
-                product.included_products.filter(is_active=True), 
-                many=True, 
-                context={'request': request}
+                raw['included_products_qs'],
+                many=True,
+                context={'request': request},
             ).data,
-            'total_included_price': product.get_total_included_price(),
-            'bundle_price_display': product.get_bundle_price_display(),
-            'is_bundle': product.is_bundle,
-            'included_count': product.included_products.filter(is_active=True).count()
-        }
-        
-        return Response(bundle_data)
+            'total_included_price': raw['total_included_price'],
+            'bundle_price_display': raw['bundle_price_display'],
+            'is_bundle': raw['is_bundle'],
+            'included_count': raw['included_count'],
+        })

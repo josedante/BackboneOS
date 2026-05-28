@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from our_institution.models import Division
 from .models import ProductCategory, Modality, Customization, Product
+from .test_factories import create_test_division, create_test_organization
 from world.models import (
     Industry, FunctionOrResponsibility, Skill, MarketSegment, Tag,
     Country, DescriptorFamily, WorldDescriptor
@@ -69,17 +70,21 @@ class AnalyticsAPITestCase(APITestCase):
             slug='innovacion'
         )
         
+        self.organization = create_test_organization()
+
         # Crear divisiones
-        self.division_tech = Division.objects.create(
+        self.division_tech = create_test_division(
+            organization=self.organization,
             name='Tecnología',
             code='TECH',
-            description='División de productos tecnológicos'
+            description='División de productos tecnológicos',
         )
-        
-        self.division_marketing = Division.objects.create(
+
+        self.division_marketing = create_test_division(
+            organization=self.organization,
             name='Marketing',
             code='MKT',
-            description='División de marketing'
+            description='División de marketing',
         )
         
         # Crear categorías
@@ -130,7 +135,7 @@ class AnalyticsAPITestCase(APITestCase):
             duration=timedelta(hours=40)
         )
         self.product1.modalities.add(self.modality_virtual)
-        self.product1.target_functions.add(self.function)
+        self.product1.related_functions.add(self.function)
         self.product1.related_skills.add(self.skill)
         self.product1.target_segments.add(self.market_segment)
         self.product1.tags.add(self.tag)
@@ -146,7 +151,7 @@ class AnalyticsAPITestCase(APITestCase):
             duration=timedelta(hours=80)
         )
         self.product2.modalities.add(self.modality_presencial, self.modality_virtual)
-        self.product2.target_functions.add(self.function)
+        self.product2.related_functions.add(self.function)
         self.product2.related_skills.add(self.skill)
         
         self.product3 = Product.objects.create(
@@ -513,9 +518,10 @@ class AnalyticsPerformanceTests(AnalyticsAPITestCase):
         """Test tiempo de respuesta de analytics"""
         # Crear más datos para probar performance
         for i in range(50):
-            division = Division.objects.create(
+            division = create_test_division(
+                organization=self.organization,
                 name=f'División {i}',
-                code=f'DIV{i:03d}'
+                code=f'DIV{i:03d}',
             )
             category = ProductCategory.objects.create(
                 name=f'Categoría {i}',

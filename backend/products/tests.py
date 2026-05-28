@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from our_institution.models import Division
 from .models import ProductCategory, Modality, Customization, Product
+from .test_factories import create_test_division
 from .serializers import (
     DivisionSerializer, ProductCategorySerializer, ModalitySerializer,
     CustomizationSerializer, ProductListSerializer, ProductDetailSerializer
@@ -860,17 +861,14 @@ class ProductsAPITests(APITestCase):
         )
         
         # Crear datos de prueba
-        self.division = Division.objects.create(
-            name='Tecnología',
-            code='TECH'
-        )
-        
+        self.division = create_test_division()
+
         self.category = ProductCategory.objects.create(
             name='Software',
             code='SOFT',
             division=self.division
         )
-        
+
         self.product = Product.objects.create(
             name='Sistema Web',
             code='SYS001',
