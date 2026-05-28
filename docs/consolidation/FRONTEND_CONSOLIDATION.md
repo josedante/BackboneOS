@@ -86,7 +86,7 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 
 ### Commit
 
-Record SHA after dashboard homepage commit in the table below.
+`4d7334b` — feat(dashboard): migrate homepage to Django templates at /
 
 ---
 
