@@ -1,19 +1,30 @@
 from django.utils import timezone
-from django.db import models
-from django.db.models import Count, Avg, Sum, Q, Case, When, Value, F, Min, Max
-from django.db.models.functions import TruncMonth
+from django.db.models import Q
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.renderers import BaseRenderer, BrowsableAPIRenderer, JSONRenderer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.conf import settings
 
 from .models import ProductOffering
+from .selectors import (
+    get_offering_analytics_full,
+    offerings_api_filter,
+    offerings_base_queryset,
+)
 from .serializers import (
     ProductOfferingListSerializer, ProductOfferingDetailSerializer,
     ProductOfferingCreateUpdateSerializer, ProductOfferingChoiceSerializer,
     ProductOfferingAnalyticsSerializer
+)
+from .services import (
+    create_offering,
+    delete_offering,
+    duplicate_offering,
+    offering_write_payload_from_request,
+    update_offering,
 )
 
 
@@ -30,14 +41,30 @@ def get_analytics_permission_classes():
     return [permissions.IsAuthenticated]
 
 
+class _PassthroughRenderer(BaseRenderer):
+    """Allow ``?format=csv|xlsx`` on custom actions without 404 from content negotiation."""
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
+
+
+class CSVExportRenderer(_PassthroughRenderer):
+    media_type = 'text/csv'
+    format = 'csv'
+
+
+class XLSXExportRenderer(_PassthroughRenderer):
+    media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    format = 'xlsx'
+
+
 class ProductOfferingViewSet(viewsets.ModelViewSet):
     """ViewSet completo para gestión de ofertas de productos"""
-    queryset = ProductOffering.objects.select_related(
-        'product', 'product__category', 'product__category__division'
-    ).prefetch_related(
-        'channels', 'seats', 'target_segments', 'related_industries',
-        'related_functions', 'descriptors', 'tags'
+    # Prevent ``…/offerings/export/`` from matching the detail route (pk='export').
+    lookup_value_regex = (
+        r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     )
+    renderer_classes = [JSONRenderer, BrowsableAPIRenderer, CSVExportRenderer, XLSXExportRenderer]
     permission_classes = get_permission_classes()
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     
@@ -78,38 +105,24 @@ class ProductOfferingViewSet(viewsets.ModelViewSet):
             return ProductOfferingDetailSerializer
     
     def get_queryset(self):
-        """Queryset con filtros adicionales"""
-        queryset = super().get_queryset()
-        
-        # Filtro por validez actual
-        currently_valid = self.request.query_params.get('currently_valid')
-        if currently_valid == 'true':
-            today = timezone.now().date()
-            queryset = queryset.filter(
-                Q(valid_from__isnull=True) | Q(valid_from__lte=today)
-            ).filter(
-                Q(valid_until__isnull=True) | Q(valid_until__gte=today)
-            )
-        elif currently_valid == 'false':
-            today = timezone.now().date()
-            queryset = queryset.filter(
-                Q(valid_until__lt=today) | Q(valid_from__gt=today)
-            )
-        
-        # Filtro por producto
-        product_id = self.request.query_params.get('product')
-        if product_id:
-            queryset = queryset.filter(product_id=product_id)
-        
-        # Filtro por rango de precios
-        min_price = self.request.query_params.get('min_price')
-        max_price = self.request.query_params.get('max_price')
-        if min_price:
-            queryset = queryset.filter(price__gte=min_price)
-        if max_price:
-            queryset = queryset.filter(price__lte=max_price)
-        
-        return queryset
+        """Delegate queryset shaping and API filters to selectors."""
+        action = 'retrieve' if self.action == 'retrieve' else 'list'
+        queryset = offerings_base_queryset(action=action)
+        return offerings_api_filter(queryset, request_params=self.request.query_params)
+
+    def perform_create(self, serializer):
+        payload = offering_write_payload_from_request(self.request, serializer.validated_data)
+        offering = create_offering(data=payload)
+        serializer.instance = offering
+
+    def perform_update(self, serializer):
+        payload = offering_write_payload_from_request(self.request, serializer.validated_data)
+        partial = self.action == 'partial_update'
+        offering = update_offering(serializer.instance, data=payload, partial=partial)
+        serializer.instance = offering
+
+    def perform_destroy(self, instance):
+        delete_offering(instance)
     
     @action(detail=False, methods=['get'])
     def choices(self, request):
@@ -169,102 +182,8 @@ class ProductOfferingViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def analytics(self, request):
         """Analytics completo de ofertas"""
-        today = timezone.now().date()
-        
-        # Métricas generales
-        total_offerings = self.get_queryset().count()
-        active_offerings = self.get_queryset().filter(is_active=True).count()
-        expired_offerings = self.get_queryset().filter(
-            valid_until__lt=today
-        ).count()
-        future_offerings = self.get_queryset().filter(
-            valid_from__gt=today
-        ).count()
-        
-        # Distribución por moneda
-        by_currency = list(
-            self.get_queryset()
-            .values('currency_code')
-            .annotate(count=Count('id'), avg_price=Avg('price'))
-            .order_by('-count')
-        )
-        
-        # Distribución por categoría de producto
-        by_product_category = list(
-            self.get_queryset()
-            .select_related('product__category')
-            .values('product__category__name')
-            .annotate(count=Count('id'))
-            .order_by('-count')[:10]
-        )
-        
-        # Distribución por canal
-        by_channel = list(
-            self.get_queryset()
-            .prefetch_related('channels')
-            .values('channels__name')
-            .annotate(count=Count('id'))
-            .filter(channels__name__isnull=False)
-            .order_by('-count')[:10]
-        )
-        
-        # Distribución por segmento de mercado
-        by_market_segment = list(
-            self.get_queryset()
-            .prefetch_related('target_segments')
-            .values('target_segments__name')
-            .annotate(count=Count('id'))
-            .filter(target_segments__name__isnull=False)
-            .order_by('-count')[:10]
-        )
-        
-        # Estadísticas de precios
-        price_stats = self.get_queryset().aggregate(
-            min_price=Min('price'),
-            max_price=Max('price'),
-            avg_price=Avg('price'),
-            total_value=Sum('price')
-        )
-        
-        # Estadísticas de duración
-        duration_stats = self.get_queryset().filter(
-            duration_days__isnull=False
-        ).aggregate(
-            min_duration=Min('duration_days'),
-            max_duration=Max('duration_days'),
-            avg_duration=Avg('duration_days')
-        )
-        
-        # Top productos más ofertados
-        top_products = list(
-            self.get_queryset()
-            .select_related('product')
-            .values('product__name')
-            .annotate(offerings_count=Count('id'))
-            .order_by('-offerings_count')[:10]
-        )
-        
-        # Ofertas recientes
-        recent_offerings = ProductOfferingListSerializer(
-            self.get_queryset().order_by('-created_at')[:5],
-            many=True
-        ).data
-        
-        analytics_data = {
-            'total_offerings': total_offerings,
-            'active_offerings': active_offerings,
-            'expired_offerings': expired_offerings,
-            'future_offerings': future_offerings,
-            'by_currency': by_currency,
-            'by_product_category': by_product_category,
-            'by_channel': by_channel,
-            'by_market_segment': by_market_segment,
-            'price_statistics': price_stats,
-            'duration_statistics': duration_stats,
-            'top_products': top_products,
-            'recent_offerings': recent_offerings,
-        }
-        
+        queryset = self.filter_queryset(self.get_queryset())
+        analytics_data = get_offering_analytics_full(base_queryset=queryset)
         serializer = ProductOfferingAnalyticsSerializer(analytics_data)
         return Response(serializer.data)
     
@@ -272,31 +191,7 @@ class ProductOfferingViewSet(viewsets.ModelViewSet):
     def duplicate(self, request, pk=None):
         """Duplicar una oferta"""
         offering = self.get_object()
-        
-        # Crear copia
-        new_offering = ProductOffering.objects.create(
-            name=f"{offering.name} (Copia)",
-            code=f"{offering.code}_copy_{int(timezone.now().timestamp())}",
-            description=offering.description,
-            product=offering.product,
-            price=offering.price,
-            currency_code=offering.currency_code,
-            auto_renew=offering.auto_renew,
-            duration_days=offering.duration_days,
-            landing_url=offering.landing_url,
-            metadata=offering.metadata,
-            is_active=False  # Crear desactivada por defecto
-        )
-        
-        # Copiar relaciones M2M
-        new_offering.channels.set(offering.channels.all())
-        new_offering.seats.set(offering.seats.all())
-        new_offering.target_segments.set(offering.target_segments.all())
-        new_offering.related_industries.set(offering.related_industries.all())
-        new_offering.related_functions.set(offering.related_functions.all())
-        new_offering.descriptors.set(offering.descriptors.all())
-        new_offering.tags.set(offering.tags.all())
-        
+        new_offering = duplicate_offering(offering)
         serializer = ProductOfferingDetailSerializer(new_offering)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
@@ -316,7 +211,7 @@ class ProductOfferingViewSet(viewsets.ModelViewSet):
         for i, offer_data in enumerate(offers_data):
             serializer = ProductOfferingCreateUpdateSerializer(data=offer_data)
             if serializer.is_valid():
-                offer = serializer.save()
+                offer = create_offering(data=serializer.validated_data)
                 created_offers.append(offer)
             else:
                 errors.append({

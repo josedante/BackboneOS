@@ -1,5 +1,11 @@
 from rest_framework import serializers
+
 from .models import ProductOffering
+from .services import (
+    validate_offering_code,
+    validate_offering_dates,
+    validate_offering_price,
+)
 from products.serializers import ProductListSerializer
 from world.serializers import (
     IndustryChoiceSerializer, FunctionChoiceSerializer, 
@@ -61,29 +67,25 @@ class ProductOfferingCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_code(self, value):
-        """Validar que el código sea único"""
-        if self.instance:
-            # En actualización, excluir la instancia actual
-            if ProductOffering.objects.filter(code=value).exclude(id=self.instance.id).exists():
-                raise serializers.ValidationError("Ya existe una oferta con este código.")
-        else:
-            # En creación, verificar que no exista
-            if ProductOffering.objects.filter(code=value).exists():
-                raise serializers.ValidationError("Ya existe una oferta con este código.")
+        """Validar que el código sea único via shared service helper."""
+        exclude_pk = self.instance.pk if self.instance else None
+        validate_offering_code(value, exclude_pk=exclude_pk)
         return value
     
     def validate(self, data):
-        """Validaciones de negocio"""
+        """Validaciones de negocio — delegated to services."""
         valid_from = data.get('valid_from')
         valid_until = data.get('valid_until')
-        
-        if valid_from and valid_until and valid_from > valid_until:
-            raise serializers.ValidationError("La fecha de inicio no puede ser posterior a la fecha de fin.")
-        
-        price = data.get('price')
-        if price and price <= 0:
-            raise serializers.ValidationError("El precio debe ser mayor a cero.")
-        
+        if self.instance:
+            if valid_from is None:
+                valid_from = self.instance.valid_from
+            if valid_until is None:
+                valid_until = self.instance.valid_until
+        validate_offering_dates(valid_from, valid_until)
+
+        if 'price' in data:
+            validate_offering_price(data.get('price'))
+
         return data
 
 

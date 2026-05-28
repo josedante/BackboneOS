@@ -1,0 +1,74 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nueva oferta — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Crear oferta</h1>
+    <p class="dashboard-page-subtitle">Complete los campos obligatorios. Podrá editar segmentación en el detalle.</p>
+  </div>
+  <a href="{% url 'offers_html:list' %}" class="dashboard-btn dashboard-btn-outline">Volver al listado</a>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="dashboard-form-grid">
+        <div class="dashboard-form-field">
+          <label for="{{ form.name.id_for_label }}">Nombre *</label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.code.id_for_label }}">Código *</label>
+          {{ form.code }}
+          {{ form.code.errors }}
+        </div>
+        <div class="dashboard-form-field dashboard-form-full">
+          <label for="{{ form.description.id_for_label }}">Descripción</label>
+          {{ form.description }}
+          {{ form.description.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.product.id_for_label }}">Producto *</label>
+          {{ form.product }}
+          {{ form.product.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.price.id_for_label }}">Precio *</label>
+          {{ form.price }}
+          {{ form.price.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.currency_code.id_for_label }}">Moneda</label>
+          {{ form.currency_code }}
+          {{ form.currency_code.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.valid_from.id_for_label }}">Válida desde</label>
+          {{ form.valid_from }}
+          {{ form.valid_from.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.valid_until.id_for_label }}">Válida hasta</label>
+          {{ form.valid_until }}
+          {{ form.valid_until.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Oferta activa</label>
+          {{ form.is_active.errors }}
+        </div>
+      </div>
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear oferta</button>
+        <a href="{% url 'offers_html:list' %}" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

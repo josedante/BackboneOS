@@ -94,6 +94,7 @@ def api_root_view(request):
                 'our-institution': '/api/our-institution/',
                 'campaigns': '/api/campaigns/',
                 'offers': '/api/offers/',
+                'offers_ui': '/offers/',
             }
         }
     })
@@ -108,6 +109,7 @@ urlpatterns = [
     path('entities/', include('entities.template_urls')),
     path('interactions/', include('interactions.template_urls')),
     path('campaigns/', include('campaigns.template_urls')),
+    path('offers/', include('offers.template_urls')),
     path('users/', include('users.urls')),
     path('api/', api_root_view, name='api-catalog'),
     path('api/auth/', include('users.urls')),

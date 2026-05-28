@@ -1,0 +1,161 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ offering.name }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'offers_html:list' %}" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Ofertas</a>
+    <h1 class="dashboard-page-title">{{ offering.name }}</h1>
+    <p class="dashboard-page-subtitle">
+      Código: {{ offering.code }} — Producto:
+      <a href="{% url 'products_html:detail' pk=product.pk %}">{{ product.name }}</a>
+    </p>
+  </div>
+  <div>
+    {% if offering.is_currently_valid %}
+    <span class="dashboard-badge">Válida ahora</span>
+    {% else %}
+    <span class="dashboard-badge dashboard-badge-muted">No vigente</span>
+    {% endif %}
+    {% if offering.is_discounted %}
+    <span class="dashboard-badge">{{ offering.discount_percentage }}% desc.</span>
+    {% endif %}
+  </div>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <details class="dashboard-details" open>
+        <summary>Información básica</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.name.id_for_label }}">Nombre *</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.code.id_for_label }}">Código *</label>
+            {{ form.code }}
+            {{ form.code.errors }}
+          </div>
+          <div class="dashboard-form-field dashboard-form-full">
+            <label for="{{ form.description.id_for_label }}">Descripción</label>
+            {{ form.description }}
+            {{ form.description.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.product.id_for_label }}">Producto *</label>
+            {{ form.product }}
+            {{ form.product.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Activa</label>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details" open>
+        <summary>Precio y vigencia</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.price.id_for_label }}">Precio *</label>
+            {{ form.price }}
+            {{ form.price.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.currency_code.id_for_label }}">Moneda</label>
+            {{ form.currency_code }}
+            {{ form.currency_code.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.valid_from.id_for_label }}">Válida desde</label>
+            {{ form.valid_from }}
+            {{ form.valid_from.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.valid_until.id_for_label }}">Válida hasta</label>
+            {{ form.valid_until }}
+            {{ form.valid_until.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.duration_days.id_for_label }}">Duración (días)</label>
+            {{ form.duration_days }}
+            {{ form.duration_days.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.auto_renew.id_for_label }}">{{ form.auto_renew }} Renovación automática</label>
+          </div>
+          <div class="dashboard-form-field dashboard-form-full">
+            <label for="{{ form.landing_url.id_for_label }}">URL de landing</label>
+            {{ form.landing_url }}
+            {{ form.landing_url.errors }}
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Canales y asientos</summary>
+        <div class="dashboard-details-body offers-m2m-field">
+          <div class="dashboard-form-field">
+            <label>Canales</label>
+            <div class="dashboard-checkbox-group">{{ form.channels }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Asientos</label>
+            <div class="dashboard-checkbox-group">{{ form.seats }}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Segmentación</summary>
+        <div class="dashboard-details-body offers-m2m-field">
+          <div class="dashboard-form-field">
+            <label>Segmentos de mercado</label>
+            <div class="dashboard-checkbox-group">{{ form.target_segments }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Industrias</label>
+            <div class="dashboard-checkbox-group">{{ form.related_industries }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Funciones</label>
+            <div class="dashboard-checkbox-group">{{ form.related_functions }}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Etiquetas y descriptores</summary>
+        <div class="dashboard-details-body offers-m2m-field">
+          <div class="dashboard-form-field">
+            <label>Etiquetas</label>
+            <div class="dashboard-checkbox-group">{{ form.tags }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Descriptores</label>
+            <div class="dashboard-checkbox-group">{{ form.descriptors }}</div>
+          </div>
+        </div>
+      </details>
+
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Guardar cambios</button>
+        <a href="{% url 'offers_html:list' %}" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+
+    <form method="post" action="{% url 'offers_html:delete' pk=offering.pk %}" style="margin-top:1rem;" onsubmit="return confirm('¿Eliminar esta oferta?');">
+      {% csrf_token %}
+      <button type="submit" class="dashboard-btn dashboard-btn-danger">Eliminar oferta</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

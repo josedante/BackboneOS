@@ -107,6 +107,7 @@
 
 **Características Avanzadas**:
 
+- **Django HTML CRM**: `/offers/` — list, create, detail, delete (`offers_html` namespace; `@login_required`)
 - **Segmentación Semántica**: Ofertas dirigidas por industria, función y geografía
 - **Pricing Dinámico**: Precios específicos por canal y audiencia
 - **Analytics Empresariales**: Dashboard completo con métricas de performance

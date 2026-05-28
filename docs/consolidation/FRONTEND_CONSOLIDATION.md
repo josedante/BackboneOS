@@ -8,24 +8,24 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**`campaigns` is done (operator CRUD — see section below).** Next: **Phase 1 + Phase 2 for `offers`**.
+**`offers` is done (operator CRUD — see section below).** Next: **manual verification** of all migrated HTML apps, fill **commit SHAs** (entities, interactions, campaigns, offers), then **Phase 5** (remove Next.js routes per verified app).
 
 Stance recap:
 - **Interactions** = substrate (read-only + touchpoint config); capture via `services.create_interaction`.
 - **Campaigns** = operator CRUD for planned commercial structures and campaign–touchpoint links (not a substrate).
+- **Offers** = operator CRUD for `ProductOffering` (commercial pricing / targeting configuration).
 
-For `offers`:
-1. Add `offers/selectors.py` and `offers/services.py` for shared reads/writes.
-2. Decide per-surface operator CRUD vs substrate (likely CRUD for `ProductOffering`).
-3. Add template views, templates, and `template_urls.py`; mount under [`backend/backend/urls.py`](../../backend/backend/urls.py); enable sidebar link when ready.
-4. Run `dashboard.tests` + relevant regression tests; update this doc with commit SHA.
+Before Phase 5:
+1. Manually verify `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/` (checklists below).
+2. Commit consolidated work with SHAs recorded in this doc.
+3. Remove Next.js pages only after HTML parity is confirmed (no standalone `/offers` Next route exists today).
 
 ---
 
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (next) → …
+dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA + Phase 5
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -50,10 +50,10 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | This tracking document | done |
-| 1 | Service/selector extraction per app | in_progress — **`products`**, **`entities`**, **`interactions`**, **`campaigns`** done |
-| 2 | Django template views per app | in_progress — **`products`**, **`entities`**, **`interactions`**, **`campaigns`** done; **`offers` next** |
+| 1 | Service/selector extraction per app | **done** — **`products`**, **`entities`**, **`interactions`**, **`campaigns`**, **`offers`** |
+| 2 | Django template views per app | **done** — **`products`**, **`entities`**, **`interactions`**, **`campaigns`**, **`offers`** |
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
-| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/` |
+| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/` |
 | 5 | Remove Next.js routes per app | pending |
 | 6 | Docker/docs cleanup | pending |
 
@@ -89,6 +89,7 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 - **Django CRM UI:** http://localhost:8000/ (after `docker-compose up backend`)
 - **Products CRM (Django):** http://localhost:8000/products/ — requires login; legacy Next.js catalog still at http://localhost:3000/products until Phase 5
 - **Entities CRM (Django):** http://localhost:8000/entities/ — requires login; legacy Next.js at http://localhost:3000/entities until Phase 5
+- **Offers CRM (Django):** http://localhost:8000/offers/ — requires login; no legacy Next.js page (API client only)
 - **Next.js (legacy):** http://localhost:3000/ until Phase 5
 
 ### Commit
@@ -318,6 +319,59 @@ Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
 
 ---
 
+## Offers HTML (Phase 2 complete)
+
+**Stance:** offers are **operator-editable commercial configuration** (`ProductOffering`). The dashboard provides full CRUD. There is **no** legacy Next.js `/offers` page — only the API client in [`frontend/src/lib/api.ts`](../../frontend/src/lib/api.ts).
+
+| Item | Location |
+|------|----------|
+| Reads | [`offers/selectors.py`](../../backend/offers/selectors.py) — `get_offerings_list_context`, `get_offering_detail_context`, `get_offering_form_options`, `get_offering_analytics_overview`, `get_offering_analytics_full` |
+| Writes | [`offers/services.py`](../../backend/offers/services.py) — `create_offering`, `update_offering`, `delete_offering`, `duplicate_offering`, shared `validate_*` |
+| Forms | [`offers/forms.py`](../../backend/offers/forms.py) |
+| Views | [`offers/template_views.py`](../../backend/offers/template_views.py) |
+| URLconf | [`offers/template_urls.py`](../../backend/offers/template_urls.py) — namespace `offers_html` |
+| Templates | [`offers/templates/offers/`](../../backend/offers/templates/offers/) — `list.html`, `create.html`, `detail.html` |
+| Tests | [`offers/tests_template_views.py`](../../backend/offers/tests_template_views.py), [`offers/test_factories.py`](../../backend/offers/test_factories.py) |
+
+### URLs
+
+| Path | Handler |
+|------|---------|
+| `/offers/` | List + filters + pagination + overview cards (`offers_html:list`) |
+| `/offers/new/` | Create (`offers_html:create`) |
+| `/offers/<uuid>/` | Detail + full edit form (`offers_html:detail`) |
+| `/offers/<uuid>/delete/` | POST delete (`offers_html:delete`) |
+| `/api/offers/offerings/` | DRF (unchanged) |
+
+### Access
+
+- http://localhost:8000/offers/ (list)
+- http://localhost:8000/offers/new/ (create)
+- Sidebar **Offers** → `offers_html:list`
+
+### DRF integration
+
+`ProductOfferingViewSet` delegates mutations to [`services.py`](../../backend/offers/services.py) via `perform_create` / `perform_update` / `perform_destroy`. `get_queryset` and `analytics` delegate to selectors. `duplicate` calls `duplicate_offering`. Serializer validation calls shared `validate_*` helpers. UUID `lookup_value_regex` prevents custom action paths (e.g. `export/`) from matching the detail route.
+
+### UI notes
+
+- List: overview cards (total, active, expired, future), filters (product, category, currency, validity, active), discount badge when below product base price.
+- Detail: `<details>` sections for pricing/dates, channels/seats, segmentation M2M, tags/descriptors.
+- Offers-specific CSS: `/* Offers CRM */` block in [`input.css`](../../backend/static/src/input.css).
+
+### Deferred (follow-up)
+
+- Duplicate button in HTML (API `duplicate` action remains).
+- `bulk_create`, CSV/JSON `export`, rich analytics HTML page.
+- `metadata` JSON editor on detail.
+- World semantic M2M UX beyond checkbox lists.
+
+### Commit
+
+*(fill SHA on commit)* — feat(offers): Django HTML CRM at /offers/ with selectors and services
+
+---
+
 ## App rollout
 
 | App | Phase 1 | Phase 2 | Notes |
@@ -327,7 +381,7 @@ Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
 | **entities** | **done** | **done** | selectors + services + HTML; commit SHA TBD |
 | **interactions** | **done** | **done** | Substrate stance: read-only interaction views + analytics, Touchpoint config CRUD, per-entity timeline. No hand-entry UI. Commit SHA TBD |
 | **campaigns** | **done** | **done** | Operator CRUD: campaigns + campaign–touchpoint links. Commit SHA TBD |
-| offers | pending | pending | **next** |
+| **offers** | **done** | **done** | Operator CRUD: `ProductOffering`. No Next.js page to retire. Commit SHA TBD |
 
 ---
 
@@ -405,7 +459,7 @@ cd backend && npm install && npm run tailwind:build
 
 docker build -f backend/Dockerfile -t backboneos-test backend
 
-# Dashboard + products + entities + interactions + campaigns API + HTML:
+# Dashboard + products + entities + interactions + campaigns + offers API + HTML:
 docker run --rm -v "$(pwd)/backend:/app" -w /app \
   -e DJANGO_SETTINGS_MODULE=backend.test_settings \
   backboneos-test python manage.py test \
@@ -416,7 +470,8 @@ docker run --rm -v "$(pwd)/backend:/app" -w /app \
     entities.tests_template_views \
     interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
     interactions.tests_template_views \
-    campaigns.tests campaigns.tests_template_views
+    campaigns.tests campaigns.tests_template_views \
+    offers.tests offers.tests_template_views
 ```
 
 With docker-compose running, the equivalent is:
@@ -426,10 +481,11 @@ docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend 
   python manage.py test dashboard.tests \
     interactions.tests.InteractionAPITests interactions.tests.TouchpointAPITests \
     interactions.tests_template_views entities.tests_template_views \
-    campaigns.tests campaigns.tests_template_views
+    campaigns.tests campaigns.tests_template_views \
+    offers.tests offers.tests_template_views
 ```
 
-The consolidated gate (dashboard + interactions + entities HTML + campaigns) reports **47 tests, OK**.
+The consolidated gate (dashboard + interactions + entities + campaigns + offers HTML) reports **67 tests, OK**.
 
 `manage.py check` should report no issues.
 
@@ -487,6 +543,31 @@ The consolidated gate (dashboard + interactions + entities HTML + campaigns) rep
 - [x] Sidebar Campaigns link → `campaigns_html:list`
 - [x] `campaigns.tests` + `tests_template_views` + `dashboard.tests` green (47 tests in gate)
 - [x] Doc updated — commit SHA TBD
+
+---
+
+## Phase 2 checklist (`offers` — operator CRUD)
+
+- [x] `selectors.py` + `services.py`; DRF `perform_*` delegation on `ProductOfferingViewSet`
+- [x] `template_views.py` + `forms.py` (writes via `services.py`)
+- [x] `templates/offers/*.html` extend `base_dashboard.html`
+- [x] `/offers/` URL mount (`offers.template_urls`, namespace `offers_html`)
+- [x] Sidebar Offers link → `offers_html:list`
+- [x] `offers.tests` + `tests_template_views` + `dashboard.tests` green (67 tests in gate)
+- [x] Doc updated — commit SHA TBD
+
+---
+
+## Manual verification (`offers` Phase 2)
+
+Automated gate covers auth redirect, list filters, create, update, delete, and 404. Before Phase 5, manually confirm:
+
+- [ ] Login required on `/offers/`
+- [ ] List filters (product, currency, validity, active) behave as expected
+- [ ] Create at `/offers/new/` → detail with flash
+- [ ] Detail save persists FK + M2M (channels, segments, tags)
+- [ ] Delete from detail returns to list
+- [ ] `/api/offers/offerings/` unchanged (`offers.tests` API subset)
 
 ---
 
@@ -553,6 +634,7 @@ flowchart LR
     EntitiesUI["GET /entities/"]
     InteractionsUI["GET /interactions/ (read + touchpoint config)"]
     CampaignsUI["GET /campaigns/ (operator CRUD)"]
+    OffersUI["GET /offers/ (operator CRUD)"]
     ContextualApps["Contextual apps / tracking (future)"]
     API["DRF /api/..."]
   end
@@ -580,12 +662,19 @@ flowchart LR
     SelC["selectors.py"]
     SvcC["services.py"]
   end
+  subgraph offers_app [offers]
+    TVO["template_views"]
+    SelO["selectors.py"]
+    SvcO["services.py"]
+  end
   Home --> SelD --> Base
   ProductsUI --> TVP --> SelP --> Base
   EntitiesUI --> TVE --> SelE --> Base
   InteractionsUI --> TVI --> SelI --> Base
   CampaignsUI --> TVC --> SelC --> Base
+  OffersUI --> TVO --> SelO --> Base
   TVC --> SvcC
+  TVO --> SvcO
   TVP --> SvcP
   TVE --> SvcE
   TVI --> SvcI
@@ -599,4 +688,6 @@ flowchart LR
   API --> SvcI
   API --> SelC
   API --> SvcC
+  API --> SelO
+  API --> SvcO
 ```
