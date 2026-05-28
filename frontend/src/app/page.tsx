@@ -1,31 +1,42 @@
-import { DashboardStats } from '@/components/dashboard/dashboard-stats'
-import { QuickActions } from '@/components/dashboard/quick-actions'
-import { RecentActivity } from '@/components/dashboard/recent-activity'
-import { DashboardLayout } from '@/components/layout/dashboard-layout'
+/**
+ * Phase 5 — legacy Next shell at :3000.
+ * The CRM dashboard home is Django `dashboard:home` at GET / (session auth).
+ * This page orients developers who still run the Next dev server for /users and /analytics.
+ */
+import Link from 'next/link'
 
-export default function DashboardPage() {
+import { djangoUiPath } from '@/lib/django-ui'
+
+export default function HomePage() {
+  const crmUrl = djangoUiPath('/')
+
   return (
-    <DashboardLayout title="Dashboard">
-      <div className="space-y-6">
-        {/* Welcome Section */}
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-lg w-full bg-white shadow rounded-lg p-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome to BackboneOS
-          </h1>
-          <p className="text-gray-600">
-            Here&apos;s what&apos;s happening with your business today.
+          <h1 className="text-2xl font-bold text-gray-900">BackboneOS CRM</h1>
+          <p className="mt-2 text-gray-600">
+            The operator dashboard, products catalog, and entities CRM are served by Django
+            templates with session authentication.
           </p>
         </div>
-
-        {/* Stats Grid */}
-        <DashboardStats />
-
-        {/* Quick Actions */}
-        <QuickActions />
-
-        {/* Recent Activity */}
-        <RecentActivity />
+        <a
+          href={crmUrl}
+          className="inline-flex w-full justify-center rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
+        >
+          Open CRM dashboard
+        </a>
+        <p className="text-sm text-gray-500">
+          Still on Next.js until Phase 6:{' '}
+          <Link href="/users" className="text-primary hover:underline">
+            Users
+          </Link>
+          {', '}
+          <Link href="/analytics" className="text-primary hover:underline">
+            Analytics
+          </Link>
+        </p>
       </div>
-    </DashboardLayout>
+    </main>
   )
 }

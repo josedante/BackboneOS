@@ -77,8 +77,8 @@ World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (
 
 ### 🌐 URLs de Acceso
 
-- **CRM dashboard (Django, consolidation in progress)**: http://localhost:8000/ — session login at `/login/`; **products CRM**: http://localhost:8000/products/ — track progress in [docs/consolidation/FRONTEND_CONSOLIDATION.md](docs/consolidation/FRONTEND_CONSOLIDATION.md)
-- **Frontend (legacy Next.js)**: http://localhost:3000 (until Phase 5 decommission)
+- **CRM (Django templates)**: http://localhost:8000/ — session login at `/login/`; products, entities, interactions, campaigns, offers — see [docs/consolidation/FRONTEND_CONSOLIDATION.md](docs/consolidation/FRONTEND_CONSOLIDATION.md)
+- **Next.js (optional dev)**: http://localhost:3000 — users and analytics only; `/products` and `/entities` redirect to Django (Phase 5 complete)
 - **Backend API**: http://localhost:8000/api/ (Docker)
 - **Django Admin**: http://localhost:8000/admin (Docker)
 - **Flower Dashboard**: http://localhost:5555 (Monitoreo de Celery)
@@ -114,7 +114,7 @@ docker-compose exec backend python create_campaigns_data.py
 # 8. Crear superusuario (opcional)
 docker-compose exec backend python manage.py createsuperuser
 
-# 8. Frontend (Local - OBLIGATORIO)
+# 8. Frontend Next.js (opcional — solo /users y /analytics; el CRM está en :8000)
 cd frontend
 npm install
 npm run dev

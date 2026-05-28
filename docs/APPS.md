@@ -24,7 +24,7 @@
 
 **Núcleo semántico de personas y organizaciones**
 
-**HTML UI:** Django templates at `/entities/` (tabbed people/organizations CRM; see [`docs/consolidation/FRONTEND_CONSOLIDATION.md`](consolidation/FRONTEND_CONSOLIDATION.md)).
+**HTML UI:** Django templates at `/entities/` (tabbed people/organizations CRM). Next.js entity pages retired in Phase 5 — see [`docs/consolidation/FRONTEND_CONSOLIDATION.md`](consolidation/FRONTEND_CONSOLIDATION.md).
 
 - **👤 Personas**: `Person` (información demográfica + perfilado semántico)
 - **🏢 Organizaciones**: `Organization` (entidades corporativas con clasificación)
@@ -61,6 +61,8 @@
 - **Navegación Semántica**: Paths completos y relaciones contextuales
 
 ### ✅ Products App - Sistema de Gestión de Productos
+
+**HTML UI:** Django templates at `/products/` (list, create, detail). Next.js product pages retired in Phase 5.
 
 **Catálogo comercial avanzado con analytics**
 

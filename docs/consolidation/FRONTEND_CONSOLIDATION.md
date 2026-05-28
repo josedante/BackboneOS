@@ -8,28 +8,21 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**Phase 2 + manual QA are complete** (commits recorded below). Next: **Phase 5** — remove superseded Next.js routes **per app** after a quick smoke check that Django HTML still serves each path.
+**Phase 5 is complete** for dashboard, products, and entities (see [Phase 5 checklist](#phase-5-checklist-dashboard--products--entities)). Next: **Phase 6** — remove the `frontend` Docker service, decommission the Next.js package, and sweep remaining docs (`docs/FRONTEND.md`, hybrid-dev README sections).
 
 Stance recap:
 - **Interactions** = substrate (read-only + touchpoint config); capture via `services.create_interaction`.
 - **Campaigns** = operator CRUD for planned commercial structures and campaign–touchpoint links (not a substrate).
 - **Offers** = operator CRUD for `ProductOffering` (commercial pricing / targeting configuration).
 
-Phase 5 order (see [Next.js to retire later](#nextjs-to-retire-later-phase-5)):
-1. `frontend/src/app/page.tsx` (dashboard → Django `/`)
-2. `frontend/src/app/products/**`
-3. `frontend/src/app/entities/**`
-4. Prune unused API client helpers in [`frontend/src/lib/api.ts`](../../frontend/src/lib/api.ts) only where no other consumer remains.
-5. **Do not** remove the `frontend` Docker service until Phase 6 (other routes may still exist).
-
-No standalone Next `/offers` or `/campaigns` or `/interactions` page existed — those were API-only in Next.
+**Remaining on Next.js (:3000) until Phase 6:** `/users`, `/analytics`, `/login`, `/settings` (if added). CRM modules use Django at `:8000` (sidebar links via `NEXT_PUBLIC_DJANGO_UI_BASE`).
 
 ---
 
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA (done) → **Phase 5** (remove Next.js routes)
+dashboard home (done) → products P2 (done) → entities P1+P2 (done) → interactions (done, substrate) → campaigns (done, CRUD) → offers (done, CRUD) → manual QA (done) → **Phase 5** (done) → **Phase 6** (Docker/docs)
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -58,8 +51,8 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | 2 | Django template views per app | **done** — **`products`**, **`entities`**, **`interactions`**, **`campaigns`**, **`offers`** |
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
 | 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/`, `/products/`, `/entities/`, `/interactions/`, `/campaigns/`, `/offers/` |
-| 5 | Remove Next.js routes per app | **in progress** — manual QA + commits done; retire `page.tsx`, `products/**`, `entities/**` |
-| 6 | Docker/docs cleanup | pending |
+| 5 | Remove Next.js routes per app | **done** — dashboard landing + redirects; `products/**`, `entities/**` removed; `api.ts` pruned |
+| 6 | Docker/docs cleanup | **next** — remove `frontend` service from Compose; delete Next package |
 
 ---
 
@@ -91,10 +84,10 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 ### Access
 
 - **Django CRM UI:** http://localhost:8000/ (after `docker-compose up backend`)
-- **Products CRM (Django):** http://localhost:8000/products/ — requires login; legacy Next.js catalog still at http://localhost:3000/products until Phase 5
-- **Entities CRM (Django):** http://localhost:8000/entities/ — requires login; legacy Next.js at http://localhost:3000/entities until Phase 5
-- **Offers CRM (Django):** http://localhost:8000/offers/ — requires login; no legacy Next.js page (API client only)
-- **Next.js (legacy):** http://localhost:3000/ until Phase 5
+- **Products CRM (Django):** http://localhost:8000/products/ — requires login
+- **Entities CRM (Django):** http://localhost:8000/entities/ — requires login
+- **Offers CRM (Django):** http://localhost:8000/offers/ — requires login
+- **Next.js (partial, Phase 6):** http://localhost:3000/ — landing + `/users`, `/analytics`, `/login`; `/products` and `/entities` redirect to Django
 
 ### Commit
 
@@ -406,14 +399,32 @@ Note: `CampaignTouchpoint` uses integer PK; campaign routes use UUID.
 | Product detail | `get_product_detail_context()` → `get_bundle_info` |
 | Forms | `get_product_form_options()` |
 
-### Next.js to retire later (Phase 5)
+### Next.js retired (Phase 5)
 
-- [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) — superseded by Django `/`
-- [`frontend/src/app/products/page.tsx`](../../frontend/src/app/products/page.tsx)
-- [`frontend/src/app/products/[id]/page.tsx`](../../frontend/src/app/products/[id]/page.tsx)
-- [`frontend/src/app/entities/page.tsx`](../../frontend/src/app/entities/page.tsx)
-- [`frontend/src/app/entities/people/[id]/page.tsx`](../../frontend/src/app/entities/people/[id]/page.tsx)
-- [`frontend/src/app/entities/organizations/[id]/page.tsx`](../../frontend/src/app/entities/organizations/[id]/page.tsx)
+Removed or replaced:
+
+- [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) — CRM landing with link to Django `/` (mock dashboard removed)
+- `frontend/src/app/products/**` — deleted; `next.config.js` redirects to Django `/products/`
+- `frontend/src/app/entities/**` — deleted; redirects to Django `/entities/`
+- [`frontend/src/lib/api.ts`](../../frontend/src/lib/api.ts) — `authApi` + `usersApi` only; CRM client stubs removed
+- [`frontend/src/lib/django-ui.ts`](../../frontend/src/lib/django-ui.ts) — `NEXT_PUBLIC_DJANGO_UI_BASE` helper for sidebar/external links
+
+---
+
+## Phase 5 checklist (dashboard + products + entities)
+
+- [x] Django template test gate green before deletions (51 tests in consolidated gate subset)
+- [x] `next.config.js` redirects `/products`, `/products/:path*`, `/entities`, `/entities/:path*` → Django UI base
+- [x] Root `page.tsx` replaced with Phase 5 landing (not mock dashboard)
+- [x] Orphan dashboard components removed (`dashboard-stats`, `quick-actions`, `recent-activity`)
+- [x] Next `products/**` and `entities/**` pages deleted
+- [x] Sidebar: Django external links for CRM; Next internal links for users/analytics
+- [x] `api.ts` pruned; `__mocks__/api.ts` uses local test-only types
+- [x] `.env.example` documents `NEXT_PUBLIC_DJANGO_UI_BASE`
+- [x] Manual verification: `:3000/products` → `:8000/products/`; `:3000/users` still loads
+- [x] `npm run build` passes (routes: `/`, `/users`, `/analytics`, `/login` only)
+- [ ] Frontend test debt: `AuthContext` / `TokenRefreshManager` tests drift from cookie-based auth (not blocking Phase 5)
+- [ ] Commit hash: _(add after commit)_
 
 ---
 

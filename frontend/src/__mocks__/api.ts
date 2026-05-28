@@ -1,7 +1,48 @@
-import { type Product, type ProductCategory } from '@/lib/api'
+/**
+ * Test-only product fixtures (Phase 5).
+ * Shapes are not synced with DRF — CRM product UI moved to Django templates.
+ */
+export interface MockProduct {
+  id: string
+  name: string
+  code: string
+  description: string
+  canonical_url?: string
+  category?: string
+  category_name?: string
+  category_full_path?: string
+  customization_name?: string
+  duration?: string
+  base_price?: number
+  currency_code: string
+  price_display: string
+  duration_display?: string
+  target_audience: string
+  modalities_display: string
+  has_canonical_url: boolean
+  skills_count: number
+  industries_count: number
+  segments_count: number
+  included_products_count: number
+  is_bundle: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
 
-// Mock data for testing
-export const mockProducts: Product[] = [
+export interface MockProductCategory {
+  id: number
+  name: string
+  description: string
+  division: number
+  parent: number | null
+  level: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export const mockProducts: MockProduct[] = [
   {
     id: '1',
     name: 'Curso de React Avanzado',
@@ -81,7 +122,7 @@ export const mockProducts: Product[] = [
   },
 ]
 
-export const mockCategories: ProductCategory[] = [
+export const mockCategories: MockProductCategory[] = [
   {
     id: 1,
     name: 'Desarrollo Web',
@@ -106,7 +147,6 @@ export const mockCategories: ProductCategory[] = [
   },
 ]
 
-// Mock API responses
 export const mockApiResponses = {
   products: {
     success: {

@@ -12,11 +12,12 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
-// Mock next/navigation
+// Mock next/navigation (AuthProvider uses usePathname + useRouter)
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+  usePathname: () => '/',
 }))
 
 // Mock sonner
