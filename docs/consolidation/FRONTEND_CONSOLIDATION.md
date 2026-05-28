@@ -48,7 +48,7 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | 0 | This tracking document | done |
 | 1 | Service/selector extraction per app | in_progress — `products` done |
 | 2 | Django template views per app | pending — **`products` next** |
-| 3 | Shared base layout + static CSS | **partial done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html) |
+| 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
 | 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/` |
 | 5 | Remove Next.js routes per app | pending |
 | 6 | Docker/docs cleanup | pending |
@@ -65,7 +65,8 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 | Selector | [`dashboard/selectors.py`](../../backend/dashboard/selectors.py) → `get_home_context()` (v1 static; v2 real counts later) |
 | View | [`dashboard/template_views.py`](../../backend/dashboard/template_views.py) → `home` |
 | Templates | [`backend/templates/base_dashboard.html`](../../backend/templates/base_dashboard.html), [`templates/dashboard/home.html`](../../backend/templates/dashboard/home.html), [`templates/includes/`](../../backend/templates/includes/) |
-| CSS | [`backend/static/dashboard/dashboard.css`](../../backend/static/dashboard/dashboard.css) |
+| CSS source | [`backend/static/src/input.css`](../../backend/static/src/input.css) (shadcn tokens + dashboard layout) |
+| CSS output | [`backend/static/dist/styles.css`](../../backend/static/dist/styles.css) via Tailwind v3 CLI |
 | Tests | [`dashboard/tests.py`](../../backend/dashboard/tests.py) |
 
 ### URLs
@@ -130,9 +131,30 @@ See [`backend/products/selectors.py`](../../backend/products/selectors.py).
 
 ---
 
+## Tailwind build (Phase 3)
+
+Toolchain lives under [`backend/`](../../backend/): [`package.json`](../../backend/package.json), [`tailwind.config.js`](../../backend/tailwind.config.js) (theme ported from [`frontend/tailwind.config.js`](../../frontend/tailwind.config.js)).
+
+```bash
+cd backend
+npm install
+npm run tailwind:build    # writes static/dist/styles.css (minified)
+npm run tailwind:watch    # local dev rebuild
+```
+
+- **Templates** load `{% static 'dist/styles.css' %}` only (no separate `dashboard.css`).
+- **`static/dist/styles.css`** is gitignored (`dist/` in root `.gitignore`); run `tailwind:build` locally or rely on Docker/CI (`Dockerfile`, `Dockerfile.prod` builder stage).
+- **docker-compose dev** mounts `./backend:/app`, which overwrites image-built `static/dist/` — run `npm run tailwind:build` (or `tailwind:watch`) on the host when styling changes.
+
+Production images run `npm ci`, `tailwind:build`, and `collectstatic` in the `Dockerfile.prod` builder; runtime remains a single Python process (`entrypoint.sh` may re-run `collectstatic` idempotently).
+
+---
+
 ## Verification / test gate
 
 ```bash
+cd backend && npm install && npm run tailwind:build
+
 docker build -f backend/Dockerfile -t backboneos-test backend
 
 # Dashboard + products API regression (13 tests):

@@ -1,0 +1,12 @@
+{
+  "name": "backboneos-tenant-theme",
+  "version": "1.0.0",
+  "description": "Tailwind build toolchain for consolidated server-rendered templates",
+  "scripts": {
+    "tailwind:watch": "tailwindcss -i ./static/src/input.css -o ./static/dist/styles.css --watch",
+    "tailwind:build": "tailwindcss -i ./static/src/input.css -o ./static/dist/styles.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

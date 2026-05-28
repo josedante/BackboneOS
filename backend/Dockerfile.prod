@@ -32,6 +32,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install Gunicorn for production
 RUN pip install --no-cache-dir gunicorn
 
+# Copy application and build Tailwind + static assets
+COPY . .
+
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm ci \
+    && npm run tailwind:build
+
+ENV DJANGO_SETTINGS_MODULE=backend.settings
+RUN python manage.py collectstatic --noinput
+
 # Production stage
 FROM python:3.13-slim as production
 
@@ -56,8 +69,8 @@ RUN apt-get update \
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
-COPY . .
+# Copy application code (includes compiled CSS and collected staticfiles)
+COPY --from=builder /app /app
 
 # Make entrypoint script executable
 RUN chmod +x entrypoint.sh

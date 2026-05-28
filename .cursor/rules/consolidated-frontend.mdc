@@ -8,7 +8,7 @@ You are refactoring the single-tenant customer infrastructure to eliminate the d
 
 ## Core Directives
 
-1. **Single-Process Constraint**: Never introduce node scripts, multi-stage Docker multi-process setups, or reverse-proxy supervisors. The service must execute strictly as a single-process Python/Django environment.
+1. **Single-Process Runtime**: The running container must be a single Python/Django process (no Node watcher, no reverse-proxy supervisors in `CMD`/`entrypoint`). **Build-time only**: Node/npm may compile Tailwind CSS (`backend/package.json`, `npm run tailwind:build`) during Docker image build; output is static CSS served by WhiteNoise.
 2. **Preserve the REST API Ingress**: Do NOT delete or modify public REST API views or endpoints (`rest_framework`). They are strictly mandatory for external webhook ingestion (e.g., Meta/Shopify) and client-side tracking scripts.
 3. **Zero In-App Loopback Requests**: When writing HTML/HTMX views, never execute HTTP requests or programmatic internal invocations to your own REST API viewsets to fetch data.
 4. **Enforce Service/Selector Layer Reusability**: Extract data fetching, query optimizations, and transaction mutations out of existing API viewsets and move them into unified `services.py` or `selectors.py` modules. Both the API views and the template views must call these exact same service functions.
