@@ -1,0 +1,53 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nueva persona — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Crear persona</h1>
+    <p class="dashboard-page-subtitle">Campos mínimos; podrá completar el perfil en el detalle.</p>
+  </div>
+  <a href="{% url 'entities_html:list' %}?tab=people" class="dashboard-btn dashboard-btn-outline">Volver al listado</a>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="dashboard-form-grid">
+        <div class="dashboard-form-field">
+          <label for="{{ form.first_name.id_for_label }}">Nombre</label>
+          {{ form.first_name }}
+          {{ form.first_name.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.last_name.id_for_label }}">Apellido</label>
+          {{ form.last_name }}
+          {{ form.last_name.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.middle_name.id_for_label }}">Segundo nombre</label>
+          {{ form.middle_name }}
+          {{ form.middle_name.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.second_last_name.id_for_label }}">Segundo apellido</label>
+          {{ form.second_last_name }}
+          {{ form.second_last_name.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Activo</label>
+        </div>
+      </div>
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear persona</button>
+        <a href="{% url 'entities_html:list' %}?tab=people" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

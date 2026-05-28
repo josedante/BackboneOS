@@ -1,0 +1,144 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ page_title }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'entities_html:list' %}?tab=people" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Entidades</a>
+    <h1 class="dashboard-page-title">{{ person.full_name|default:"Persona" }}</h1>
+  </div>
+  <form method="post" action="{% url 'entities_html:person_delete' pk=person.pk %}" onsubmit="return confirm('¿Eliminar esta persona?');">
+    {% csrf_token %}
+    <button type="submit" class="dashboard-btn dashboard-btn-outline">Eliminar</button>
+  </form>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <details class="dashboard-details" open>
+        <summary>Información básica</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.first_name.id_for_label }}">Nombre</label>
+            {{ form.first_name }}
+            {{ form.first_name.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.middle_name.id_for_label }}">Segundo nombre</label>
+            {{ form.middle_name }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.last_name.id_for_label }}">Apellido</label>
+            {{ form.last_name }}
+            {{ form.last_name.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.second_last_name.id_for_label }}">Segundo apellido</label>
+            {{ form.second_last_name }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.birthday.id_for_label }}">Fecha de nacimiento</label>
+            {{ form.birthday }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.gender.id_for_label }}">Género</label>
+            {{ form.gender }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.marital_status.id_for_label }}">Estado civil</label>
+            {{ form.marital_status }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.country_of_nationality.id_for_label }}">Nacionalidad</label>
+            {{ form.country_of_nationality }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.id_type.id_for_label }}">Tipo de documento</label>
+            {{ form.id_type }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.id_number.id_for_label }}">Número de documento</label>
+            {{ form.id_number }}
+            {{ form.id_number.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Activo</label>
+          </div>
+        </div>
+      </details>
+
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<details class="dashboard-card dashboard-details dashboard-section">
+  <summary>Contactos</summary>
+  <div class="dashboard-card-body">
+    {% if contacts %}
+    <ul class="entities-readonly-list">
+      {% for contact in contacts %}
+      <li>
+        {% if contact.email %}{{ contact.email }}{% endif %}
+        {% if contact.phone %} · {{ contact.phone }}{% endif %}
+        {% if contact.is_primary %}<span class="dashboard-badge">Principal</span>{% endif %}
+        {% if contact.verified %}<span class="entities-verified-badge">✓</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="dashboard-muted">Sin contactos registrados.</p>
+    {% endif %}
+  </div>
+</details>
+
+<details class="dashboard-card dashboard-details dashboard-section">
+  <summary>Direcciones</summary>
+  <div class="dashboard-card-body">
+    {% if addresses %}
+    <ul class="entities-readonly-list">
+      {% for addr in addresses %}
+      <li>
+        {{ addr.address }}{% if addr.city %}, {{ addr.city }}{% endif %}
+        {% if addr.country %} — {{ addr.country.name }}{% endif %}
+        {% if addr.is_primary %}<span class="dashboard-badge">Principal</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="dashboard-muted">Sin direcciones registradas.</p>
+    {% endif %}
+  </div>
+</details>
+
+<details class="dashboard-card dashboard-details dashboard-section">
+  <summary>Perfil individual</summary>
+  <div class="dashboard-card-body">
+    {% if profile_summary %}
+    <dl class="entities-dl">
+      <dt>Título académico</dt><dd>{{ profile_summary.academic_degree|default:"—" }}</dd>
+      <dt>Industrias</dt><dd>{{ profile_summary.industries_count }}</dd>
+      <dt>Habilidades</dt><dd>{{ profile_summary.skills_count }}</dd>
+      <dt>Funciones</dt><dd>{{ profile_summary.functions_count }}</dd>
+      <dt>Medio preferido</dt><dd>{{ profile_summary.preferred_contact_medium }}</dd>
+      <dt>Marketing</dt><dd>{% if profile_summary.allows_marketing %}Sí{% else %}No{% endif %}</dd>
+    </dl>
+    {% else %}
+    <p class="dashboard-muted">Esta persona no tiene perfil individual.</p>
+    <form method="post" action="{% url 'entities_html:person_create_profile' pk=person.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear perfil</button>
+    </form>
+    {% endif %}
+  </div>
+</details>
+{% endblock %}

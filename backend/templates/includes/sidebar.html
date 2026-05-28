@@ -23,7 +23,9 @@
         </a>
       </li>
       <li>
-        <a href="#" class="is-disabled" title="Coming soon">Entities</a>
+        <a href="{% url 'entities_html:list' %}" class="{% if request.resolver_match.namespace == 'entities_html' %}is-active{% endif %}">
+          Entities
+        </a>
       </li>
       <li>
         <a href="#" class="is-disabled" title="Coming soon">Interactions</a>

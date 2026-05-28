@@ -252,9 +252,19 @@ class PersonAPITestCase(APITestCase):
         )
         
         # Persona de prueba
-        # Get or create gender and marital status
-        self.gender = Gender.objects.filter(code='M').first()
-        self.marital_status = MaritalStatus.objects.filter(code='SG').first()
+        # Ensure reference data exists for filter/create API tests
+        self.gender, _ = Gender.objects.get_or_create(
+            code='M',
+            defaults={'name': 'Masculino', 'display_order': 1},
+        )
+        self.gender_f, _ = Gender.objects.get_or_create(
+            code='F',
+            defaults={'name': 'Femenino', 'display_order': 2},
+        )
+        self.marital_status, _ = MaritalStatus.objects.get_or_create(
+            code='SG',
+            defaults={'name': 'Soltero', 'display_order': 1},
+        )
         
         self.person = Person.objects.create(
             first_name='Juan',
@@ -314,7 +324,7 @@ class PersonViewSetTests(PersonAPITestCase):
             'first_name': 'María',
             'last_name': 'González',
             'second_last_name': 'López',
-            'gender': 'F',
+            'gender': self.gender_f.pk,
             'country_of_nationality': self.country.pk,
             'id_type': self.id_type.pk,
             'id_number': '87654321',
@@ -383,7 +393,7 @@ class PersonViewSetTests(PersonAPITestCase):
         url = reverse('entities:person-list')
         
         # Filtro por género
-        response = self.client.get(url, {'gender': 'M'})
+        response = self.client.get(url, {'gender': self.gender.pk})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
         

@@ -1,5 +1,7 @@
 from rest_framework import serializers
+
 from .models import Person, ContactDetail, IndividualProfile, Organization, PhysicalAddress
+from .services import validate_organization_document, validate_person_document
 from world.serializers import (
     CountrySerializer, PersonalIDTypeSerializer, OrganizationalIDTypeSerializer,
     OrganizationTypeSerializer, IndustrySerializer, FunctionSerializer,
@@ -119,20 +121,18 @@ class PersonCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, data):
-        # Validar unicidad de documento si se proporciona
-        if data.get('id_type') and data.get('id_number'):
-            queryset = Person.objects.filter(
-                id_type=data['id_type'],
-                id_number=data['id_number']
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        try:
+            validate_person_document(
+                data.get('id_type'),
+                data.get('id_number', ''),
+                exclude_pk=self.instance.pk if self.instance else None,
             )
-            if self.instance:
-                queryset = queryset.exclude(pk=self.instance.pk)
-            
-            if queryset.exists():
-                raise serializers.ValidationError(
-                    "Ya existe una persona con este tipo y número de documento."
-                )
-        
+        except DjangoValidationError as exc:
+            if hasattr(exc, 'message_dict'):
+                raise serializers.ValidationError(exc.message_dict)
+            raise serializers.ValidationError(list(exc.messages))
         return data
 
 
@@ -220,20 +220,18 @@ class OrganizationCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, data):
-        # Validar unicidad de documento organizacional
-        if data.get('id_type') and data.get('id_number'):
-            queryset = Organization.objects.filter(
-                id_type=data['id_type'],
-                id_number=data['id_number']
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        try:
+            validate_organization_document(
+                data.get('id_type'),
+                data.get('id_number', ''),
+                exclude_pk=self.instance.pk if self.instance else None,
             )
-            if self.instance:
-                queryset = queryset.exclude(pk=self.instance.pk)
-            
-            if queryset.exists():
-                raise serializers.ValidationError(
-                    "Ya existe una organización con este tipo y número de documento."
-                )
-        
+        except DjangoValidationError as exc:
+            if hasattr(exc, 'message_dict'):
+                raise serializers.ValidationError(exc.message_dict)
+            raise serializers.ValidationError(list(exc.messages))
         return data
 
 

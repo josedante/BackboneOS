@@ -83,8 +83,9 @@ def api_root_view(request):
             'health': '/health/',
             'admin': '/admin/',
             'dashboard': '/',
-            'products_ui': '/products/',
-            'api': {
+                'products_ui': '/products/',
+                'entities_ui': '/entities/',
+                'api': {
                 'world': '/api/world/',
                 'products': '/api/products/',
                 'entities': '/api/entities/',
@@ -103,6 +104,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('', include('dashboard.urls')),
     path('products/', include('products.template_urls')),
+    path('entities/', include('entities.template_urls')),
     path('users/', include('users.urls')),
     path('api/', api_root_view, name='api-catalog'),
     path('api/auth/', include('users.urls')),

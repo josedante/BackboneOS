@@ -1,0 +1,97 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ page_title }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'entities_html:list' %}?tab=organizations" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Entidades</a>
+    <h1 class="dashboard-page-title">{{ organization.name }}</h1>
+    {% if organization.legal_name %}
+    <p class="dashboard-page-subtitle">{{ organization.legal_name }}</p>
+    {% endif %}
+  </div>
+  <form method="post" action="{% url 'entities_html:org_delete' pk=organization.pk %}" onsubmit="return confirm('¿Eliminar esta organización?');">
+    {% csrf_token %}
+    <button type="submit" class="dashboard-btn dashboard-btn-outline">Eliminar</button>
+  </form>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <details class="dashboard-details" open>
+        <summary>Información básica</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.name.id_for_label }}">Nombre *</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.legal_name.id_for_label }}">Razón social</label>
+            {{ form.legal_name }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.org_type.id_for_label }}">Tipo</label>
+            {{ form.org_type }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.industry.id_for_label }}">Industria</label>
+            {{ form.industry }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.country.id_for_label }}">País</label>
+            {{ form.country }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.id_type.id_for_label }}">Tipo de documento</label>
+            {{ form.id_type }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.id_number.id_for_label }}">Número de documento</label>
+            {{ form.id_number }}
+            {{ form.id_number.errors }}
+          </div>
+          <div class="dashboard-form-field dashboard-form-full">
+            <label for="{{ form.main_address.id_for_label }}">Dirección principal</label>
+            {{ form.main_address }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Activo</label>
+          </div>
+        </div>
+      </details>
+
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<details class="dashboard-card dashboard-details dashboard-section">
+  <summary>Direcciones</summary>
+  <div class="dashboard-card-body">
+    {% if addresses %}
+    <ul class="entities-readonly-list">
+      {% for addr in addresses %}
+      <li>
+        {{ addr.address }}{% if addr.city %}, {{ addr.city }}{% endif %}
+        {% if addr.country %} — {{ addr.country.name }}{% endif %}
+        {% if addr.is_primary %}<span class="dashboard-badge">Principal</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="dashboard-muted">Sin direcciones registradas.</p>
+    {% endif %}
+    <p class="dashboard-muted" style="margin-top:1rem;">Alta de contactos y direcciones desde el CRM web: próxima iteración.</p>
+  </div>
+</details>
+{% endblock %}

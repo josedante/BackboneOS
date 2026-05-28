@@ -24,6 +24,8 @@
 
 **Núcleo semántico de personas y organizaciones**
 
+**HTML UI:** Django templates at `/entities/` (tabbed people/organizations CRM; see [`docs/consolidation/FRONTEND_CONSOLIDATION.md`](consolidation/FRONTEND_CONSOLIDATION.md)).
+
 - **👤 Personas**: `Person` (información demográfica + perfilado semántico)
 - **🏢 Organizaciones**: `Organization` (entidades corporativas con clasificación)
 - **📞 Contactos**: `ContactDetail` (sistema unificado de comunicación)

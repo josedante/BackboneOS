@@ -57,8 +57,7 @@ def get_home_context() -> dict:
         {
             'name': 'Add Entity',
             'description': 'Create a new business entity',
-            'href': '#',
-            'title': 'Coming soon',
+            'href': '/entities/people/new/',
         },
         {
             'name': 'Log Interaction',

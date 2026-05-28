@@ -1,0 +1,176 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Entidades — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Gestión de Entidades</h1>
+    <p class="dashboard-page-subtitle">Personas y organizaciones del CRM</p>
+  </div>
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <a href="{% url 'entities_html:person_create' %}" class="dashboard-btn dashboard-btn-primary">Nueva persona</a>
+    <a href="{% url 'entities_html:org_create' %}" class="dashboard-btn dashboard-btn-outline">Nueva organización</a>
+  </div>
+</div>
+
+<nav class="entities-tabs" aria-label="Tipo de entidad">
+  <a href="?tab=people&q={{ search|urlencode }}&page_size={{ page_size }}"
+     class="entities-tab {% if tab == 'people' %}is-active{% endif %}">
+    Personas ({{ people_count }})
+  </a>
+  <a href="?tab=organizations&q={{ search|urlencode }}&page_size={{ page_size }}"
+     class="entities-tab {% if tab == 'organizations' %}is-active{% endif %}">
+    Organizaciones ({{ orgs_count }})
+  </a>
+</nav>
+
+<section class="dashboard-section dashboard-card">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Filtros</h2>
+    <form method="get" class="dashboard-filters">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <input type="search" name="q" value="{{ search }}" placeholder="Buscar…" aria-label="Buscar">
+      <select name="page_size" aria-label="Tamaño de página">
+        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+        <option value="20" {% if page_size == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+      </select>
+      <button type="submit" class="dashboard-btn dashboard-btn-outline">Filtrar</button>
+    </form>
+
+    {% if tab == 'people' %}
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Documento</th>
+            <th>Contacto</th>
+            <th>País</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in people_rows %}
+          {% with person=row.person %}
+          <tr>
+            <td>
+              <a href="{% url 'entities_html:person_detail' pk=person.pk %}">{{ person.full_name|default:"Sin nombre" }}</a>
+            </td>
+            <td>{{ person.id_number|default:"—" }}</td>
+            <td>
+              {% if row.primary_contact %}
+              {{ row.primary_contact.value }}
+              {% if row.primary_contact.verified %}
+              <span class="entities-verified-badge" title="Verificado">✓</span>
+              {% endif %}
+              {% else %}
+              —
+              {% endif %}
+            </td>
+            <td>{{ person.country_of_nationality.name|default:"—" }}</td>
+            <td>
+              {% if person.is_active %}
+              <span class="dashboard-badge">Activo</span>
+              {% else %}
+              <span class="dashboard-badge dashboard-badge-muted">Inactivo</span>
+              {% endif %}
+            </td>
+            <td class="entities-row-actions">
+              <a href="{% url 'entities_html:person_detail' pk=person.pk %}" class="dashboard-btn dashboard-btn-outline">Ver</a>
+              <form method="post" action="{% url 'entities_html:person_delete' pk=person.pk %}" class="entities-inline-form" onsubmit="return confirm('¿Eliminar esta persona?');">
+                {% csrf_token %}
+                <button type="submit" class="dashboard-btn dashboard-btn-outline">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr><td colspan="6">No se encontraron personas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if people_page_obj and people_page_obj.paginator.num_pages > 1 %}
+    <nav class="dashboard-pagination" aria-label="Paginación personas">
+      <span>Página {{ people_page_obj.number }} de {{ people_page_obj.paginator.num_pages }}</span>
+      <span>
+        {% if people_page_obj.has_previous %}
+        <a href="?tab=people&q={{ search|urlencode }}&page={{ people_page_obj.previous_page_number }}&page_size={{ page_size }}" class="dashboard-btn dashboard-btn-outline">Anterior</a>
+        {% endif %}
+        {% if people_page_obj.has_next %}
+        <a href="?tab=people&q={{ search|urlencode }}&page={{ people_page_obj.next_page_number }}&page_size={{ page_size }}" class="dashboard-btn dashboard-btn-outline">Siguiente</a>
+        {% endif %}
+      </span>
+    </nav>
+    {% endif %}
+
+    {% else %}
+
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Razón social</th>
+            <th>Tipo</th>
+            <th>Industria</th>
+            <th>País</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for org in orgs_page_obj %}
+          <tr>
+            <td>
+              <a href="{% url 'entities_html:org_detail' pk=org.pk %}">{{ org.name }}</a>
+            </td>
+            <td>{{ org.legal_name|default:"—" }}</td>
+            <td>{{ org.org_type.name|default:"—" }}</td>
+            <td>{{ org.industry.name|default:"—" }}</td>
+            <td>{{ org.country.name|default:"—" }}</td>
+            <td>
+              {% if org.is_active %}
+              <span class="dashboard-badge">Activo</span>
+              {% else %}
+              <span class="dashboard-badge dashboard-badge-muted">Inactivo</span>
+              {% endif %}
+            </td>
+            <td class="entities-row-actions">
+              <a href="{% url 'entities_html:org_detail' pk=org.pk %}" class="dashboard-btn dashboard-btn-outline">Ver</a>
+              <form method="post" action="{% url 'entities_html:org_delete' pk=org.pk %}" class="entities-inline-form" onsubmit="return confirm('¿Eliminar esta organización?');">
+                {% csrf_token %}
+                <button type="submit" class="dashboard-btn dashboard-btn-outline">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7">No se encontraron organizaciones.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if orgs_page_obj and orgs_page_obj.paginator.num_pages > 1 %}
+    <nav class="dashboard-pagination" aria-label="Paginación organizaciones">
+      <span>Página {{ orgs_page_obj.number }} de {{ orgs_page_obj.paginator.num_pages }}</span>
+      <span>
+        {% if orgs_page_obj.has_previous %}
+        <a href="?tab=organizations&q={{ search|urlencode }}&page={{ orgs_page_obj.previous_page_number }}&page_size={{ page_size }}" class="dashboard-btn dashboard-btn-outline">Anterior</a>
+        {% endif %}
+        {% if orgs_page_obj.has_next %}
+        <a href="?tab=organizations&q={{ search|urlencode }}&page={{ orgs_page_obj.next_page_number }}&page_size={{ page_size }}" class="dashboard-btn dashboard-btn-outline">Siguiente</a>
+        {% endif %}
+      </span>
+    </nav>
+    {% endif %}
+
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
