@@ -8,27 +8,25 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**Do Phase 2 for `products` only** (do not start `entities` Phase 1 until `products` Phase 2 is done and committed).
+**Do Phase 2 for `products`** — HTML pages extending the shared dashboard shell.
 
-1. Add [`backend/products/template_views.py`](../../backend/products/template_views.py) — class-based or function views; `@login_required` where analytics parity is needed.
-2. Add templates under [`backend/products/templates/products/`](../../backend/products/templates/products/) (e.g. `dashboard.html`, `product_detail.html`, HTMX partials later).
-3. Mount **HTML** routes separately from DRF — e.g. prefix `/products/` in [`backend/products/urls.py`](../../backend/products/urls.py) and include from [`backend/backend/urls.py`](../../backend/backend/urls.py) if not already at project root.
-4. Views call **selectors only** (see table below); never `requests.get('/api/products/...')`.
-5. Run verification tests (below), update this doc (Phase 2 column + commit SHA), commit.
-
-Phase 3+ (shared base layout, global auth, Next.js removal) stays **out of scope** until Phase 2 works for `products`.
+1. Add [`backend/products/template_views.py`](../../backend/products/template_views.py) with `@login_required`; call [`products/selectors.py`](../../backend/products/selectors.py) only.
+2. Add [`backend/products/templates/products/`](../../backend/products/templates/products/) — extend [`backend/templates/base_dashboard.html`](../../backend/templates/base_dashboard.html).
+3. Mount HTML at `/products/` in [`backend/products/urls.py`](../../backend/products/urls.py) (separate from DRF router).
+4. Update sidebar in [`backend/templates/includes/sidebar.html`](../../backend/templates/includes/sidebar.html) when `/products/` exists.
+5. Run `dashboard.tests` + `products.tests.ProductsAPITests`; update this doc with commit SHA.
 
 ---
 
 ## Topological workflow (per app)
 
-Complete **Phase 1 → Phase 2** for one Django app, verify tests, commit, update this doc, then move to the next app. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until all targeted apps have HTML views.
-
 ```text
-products (P1 done → P2 next) → entities → interactions → campaigns / offers → …
+dashboard home (done) → products P2 (next) → entities P1+P2 → …
 ```
 
-See also [`docs/APPS.md`](../APPS.md) for app descriptions.
+Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
+
+See also [`docs/APPS.md`](../APPS.md).
 
 ---
 
@@ -36,16 +34,10 @@ See also [`docs/APPS.md`](../APPS.md) for app descriptions.
 
 | Module | Responsibility | Used by |
 |--------|----------------|---------|
-| [`selectors.py`](../../backend/products/selectors.py) | Read-only: querysets, aggregates, dashboard `dict` payloads | DRF views, `template_views`, future HTMX |
-| [`services.py`](../../backend/products/services.py) | Writes: clone, transactions, mutation orchestration | DRF actions, forms/POST handlers |
+| `selectors.py` | Read-only: querysets, aggregates, dashboard dicts | DRF, `template_views` |
+| `services.py` | Writes: mutations, transactions | DRF actions, POST handlers |
 
-Rules (from consolidated-frontend rule):
-
-1. **Single-process** — Django only in the runtime image; no Node sidecar for the customer dashboard.
-2. **Preserve REST API** — Do not remove or break `/api/...` DRF endpoints (webhooks, tracking scripts).
-3. **No loopback** — Template views must not HTTP-call your own API.
-4. **Shared layer** — API and HTML must call the same selector/service functions.
-5. **Templates** — `{% extends %}`, HTMX/Alpine when needed; no thick SPA bundles in Phase 2.
+Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from templates; shared selectors; `{% extends "base_dashboard.html" %}` for app pages.
 
 ---
 
@@ -54,20 +46,56 @@ Rules (from consolidated-frontend rule):
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | This tracking document | done |
-| 1 | Service/selector extraction per app | in_progress — **`products` done**; other apps pending |
-| 2 | Django template views + `templates/<app>/` per app | pending — **`products` is next** |
-| 3 | Shared `templates/base.html`, HTMX/Alpine static assets | pending |
-| 4 | Session auth gates on HTML routes (mirror DRF `IsAuthenticated` where needed) | pending |
-| 5 | Remove Next.js routes per completed app | pending |
-| 6 | Remove frontend service from Docker; update README / FRONTEND docs | pending |
+| 1 | Service/selector extraction per app | in_progress — `products` done |
+| 2 | Django template views per app | pending — **`products` next** |
+| 3 | Shared base layout + static CSS | **partial done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html) |
+| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/` |
+| 5 | Remove Next.js routes per app | pending |
+| 6 | Docker/docs cleanup | pending |
+
+---
+
+## Dashboard home (milestone complete)
+
+Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock stats/actions/activity).
+
+| Item | Location |
+|------|----------|
+| App | [`backend/dashboard/`](../../backend/dashboard/) |
+| Selector | [`dashboard/selectors.py`](../../backend/dashboard/selectors.py) → `get_home_context()` (v1 static; v2 real counts later) |
+| View | [`dashboard/template_views.py`](../../backend/dashboard/template_views.py) → `home` |
+| Templates | [`backend/templates/base_dashboard.html`](../../backend/templates/base_dashboard.html), [`templates/dashboard/home.html`](../../backend/templates/dashboard/home.html), [`templates/includes/`](../../backend/templates/includes/) |
+| CSS | [`backend/static/dashboard/dashboard.css`](../../backend/static/dashboard/dashboard.css) |
+| Tests | [`dashboard/tests.py`](../../backend/dashboard/tests.py) |
+
+### URLs
+
+| Path | Handler |
+|------|---------|
+| `/` | HTML dashboard (`dashboard:home`) — requires login |
+| `/login/` | Session login |
+| `/logout/` | Session logout (POST) |
+| `/api/` | JSON API catalog (`api-catalog`) — was JSON at `/` before migration |
+
+**Note:** URL name `api-catalog` avoids clash with DRF router `api-root` from [`our_institution`](../../backend/our_institution/urls.py).
+
+### Access
+
+- **Django CRM UI:** http://localhost:8000/ (after `docker-compose up backend`)
+- **Next.js (legacy):** http://localhost:3000/ until Phase 5
+
+### Commit
+
+Record SHA after dashboard homepage commit in the table below.
 
 ---
 
 ## App rollout
 
-| App | Phase 1 | Phase 2 | Phase 1 commits |
-|-----|---------|---------|-----------------|
-| **products** | done | **next** | `87ac531` (refactor), `fb3ded6` (doc SHA) |
+| App | Phase 1 | Phase 2 | Notes |
+|-----|---------|---------|-------|
+| **dashboard** | n/a | home done | Shared shell for all apps |
+| **products** | done | **next** | P1: `87ac531`, `fb3ded6` |
 | entities | pending | pending | — |
 | interactions | pending | pending | — |
 | campaigns | pending | pending | — |
@@ -79,136 +107,75 @@ Rules (from consolidated-frontend rule):
 
 ### URLs
 
-| Surface | Prefix | Config |
-|---------|--------|--------|
-| REST API (unchanged) | `/api/products/` | [`backend/backend/urls.py`](../../backend/backend/urls.py) → [`backend/products/urls.py`](../../backend/products/urls.py) (`DefaultRouter` + analytics paths) |
-| HTML (Phase 2) | `/products/` (proposed) | Add to `products/urls.py`; separate `urlpatterns` from `router.urls` |
+| Surface | Prefix |
+|---------|--------|
+| REST API | `/api/products/` |
+| HTML (Phase 2) | `/products/` (proposed) |
 
-Analytics API names (for `reverse('products:…')` in tests): `analytics-dashboard`, `analytics-divisions`, `analytics-categories`, `analytics-market`, `analytics-pricing`, `analytics-growth`, `analytics-recommendations`.
+### Phase 2 selectors (examples)
 
-### Code layout (after Phase 1)
+| Page | Selector(s) |
+|------|-------------|
+| Products dashboard | `get_product_analytics_dashboard()`, `get_product_recommendations()` |
+| Product list | `products_list_queryset(action='list')` |
+| Product detail | `get_bundle_info(product)`, etc. |
 
-| File | Role |
-|------|------|
-| [`selectors.py`](../../backend/products/selectors.py) | All read/analytics logic |
-| [`services.py`](../../backend/products/services.py) | `duplicate_product` only |
-| [`views.py`](../../backend/products/views.py) | DRF viewsets + filters; thin delegation to selectors |
-| [`analytics.py`](../../backend/products/analytics.py) | Thin `@api_view` → `Response(selector())` |
-| [`test_factories.py`](../../backend/products/test_factories.py) | `create_test_organization()`, `create_test_division()` |
+See [`backend/products/selectors.py`](../../backend/products/selectors.py).
 
-### Selectors to use in Phase 2 templates (examples)
+### Next.js to retire later (Phase 5)
 
-| Page / partial | Selector(s) |
-|----------------|-------------|
-| Products dashboard | `get_product_analytics_dashboard()`, optional `get_product_recommendations()` |
-| Divisions overview | `get_division_analytics_dashboard()`, `divisions_queryset()` |
-| Category browser | `get_category_analytics()`, `category_tree_roots()` |
-| Product list | `products_active_queryset()` or `products_list_queryset(action='list')` |
-| Product detail | `products_list_queryset(action='retrieve')` + model by PK; bundle: `get_bundle_info(product)` |
-| Search (server-side) | `products_search_advanced(query=…)` |
-
-Do not re-implement aggregations in templates or views.
-
-### Next.js routes to replace (Phase 5, not now)
-
-| Next.js | Purpose |
-|---------|---------|
-| [`frontend/src/app/products/page.tsx`](../../frontend/src/app/products/page.tsx) | Product list / dashboard |
-| [`frontend/src/app/products/[id]/page.tsx`](../../frontend/src/app/products/[id]/page.tsx) | Product detail |
-
-Keep these files until Phase 2 HTML is verified in the browser.
+- [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) — superseded by Django `/`
+- [`frontend/src/app/products/page.tsx`](../../frontend/src/app/products/page.tsx)
+- [`frontend/src/app/products/[id]/page.tsx`](../../frontend/src/app/products/[id]/page.tsx)
 
 ---
 
 ## Verification / test gate
 
-### Primary gate (Phase 1 regression — must stay green)
-
 ```bash
-# From repo root — build once if needed:
 docker build -f backend/Dockerfile -t backboneos-test backend
 
-# Start test DB (from backend/):
-docker compose -f docker-compose.test.yml up -d test-db test-redis
-
-# Phase 1 API contract tests (10 tests — proven green after refactor):
-docker run --rm --network backboneos-test-network \
-  -v "$(pwd)/backend:/app" -w /app \
-  -e DJANGO_SETTINGS_MODULE=backend.docker_test_settings \
-  -e POSTGRES_HOST=test-db \
-  -e POSTGRES_DB=test_mydatabase \
-  -e POSTGRES_USER=myuser \
-  -e POSTGRES_PASSWORD=mypassword \
-  -e POSTGRES_PORT=5432 \
-  backboneos-test python manage.py test products.tests.ProductsAPITests --keepdb
+# Dashboard + products API regression (13 tests):
+docker run --rm -v "$(pwd)/backend:/app" -w /app \
+  -e DJANGO_SETTINGS_MODULE=backend.test_settings \
+  backboneos-test python manage.py test dashboard.tests products.tests.ProductsAPITests
 ```
 
-### Full app suite (aspirational; not green yet)
+`manage.py check` should report no issues.
 
-```bash
-# Ideal when local docker-compose backend works:
-docker compose exec backend python manage.py test products
+### Known test debt (not blocking)
 
-# Same as above with test compose + keepdb:
-docker run --rm --network backboneos-test-network \
-  -v "$(pwd)/backend:/app" -w /app \
-  -e DJANGO_SETTINGS_MODULE=backend.docker_test_settings \
-  -e POSTGRES_HOST=test-db \
-  -e POSTGRES_DB=test_mydatabase \
-  -e POSTGRES_USER=myuser \
-  -e POSTGRES_PASSWORD=mypassword \
-  backboneos-test python manage.py test products --keepdb
-```
-
-`manage.py check products` should report no issues.
-
-### Known test debt (fix when touching tests; not blocking Phase 2)
-
-- Many `tests.py` classes still create `Division` without `organization` — use [`test_factories.create_test_division()`](../../backend/products/test_factories.py) (pattern in [`offers/tests.py`](../../backend/offers/tests.py)).
-- Model tests expect `Division.categories_count` / `__str__` without organization name — may not match current [`our_institution.models.Division`](../../backend/our_institution/models.py).
-- [`tests_analytics.py`](../../backend/products/tests_analytics.py): some assertions expect legacy JSON keys (e.g. `optimization_opportunities`); selectors preserve **current API** shape (`opportunities`, `recommendations`, etc.).
+- Full `products` suite: Division fixtures, analytics JSON drift — see earlier notes.
+- HTML tests use `backend.test_settings` (SQLite + simple staticfiles storage).
 
 ---
 
-## Phase 2 checklist (`products`) — copy into PR / session
+## Phase 2 checklist (`products`)
 
-- [ ] `template_views.py` created; imports from `.selectors` only for reads
-- [ ] `templates/products/dashboard.html` (and detail if needed)
-- [ ] HTML `urlpatterns` mounted at `/products/` (no collision with `/api/products/`)
-- [ ] Login required on analytics-equivalent pages (minimum: mirror API `IsAuthenticated`)
-- [ ] `ProductsAPITests` still pass
-- [ ] Manual smoke: load `/products/` in browser with backend running
-- [ ] This doc: Phase 2 = `done`, commit SHA recorded
-
----
-
-## After `products` Phase 2
-
-1. **Phase 1 for `entities`** — same pattern: add `selectors.py`, thin DRF/views, preserve `/api/entities/` (or actual prefix).
-2. Repeat Phase 2 for `entities` HTML.
-3. Later globally: Phase 3 base template, Phase 4 auth, Phase 5 delete `frontend/src/app/products/*`, Phase 6 Docker/docs.
+- [ ] `template_views.py` + selectors only
+- [ ] `templates/products/*.html` extend `base_dashboard.html`
+- [ ] `/products/` URL mount
+- [ ] Sidebar Products link → Django URL
+- [ ] `ProductsAPITests` + `dashboard.tests` green
+- [ ] Doc updated with commit SHA
 
 ---
 
-## Architecture (target)
+## Architecture
 
 ```mermaid
 flowchart LR
   subgraph ingress [Ingress]
-    API["DRF /api/products/"]
-    HTML["Django /products/"]
-    Webhook["External webhooks"]
+    Home["GET /"]
+    API["DRF /api/..."]
   end
-  subgraph products_app [products app]
-    Sel["selectors.py"]
-    Svc["services.py"]
-    Models["models.py"]
+  subgraph dashboard_app [dashboard]
+    SelD["selectors.get_home_context"]
+    Base["base_dashboard.html"]
   end
-  API --> Sel
-  API --> Svc
-  HTML --> Sel
-  HTML --> Svc
-  Webhook --> API
-  Sel --> Models
-  Svc --> Models
+  subgraph products_app [products]
+    SelP["selectors.py"]
+  end
+  Home --> SelD --> Base
+  API --> SelP
 ```

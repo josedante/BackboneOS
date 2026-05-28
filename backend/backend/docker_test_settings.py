@@ -94,8 +94,8 @@ CACHES = {
 # =============================================================================
 
 # Use Redis for sessions in Docker testing
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+# DB-backed sessions in tests so Client.login works without a live Redis cache.
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = False
 
@@ -249,8 +249,14 @@ CORS_ALLOW_CREDENTIALS = True
 # STATIC FILES CONFIGURATION FOR DOCKER TESTING
 # =============================================================================
 
-# Use static files finder for testing
+# Use static files finder for testing (Django 5 STORAGES overrides base Whitenoise manifest)
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STORAGES = {
+    **STORAGES,
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 # =============================================================================
 # MEDIA FILES CONFIGURATION FOR DOCKER TESTING

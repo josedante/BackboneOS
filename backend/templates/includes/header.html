@@ -1,0 +1,23 @@
+<header class="dashboard-header">
+  <div class="dashboard-header-inner">
+    <div style="display: flex; align-items: center;">
+      <button type="button" id="menu-toggle" class="dashboard-menu-btn" aria-label="Open menu">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <h2 class="dashboard-header-title">{{ page_title|default:"Dashboard" }}</h2>
+    </div>
+    <div class="dashboard-header-actions">
+      {% if user.is_authenticated %}
+        <span class="dashboard-user">{{ user.get_full_name|default:user.username }}</span>
+        <form method="post" action="{% url 'logout' %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="dashboard-logout" style="background: none; border: none; cursor: pointer; padding: 0;">
+            Log out
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</header>

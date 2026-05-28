@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — BackboneOS</title>
+  <link rel="stylesheet" href="{% static 'dashboard/dashboard.css' %}">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <h1 class="login-title">Sign in to BackboneOS</h1>
+      <p class="login-subtitle">Enter your credentials to access the dashboard</p>
+
+      {% if form.errors %}
+      <div class="login-errors" role="alert">
+        Invalid username or password. Please try again.
+      </div>
+      {% endif %}
+
+      <form method="post" class="login-form" action="{% url 'login' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="login-field">
+          <label for="id_username">Username</label>
+          <input type="text" name="username" id="id_username" autocomplete="username" required autofocus>
+        </div>
+        <div class="login-field">
+          <label for="id_password">Password</label>
+          <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="login-submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

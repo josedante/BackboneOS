@@ -223,8 +223,14 @@ CORS_ALLOW_CREDENTIALS = True
 # STATIC FILES CONFIGURATION FOR TESTING
 # =============================================================================
 
-# Use static files finder for testing
+# Use static files finder for testing (Django 5 STORAGES overrides base Whitenoise manifest)
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STORAGES = {
+    **STORAGES,
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 # =============================================================================
 # MEDIA FILES CONFIGURATION FOR TESTING

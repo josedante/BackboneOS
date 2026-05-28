@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path, include
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -72,8 +73,8 @@ def health_check(request):
     return JsonResponse(health_status)
 
 @csrf_exempt
-def root_view(request):
-    """Root endpoint for the API"""
+def api_root_view(request):
+    """API catalog endpoint (relocated from /)."""
     return JsonResponse({
         'message': 'BackboneOS API',
         'version': '1.0.0',
@@ -81,6 +82,7 @@ def root_view(request):
         'endpoints': {
             'health': '/health/',
             'admin': '/admin/',
+            'dashboard': '/',
             'api': {
                 'world': '/api/world/',
                 'products': '/api/products/',
@@ -96,9 +98,12 @@ def root_view(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('health/', health_check, name='health_check'),
-    path('', root_view, name='root'),
+    path('login/', LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('', include('dashboard.urls')),
     path('users/', include('users.urls')),
-    path('api/auth/', include('users.urls')),  # Add auth endpoints at /api/auth/
+    path('api/', api_root_view, name='api-catalog'),
+    path('api/auth/', include('users.urls')),
     path('api/world/', include('world.urls')),
     path('api/products/', include('products.urls')),
     path('api/entities/', include('entities.urls')),

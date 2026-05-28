@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}BackboneOS{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'dashboard/dashboard.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="dashboard-body">
+  <div class="dashboard-shell">
+    <div id="sidebar-overlay" class="dashboard-overlay" aria-hidden="true"></div>
+    {% include "includes/sidebar.html" %}
+    <div class="dashboard-main">
+      {% include "includes/header.html" %}
+      <main class="dashboard-content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var menuBtn = document.getElementById('menu-toggle');
+      var sidebar = document.getElementById('dashboard-sidebar');
+      var overlay = document.getElementById('sidebar-overlay');
+      if (!menuBtn || !sidebar || !overlay) return;
+      function openSidebar() {
+        sidebar.classList.add('is-open');
+        overlay.classList.add('is-visible');
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.remove('is-visible');
+      }
+      menuBtn.addEventListener('click', openSidebar);
+      overlay.addEventListener('click', closeSidebar);
+      var closeBtn = document.getElementById('sidebar-close');
+      if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+    })();
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

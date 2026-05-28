@@ -77,7 +77,8 @@ World (Ontología) → Entities (Clientes) → Products (Catálogo) → Offers (
 
 ### 🌐 URLs de Acceso
 
-- **Frontend**: http://localhost:3000 (Nuxt.js local)
+- **CRM dashboard (Django, consolidation in progress)**: http://localhost:8000/ — session login at `/login/`; track progress in [docs/consolidation/FRONTEND_CONSOLIDATION.md](docs/consolidation/FRONTEND_CONSOLIDATION.md)
+- **Frontend (legacy Next.js)**: http://localhost:3000 (until Phase 5 decommission)
 - **Backend API**: http://localhost:8000/api/ (Docker)
 - **Django Admin**: http://localhost:8000/admin (Docker)
 - **Flower Dashboard**: http://localhost:5555 (Monitoreo de Celery)

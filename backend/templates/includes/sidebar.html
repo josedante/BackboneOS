@@ -1,0 +1,43 @@
+<aside id="dashboard-sidebar" class="dashboard-sidebar" aria-label="Main navigation">
+  <div class="dashboard-sidebar-header">
+    <h1>BackboneOS</h1>
+    <button type="button" id="sidebar-close" class="dashboard-sidebar-close" aria-label="Close menu">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+  <nav class="dashboard-nav">
+    <ul>
+      <li>
+        <a href="{% url 'dashboard:home' %}" class="{% if request.resolver_match.view_name == 'dashboard:home' %}is-active{% endif %}">
+          Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Users</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Products</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Entities</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Interactions</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Campaigns</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Offers</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Analytics</a>
+      </li>
+      <li>
+        <a href="#" class="is-disabled" title="Coming soon">Settings</a>
+      </li>
+    </ul>
+  </nav>
+</aside>

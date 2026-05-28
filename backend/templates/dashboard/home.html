@@ -1,0 +1,60 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Dashboard — BackboneOS{% endblock %}
+
+{% block content %}
+<div>
+  <h1 class="dashboard-page-title">Welcome to BackboneOS</h1>
+  <p class="dashboard-page-subtitle">Here's what's happening with your business today.</p>
+</div>
+
+<section class="dashboard-stats-grid" aria-label="Statistics">
+  {% for stat in stats %}
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">{{ stat.name }}</p>
+      <div class="dashboard-stat-row">
+        <span class="dashboard-stat-value">{{ stat.value }}</span>
+        <span class="{% if stat.change_type == 'positive' %}dashboard-stat-change-positive{% else %}dashboard-stat-change-negative{% endif %}">
+          {{ stat.change }}
+        </span>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="dashboard-section dashboard-card" aria-label="Quick actions">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Quick Actions</h2>
+    <div class="dashboard-quick-actions">
+      {% for action in quick_actions %}
+      <a href="{{ action.href }}" class="dashboard-quick-action" title="{{ action.title|default:'' }}">
+        <span class="dashboard-quick-action-icon {% cycle 'blue' 'green' 'purple' 'orange' %}">+</span>
+        <h3>{{ action.name }}</h3>
+        <p>{{ action.description }}</p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-section dashboard-card" aria-label="Recent activity">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Recent Activity</h2>
+    <ul class="dashboard-activity-list">
+      {% for activity in activities %}
+      <li class="dashboard-activity-item">
+        <div class="dashboard-activity-row">
+          <span class="dashboard-activity-dot" aria-hidden="true"></span>
+          <div class="dashboard-activity-content">
+            <p class="dashboard-activity-text">{{ activity.description }}</p>
+            <time class="dashboard-activity-time">{{ activity.time }}</time>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}
