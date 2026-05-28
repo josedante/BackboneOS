@@ -1,0 +1,174 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}{{ product.name }} — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <a href="{% url 'products_html:list' %}" class="dashboard-btn dashboard-btn-outline" style="margin-bottom:0.5rem;">← Productos</a>
+    <h1 class="dashboard-page-title">{{ product.name }}</h1>
+    <p class="dashboard-page-subtitle">Código: {{ product.code }}</p>
+  </div>
+  <div>
+    {% if product.is_active %}
+    <span class="dashboard-badge">Activo</span>
+    {% else %}
+    <span class="dashboard-badge dashboard-badge-muted">Inactivo</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if bundle.is_bundle %}
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Bundle</h2>
+    <p>{{ bundle.bundle_price_display }} — {{ bundle.included_count }} producto(s) incluido(s)</p>
+    <ul>
+      {% for item in included_products %}
+      <li><a href="{% url 'products_html:detail' pk=item.pk %}">{{ item.name }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <details class="dashboard-details" open>
+        <summary>Información básica</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.name.id_for_label }}">Nombre *</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.code.id_for_label }}">Código *</label>
+            {{ form.code }}
+            {{ form.code.errors }}
+          </div>
+          <div class="dashboard-form-field dashboard-form-full">
+            <label for="{{ form.description.id_for_label }}">Descripción</label>
+            {{ form.description }}
+            {{ form.description.errors }}
+          </div>
+          <div class="dashboard-form-field dashboard-form-full">
+            <label for="{{ form.canonical_url.id_for_label }}">URL canónica</label>
+            {{ form.canonical_url }}
+            {{ form.canonical_url.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Activo</label>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details" open>
+        <summary>Precio y duración</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.base_price.id_for_label }}">Precio base</label>
+            {{ form.base_price }}
+            {{ form.base_price.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.currency_code.id_for_label }}">Moneda</label>
+            {{ form.currency_code }}
+            {{ form.currency_code.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.duration_days.id_for_label }}">Duración (días)</label>
+            {{ form.duration_days }}
+            {{ form.duration_days.errors }}
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Clasificación</summary>
+        <div class="dashboard-details-body dashboard-form-grid">
+          <div class="dashboard-form-field">
+            <label for="{{ form.category.id_for_label }}">Categoría</label>
+            {{ form.category }}
+            {{ form.category.errors }}
+          </div>
+          <div class="dashboard-form-field">
+            <label for="{{ form.customization.id_for_label }}">Personalización</label>
+            {{ form.customization }}
+            {{ form.customization.errors }}
+          </div>
+          <div class="dashboard-form-field dashboard-form-full">
+            <label>Modalidades</label>
+            <div class="dashboard-checkbox-group">{{ form.modalities }}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Mercado objetivo</summary>
+        <div class="dashboard-details-body">
+          <div class="dashboard-form-field">
+            <label>Segmentos</label>
+            <div class="dashboard-checkbox-group">{{ form.target_segments }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Industrias</label>
+            <div class="dashboard-checkbox-group">{{ form.related_industries }}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Competencias y funciones</summary>
+        <div class="dashboard-details-body">
+          <div class="dashboard-form-field">
+            <label>Habilidades</label>
+            <div class="dashboard-checkbox-group">{{ form.related_skills }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Funciones</label>
+            <div class="dashboard-checkbox-group">{{ form.related_functions }}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Etiquetas y descriptores</summary>
+        <div class="dashboard-details-body">
+          <div class="dashboard-form-field">
+            <label>Etiquetas</label>
+            <div class="dashboard-checkbox-group">{{ form.tags }}</div>
+          </div>
+          <div class="dashboard-form-field" style="margin-top:1rem;">
+            <label>Descriptores</label>
+            <div class="dashboard-checkbox-group">{{ form.descriptors }}</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dashboard-details">
+        <summary>Productos incluidos (bundle)</summary>
+        <div class="dashboard-details-body">
+          <div class="dashboard-checkbox-group">{{ form.included_products }}</div>
+        </div>
+      </details>
+
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Guardar cambios</button>
+        <a href="{% url 'products_html:list' %}" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+
+    <form method="post" action="{% url 'products_html:delete' pk=product.pk %}" style="margin-top:1rem;" onsubmit="return confirm('¿Eliminar este producto?');">
+      {% csrf_token %}
+      <button type="submit" class="dashboard-btn dashboard-btn-danger">Eliminar producto</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

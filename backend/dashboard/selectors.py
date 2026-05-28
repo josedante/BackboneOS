@@ -52,8 +52,7 @@ def get_home_context() -> dict:
         {
             'name': 'Add Product',
             'description': 'Add a new product to catalog',
-            'href': '#',
-            'title': 'Coming soon',
+            'href': '/products/new/',
         },
         {
             'name': 'Add Entity',

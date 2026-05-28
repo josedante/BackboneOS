@@ -8,20 +8,19 @@ Optional: attach the Cursor plan `frontend_consolidation_roadmap` for full narra
 
 ## Current next action
 
-**Do Phase 2 for `products`** — HTML pages extending the shared dashboard shell.
+**Do Phase 1 + Phase 2 for `entities`** — extract selectors/services, then HTML at `/entities/` (same pattern as products).
 
-1. Add [`backend/products/template_views.py`](../../backend/products/template_views.py) with `@login_required`; call [`products/selectors.py`](../../backend/products/selectors.py) only.
-2. Add [`backend/products/templates/products/`](../../backend/products/templates/products/) — extend [`backend/templates/base_dashboard.html`](../../backend/templates/base_dashboard.html).
-3. Mount HTML at `/products/` in [`backend/products/urls.py`](../../backend/products/urls.py) (separate from DRF router).
-4. Update sidebar in [`backend/templates/includes/sidebar.html`](../../backend/templates/includes/sidebar.html) when `/products/` exists.
-5. Run `dashboard.tests` + `products.tests.ProductsAPITests`; update this doc with commit SHA.
+1. Add `entities/selectors.py` and extend `entities/services.py` for shared reads/writes.
+2. Add `entities/template_views.py`, templates under `entities/templates/entities/`, and `template_urls.py` with namespace `entities_html`.
+3. Mount at `/entities/` in [`backend/backend/urls.py`](../../backend/backend/urls.py); enable sidebar link.
+4. Run `dashboard.tests` + relevant entity/product regression tests; update this doc with commit SHA.
 
 ---
 
 ## Topological workflow (per app)
 
 ```text
-dashboard home (done) → products P2 (next) → entities P1+P2 → …
+dashboard home (done) → products P2 (done) → entities P1+P2 (next) → …
 ```
 
 Complete **Phase 1 → Phase 2** per app after the shared layout exists. Do **not** delete Next.js routes (Phase 5) or the frontend Docker service (Phase 6) until HTML is verified.
@@ -46,10 +45,10 @@ Rules: single Django process; preserve `/api/...` DRF; no HTTP loopback from tem
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | This tracking document | done |
-| 1 | Service/selector extraction per app | in_progress — `products` done |
-| 2 | Django template views per app | pending — **`products` next** |
+| 1 | Service/selector extraction per app | in_progress — **`products` done** (writes in `services.py`) |
+| 2 | Django template views per app | in_progress — **`products` done**; **`entities` next** |
 | 3 | Shared base layout + Tailwind CSS | **done** — [`base_dashboard.html`](../../backend/templates/base_dashboard.html), compiled [`static/dist/styles.css`](../../backend/static/dist/styles.css) |
-| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/` |
+| 4 | Session auth on HTML | **partial done** — `/login/`, `@login_required` on `/` and `/products/` |
 | 5 | Remove Next.js routes per app | pending |
 | 6 | Docker/docs cleanup | pending |
 
@@ -91,13 +90,43 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 
 ---
 
+## Products HTML (Phase 2 complete)
+
+Replaces [`frontend/src/app/products/page.tsx`](../../frontend/src/app/products/page.tsx) and [`frontend/src/app/products/[id]/page.tsx`](../../frontend/src/app/products/[id]/page.tsx).
+
+| Item | Location |
+|------|----------|
+| Reads | [`products/selectors.py`](../../backend/products/selectors.py) — `get_products_list_context`, `get_product_detail_context`, `get_product_form_options` |
+| Writes | [`products/services.py`](../../backend/products/services.py) — `create_product`, `update_product`, `delete_product` (shared with DRF) |
+| Forms | [`products/forms.py`](../../backend/products/forms.py) |
+| Views | [`products/template_views.py`](../../backend/products/template_views.py) |
+| URLconf | [`products/template_urls.py`](../../backend/products/template_urls.py) — namespace `products_html` |
+| Templates | [`products/templates/products/`](../../backend/products/templates/products/) — `list.html`, `create.html`, `detail.html` |
+| Tests | [`products/tests_template_views.py`](../../backend/products/tests_template_views.py) |
+
+### URLs
+
+| Path | Handler |
+|------|---------|
+| `/products/` | List + filters + pagination (`products_html:list`) |
+| `/products/new/` | Create (`products_html:create`) |
+| `/products/<uuid>/` | Detail + full edit form (`products_html:detail`) |
+| `/products/<uuid>/delete/` | POST delete (`products_html:delete`) |
+| `/api/products/` | DRF (unchanged) |
+
+### Commit
+
+Pending commit on branch (base before this work: `252ca4f`). Update this line after merge.
+
+---
+
 ## App rollout
 
 | App | Phase 1 | Phase 2 | Notes |
 |-----|---------|---------|-------|
 | **dashboard** | n/a | home done | Shared shell for all apps |
-| **products** | done | **next** | P1: `87ac531`, `fb3ded6` |
-| entities | pending | pending | — |
+| **products** | done | **done** | P1: `87ac531`, `fb3ded6`; P2: see Products HTML section |
+| entities | pending | pending | **next** |
 | interactions | pending | pending | — |
 | campaigns | pending | pending | — |
 | offers | pending | pending | — |
@@ -111,17 +140,15 @@ Replaces [`frontend/src/app/page.tsx`](../../frontend/src/app/page.tsx) (mock st
 | Surface | Prefix |
 |---------|--------|
 | REST API | `/api/products/` |
-| HTML (Phase 2) | `/products/` (proposed) |
+| HTML | `/products/` (`products_html` namespace) |
 
-### Phase 2 selectors (examples)
+### Phase 2 selectors (in use)
 
 | Page | Selector(s) |
 |------|-------------|
-| Products dashboard | `get_product_analytics_dashboard()`, `get_product_recommendations()` |
-| Product list | `products_list_queryset(action='list')` |
-| Product detail | `get_bundle_info(product)`, etc. |
-
-See [`backend/products/selectors.py`](../../backend/products/selectors.py).
+| Product list | `get_products_list_context()` → `products_list_queryset`, `get_product_analytics_dashboard()['overview']` |
+| Product detail | `get_product_detail_context()` → `get_bundle_info` |
+| Forms | `get_product_form_options()` |
 
 ### Next.js to retire later (Phase 5)
 
@@ -157,10 +184,10 @@ cd backend && npm install && npm run tailwind:build
 
 docker build -f backend/Dockerfile -t backboneos-test backend
 
-# Dashboard + products API regression (13 tests):
+# Dashboard + products API + HTML (22 tests):
 docker run --rm -v "$(pwd)/backend:/app" -w /app \
   -e DJANGO_SETTINGS_MODULE=backend.test_settings \
-  backboneos-test python manage.py test dashboard.tests products.tests.ProductsAPITests
+  backboneos-test python manage.py test dashboard.tests products.tests.ProductsAPITests products.tests_template_views
 ```
 
 `manage.py check` should report no issues.
@@ -174,12 +201,12 @@ docker run --rm -v "$(pwd)/backend:/app" -w /app \
 
 ## Phase 2 checklist (`products`)
 
-- [ ] `template_views.py` + selectors only
-- [ ] `templates/products/*.html` extend `base_dashboard.html`
-- [ ] `/products/` URL mount
-- [ ] Sidebar Products link → Django URL
-- [ ] `ProductsAPITests` + `dashboard.tests` green
-- [ ] Doc updated with commit SHA
+- [x] `template_views.py` + selectors only (writes via `services.py`)
+- [x] `templates/products/*.html` extend `base_dashboard.html`
+- [x] `/products/` URL mount (`products.template_urls`, not DRF `urls.py`)
+- [x] Sidebar Products link → `products_html:list`
+- [x] `ProductsAPITests` + `dashboard.tests` + `tests_template_views` green
+- [x] Doc updated (commit SHA pending)
 
 ---
 
@@ -189,6 +216,7 @@ docker run --rm -v "$(pwd)/backend:/app" -w /app \
 flowchart LR
   subgraph ingress [Ingress]
     Home["GET /"]
+    ProductsUI["GET /products/"]
     API["DRF /api/..."]
   end
   subgraph dashboard_app [dashboard]
@@ -196,8 +224,13 @@ flowchart LR
     Base["base_dashboard.html"]
   end
   subgraph products_app [products]
+    TV["template_views"]
     SelP["selectors.py"]
+    Svc["services.py"]
   end
   Home --> SelD --> Base
+  ProductsUI --> TV --> SelP --> Base
+  TV --> Svc
   API --> SelP
+  API --> Svc
 ```

@@ -1,0 +1,120 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Products — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Gestión de Productos</h1>
+    <p class="dashboard-page-subtitle">Administra tu catálogo de productos y servicios</p>
+  </div>
+  <a href="{% url 'products_html:create' %}" class="dashboard-btn dashboard-btn-primary">Nuevo producto</a>
+</div>
+
+{% if overview %}
+<section class="dashboard-stats-grid" aria-label="Resumen del catálogo">
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Productos activos</p>
+      <span class="dashboard-stat-value">{{ overview.total_products }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Categorías</p>
+      <span class="dashboard-stat-value">{{ overview.total_categories }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Con precio</p>
+      <span class="dashboard-stat-value">{{ overview.products_with_price }}</span>
+    </div>
+  </article>
+  <article class="dashboard-card">
+    <div class="dashboard-card-body">
+      <p class="dashboard-stat-label">Últimos 30 días</p>
+      <span class="dashboard-stat-value">{{ overview.recent_products }}</span>
+    </div>
+  </article>
+</section>
+{% endif %}
+
+<section class="dashboard-section dashboard-card">
+  <div class="dashboard-card-body">
+    <h2 class="dashboard-section-title">Filtros</h2>
+    <form method="get" class="dashboard-filters">
+      <input type="search" name="q" value="{{ search }}" placeholder="Buscar productos…" aria-label="Buscar">
+      <select name="category" aria-label="Categoría">
+        <option value="">Todas las categorías</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="page_size" value="{{ page_size }}">
+      <button type="submit" class="dashboard-btn dashboard-btn-outline">Filtrar</button>
+    </form>
+
+    <div class="dashboard-table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Código</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Duración</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+          <tr>
+            <td>
+              <a href="{% url 'products_html:detail' pk=product.pk %}">{{ product.name }}</a>
+              {% if product.is_bundle %}<span class="dashboard-badge">Bundle</span>{% endif %}
+              {% if product.description %}
+              <p style="margin:0.25rem 0 0;font-size:0.8125rem;color:#6b7280;">{{ product.description|truncatewords:12 }}</p>
+              {% endif %}
+            </td>
+            <td><code>{{ product.code }}</code></td>
+            <td>{{ product.category.name|default:"Sin categoría" }}</td>
+            <td>{{ product.price_display }}</td>
+            <td>{{ product.duration_display|default:"—" }}</td>
+            <td>
+              {% if product.is_active %}
+              <span class="dashboard-badge">Activo</span>
+              {% else %}
+              <span class="dashboard-badge dashboard-badge-muted">Inactivo</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'products_html:detail' pk=product.pk %}" class="dashboard-btn dashboard-btn-outline">Ver</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">No se encontraron productos.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="dashboard-pagination" aria-label="Paginación">
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} productos)</span>
+      <span>
+        {% if page_obj.has_previous %}
+        <a href="?q={{ search|urlencode }}&category={{ category_id|default:'' }}&page={{ page_obj.previous_page_number }}&page_size={{ page_size }}" class="dashboard-btn dashboard-btn-outline">Anterior</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?q={{ search|urlencode }}&category={{ category_id|default:'' }}&page={{ page_obj.next_page_number }}&page_size={{ page_size }}" class="dashboard-btn dashboard-btn-outline">Siguiente</a>
+        {% endif %}
+      </span>
+    </nav>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

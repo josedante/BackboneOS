@@ -31,7 +31,13 @@ from .selectors import (
     products_list_queryset,
     products_search_advanced,
 )
-from .services import duplicate_product
+from .services import (
+    create_product,
+    delete_product,
+    duplicate_product,
+    product_write_payload_from_request,
+    update_product,
+)
 
 
 class DivisionFilter(django_filters.FilterSet):
@@ -351,6 +357,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         elif self.action in ['create', 'update', 'partial_update']:
             return ProductCreateUpdateSerializer
         return ProductDetailSerializer
+
+    def perform_create(self, serializer):
+        payload = product_write_payload_from_request(self.request, serializer.validated_data)
+        product = create_product(data=payload)
+        serializer.instance = product
+
+    def perform_update(self, serializer):
+        payload = product_write_payload_from_request(self.request, serializer.validated_data)
+        partial = self.action == 'partial_update'
+        product = update_product(serializer.instance, data=payload, partial=partial)
+        serializer.instance = product
+
+    def perform_destroy(self, instance):
+        delete_product(instance)
     
     @method_decorator(cache_page(60 * 5))  # Cache por 5 minutos
     @action(detail=False, methods=['get'])

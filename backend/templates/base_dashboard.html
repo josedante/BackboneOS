@@ -15,6 +15,13 @@
     <div class="dashboard-main">
       {% include "includes/header.html" %}
       <main class="dashboard-content">
+        {% if messages %}
+        <ul class="dashboard-messages" role="status">
+          {% for message in messages %}
+          <li class="dashboard-message dashboard-message-{{ message.tags|default:'info' }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
         {% block content %}{% endblock %}
       </main>
     </div>

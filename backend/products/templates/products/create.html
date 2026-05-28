@@ -1,0 +1,49 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Nuevo producto — BackboneOS{% endblock %}
+
+{% block content %}
+<div class="dashboard-toolbar">
+  <div>
+    <h1 class="dashboard-page-title">Crear producto</h1>
+    <p class="dashboard-page-subtitle">Complete los campos obligatorios. Podrá editar el resto en el detalle.</p>
+  </div>
+  <a href="{% url 'products_html:list' %}" class="dashboard-btn dashboard-btn-outline">Volver al listado</a>
+</div>
+
+<section class="dashboard-card dashboard-section">
+  <div class="dashboard-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="dashboard-field-error dashboard-form-full">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="dashboard-form-grid">
+        <div class="dashboard-form-field">
+          <label for="{{ form.name.id_for_label }}">Nombre *</label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.code.id_for_label }}">Código *</label>
+          {{ form.code }}
+          {{ form.code.errors }}
+        </div>
+        <div class="dashboard-form-field dashboard-form-full">
+          <label for="{{ form.description.id_for_label }}">Descripción</label>
+          {{ form.description }}
+          {{ form.description.errors }}
+        </div>
+        <div class="dashboard-form-field">
+          <label for="{{ form.is_active.id_for_label }}">{{ form.is_active }} Producto activo</label>
+          {{ form.is_active.errors }}
+        </div>
+      </div>
+      <div class="dashboard-form-actions">
+        <button type="submit" class="dashboard-btn dashboard-btn-primary">Crear producto</button>
+        <a href="{% url 'products_html:list' %}" class="dashboard-btn dashboard-btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -6,7 +6,7 @@ from django.db.models import Avg, Count, Max, Min, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 from our_institution.models import Division
 
-from .models import Modality, Product, ProductCategory
+from .models import Customization, Modality, Product, ProductCategory
 
 
 # --- Queryset factories ---
@@ -737,4 +737,78 @@ def get_product_recommendations() -> dict:
             if len(industries_without_products) > 0
             else None,
         ],
+    }
+
+
+# --- HTML template context ---
+
+
+def get_products_list_context(
+    *,
+    search: str = '',
+    category_id: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    """Build paginated list context for the products CRM index page."""
+    from django.core.paginator import Paginator
+
+    queryset = products_list_queryset(action='list')
+    if search:
+        queryset = products_search_advanced(query=search, base_qs=queryset)
+    if category_id:
+        queryset = queryset.filter(category_id=category_id)
+
+    queryset = queryset.order_by('name')
+    paginator = Paginator(queryset, page_size)
+    page_obj = paginator.get_page(page)
+
+    analytics = get_product_analytics_dashboard()
+    return {
+        'products': page_obj.object_list,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'search': search,
+        'category_id': category_id,
+        'page_size': page_size,
+        'categories': categories_base_queryset().order_by('name'),
+        'overview': analytics.get('overview', {}),
+    }
+
+
+def get_product_detail_context(product_id) -> dict:
+    """Load a single product with bundle metadata for the detail template."""
+    from django.shortcuts import get_object_or_404
+
+    product = get_object_or_404(products_list_queryset(action='retrieve'), pk=product_id)
+    bundle = get_bundle_info(product)
+    return {
+        'product': product,
+        'bundle': bundle,
+        'included_products': list(bundle['included_products_qs']),
+    }
+
+
+def get_product_form_options() -> dict:
+    """Querysets for product create/update form widgets."""
+    from world.models import (  # noqa: PLC0415 — lazy import avoids circular deps
+        FunctionOrResponsibility,
+        Industry,
+        MarketSegment,
+        Skill,
+        Tag,
+        WorldDescriptor,
+    )
+
+    return {
+        'categories': categories_base_queryset().order_by('name'),
+        'modalities': Modality.objects.filter(is_active=True).order_by('name'),
+        'customizations': Customization.objects.filter(is_active=True).order_by('name'),
+        'target_segments': MarketSegment.objects.filter(is_active=True).order_by('name'),
+        'industries': Industry.objects.filter(is_active=True).order_by('name'),
+        'functions': FunctionOrResponsibility.objects.filter(is_active=True).order_by('name'),
+        'skills': Skill.objects.filter(is_active=True).order_by('name'),
+        'descriptors': WorldDescriptor.objects.filter(is_active=True).order_by('name'),
+        'tags': Tag.objects.all().order_by('name'),
+        'products_for_bundle': products_active_queryset().order_by('name'),
     }
