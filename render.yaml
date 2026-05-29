@@ -244,7 +244,7 @@ services:
     plan: starter
     region: oregon
     numInstances: 1
-    healthCheckPath: /
+    healthCheckPath: /healthz  # Flower's unauthenticated endpoint; / returns 401 under --basic_auth
     autoDeploy: true
     envVars:
       # Celery configuration

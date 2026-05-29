@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run backend tests via Docker Compose
+        # The compose file lives in backend/ but its build context and volume
+        # paths (./backend) are written relative to the repo root, matching the
+        # root docker-compose.yml. --project-directory . forces the project dir
+        # to the repo root so ./backend resolves correctly (otherwise Compose
+        # defaults the project dir to backend/ and ./backend -> backend/backend).
+        run: |
+          docker compose --project-directory . -f backend/docker-compose.test.yml up \
+            --build --abort-on-container-exit --exit-code-from test-backend test-backend
