@@ -198,7 +198,8 @@ echo ""
 PYTEST_CMD="python -m pytest"
 
 # Add Django settings
-PYTEST_CMD="$PYTEST_CMD --ds=backend.test_settings"
+DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-backend.test_settings}"
+PYTEST_CMD="$PYTEST_CMD --ds=$DJANGO_SETTINGS_MODULE"
 
 # Add verbosity
 if [ "$VERBOSE" = true ]; then

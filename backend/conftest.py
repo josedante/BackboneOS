@@ -120,13 +120,10 @@ def pytest_collection_modifyitems(config, items):
 def django_db_setup(django_db_setup, django_db_blocker):
     """Set up test database with fixtures."""
     with django_db_blocker.unblock():
-        # Create test database
-        call_command('migrate', verbosity=0, interactive=False)
-        
         # Load initial data if needed
         try:
             call_command('loaddata', 'initial_data.json', verbosity=0)
-        except:
+        except Exception:
             pass  # Fixture file might not exist
 
 

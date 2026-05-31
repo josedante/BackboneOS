@@ -263,7 +263,10 @@ class Command(BaseCommand):
         cmd.extend(['--timeout', str(options['timeout'])])
         
         # Add Django settings
-        cmd.extend(['--ds', 'backend.test_settings'])
+        settings_module = os.environ.get(
+            'DJANGO_SETTINGS_MODULE', 'backend.test_settings'
+        )
+        cmd.extend(['--ds', settings_module])
         
         return cmd
     

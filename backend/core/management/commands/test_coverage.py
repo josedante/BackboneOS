@@ -143,11 +143,14 @@ class Command(BaseCommand):
     
     def run_tests_with_coverage(self, options):
         """Run tests with coverage collection."""
+        settings_module = os.environ.get(
+            'DJANGO_SETTINGS_MODULE', 'backend.test_settings'
+        )
         cmd = [
             'python', '-m', 'pytest',
             '--cov=.',
             '--cov-report=term-missing',
-            '--ds', 'backend.test_settings'
+            '--ds', settings_module
         ]
         
         # Add coverage options

@@ -48,8 +48,6 @@ services:
       sh -c "
         echo 'Waiting for database...' &&
         python manage.py wait_for_db &&
-        echo 'Running migrations...' &&
-        python manage.py migrate --settings=backend.docker_test_settings &&
         echo 'Running tests...' &&
         python manage.py run_tests --type=all --coverage --html-report --xml-report
       "
