@@ -181,9 +181,9 @@ docker-compose run --rm -e DJANGO_SETTINGS_MODULE=backend.docker_test_settings b
 - ✅ `backend/tests/utils.py` - Test utilities
 - ✅ `backend/run_tests_docker.sh` - Docker test runner script
 - ✅ `backend/run_tests.sh` - Local test runner script
-- ✅ `backend/backend/management/commands/run_tests.py` - Django test command
-- ✅ `backend/backend/management/commands/test_coverage.py` - Coverage command
-- ✅ `backend/backend/management/commands/wait_for_db.py` - DB readiness checker
+- ✅ `backend/core/management/commands/run_tests.py` - Django test command
+- ✅ `backend/core/management/commands/test_coverage.py` - Coverage command
+- ✅ `backend/core/management/commands/wait_for_db.py` - DB readiness checker
 
 ### Dependencies Added
 - ✅ `pytest==8.3.4` - Testing framework

@@ -55,7 +55,7 @@ DATABASES = {
         'NAME': config('POSTGRES_DB', default='test_mydatabase'),
         'USER': config('POSTGRES_USER', default='myuser'),
         'PASSWORD': config('POSTGRES_PASSWORD', default='mypassword'),
-        'HOST': config('POSTGRES_HOST', default='db'),  # Docker service name
+        'HOST': config('POSTGRES_HOST', default='test-db'),
         'PORT': config('POSTGRES_PORT', default='5432'),
         'TEST': {
             'NAME': 'test_mydatabase',
