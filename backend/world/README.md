@@ -170,7 +170,7 @@ Sistema de folksonomía colaborativa
 
 - **Select Related**: Para consultas eficientes de relaciones
 - **Prefetch Related**: Para colecciones relacionadas
-- **Índices Estratégicos**: Documentados en `INDEX_OPTIMIZATION.md`
+- **Índices estratégicos**: Ver [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md)
 - **Cache**: Implementación de cache en endpoints frecuentes
 
 ## Casos de Uso del Campo Semántico
@@ -307,7 +307,7 @@ def get_personalized_content(client_profile):
 
 ### Índices Estratégicos
 
-Consultar `INDEX_OPTIMIZATION.md` para detalles completos:
+Consultar [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md) para la política de índices:
 
 - **Consultas Jerárquicas**: Índices en campos `parent` y `is_active`
 - **Búsquedas de Texto**: Índices en campos `name` y `code`
@@ -420,3 +420,10 @@ segment_skills_analysis = MarketSegment.objects.annotate(
 La aplicación `world` representa el **cerebro semántico** de BackboneOS, proporcionando el vocabulario, contexto y estructura conceptual que permite transformar un CRM tradicional en un sistema inteligente y contextualmente consciente. Su diseño como campo semántico empresarial facilita la construcción de soluciones CRM que no solo almacenan datos, sino que comprenden el significado y las relaciones entre las entidades del negocio.
 
 Esta base semántica sólida permite a BackboneOS evolucionar hacia un verdadero **sistema operativo empresarial**, donde cada interacción, análisis y decisión está informada por un entendimiento profundo del contexto y las relaciones conceptuales del dominio de negocio.
+
+## Documentación
+
+- [docs/APPS.md](../../docs/APPS.md)
+- [docs/TESTING.md](../../docs/TESTING.md) — `world/tests.py`
+- [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md)
+- [backend/README.md](../README.md)

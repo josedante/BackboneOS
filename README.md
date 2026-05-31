@@ -18,28 +18,14 @@ docker-compose exec backend python manage.py migrate   # Migraciones
 cd backend && npm run tailwind:build                    # CSS del CRM (si cambiaste estilos)
 ```
 
-## 🧪 Testing Status
+## Tests
 
-**✅ Backend Testing Framework: FULLY OPERATIONAL**
-
-- **201 tests passing** (96.6% success rate)
-- **Docker-aware testing environment** with isolated containers
-- **Comprehensive test coverage** across all Django apps
-- **Production-ready infrastructure** for CI/CD pipelines
-
-**Quick Test Commands:**
 ```bash
-# Run all tests with coverage
 cd backend && ./run_tests_docker.sh --coverage --html-report
-
-# Run specific test types
 ./run_tests_docker.sh --type unit --coverage
-./run_tests_docker.sh --type api --parallel
 ```
 
-📊 **Detailed Status**: [TESTING_STATUS.md](backend/TESTING_STATUS.md)  
-📖 **Testing Guide**: [TESTING.md](backend/TESTING.md)  
-🐳 **Docker Testing**: [DOCKER_TESTING.md](backend/DOCKER_TESTING.md)
+Guía completa: [docs/TESTING.md](docs/TESTING.md). Punto de entrada del backend: [backend/README.md](backend/README.md).
 
 ## 🏗️ Arquitectura del Sistema
 
@@ -55,15 +41,16 @@ BackboneOS es una aplicación full-stack moderna que combina:
 
 ### 🎯 Ecosistema de Aplicaciones
 
-BackboneOS incluye **7 aplicaciones Django especializadas** que forman un ecosistema CRM completo:
+BackboneOS incluye **aplicaciones Django** de dominio CRM, tracking y conectores (ver [docs/APPS.md](docs/APPS.md)):
 
-- **🌍 World App**: Campo semántico empresarial con ontología y taxonomías
-- **👤 Entities App**: Gestión de personas y organizaciones con perfilado semántico
-- **🏢 Our Institution App**: Estructura organizacional propietaria completa
-- **📦 Products App**: Sistema de catálogo comercial con analytics
-- **💼 Offers App**: Centro de comercialización con pricing dinámico
-- **🎯 Campaigns App**: Sistema de gestión de campañas comerciales multi-canal
-- **🔄 Interactions App**: Framework completo de customer journey
+- **World**: ontología y taxonomías
+- **Entities**: personas y organizaciones
+- **Our Institution**: estructura organizacional
+- **Products**, **Offers**, **Campaigns**: catálogo y comercialización
+- **Interactions**: substrato de customer journey
+- **Websites**: tracking e interacciones web
+- **Connectors**: resolución de touchpoints
+- **Dashboard** / **Users** / **Core**: CRM, autenticación y utilidades
 
 ### 🔄 Flujo de Valor Comercial
 
@@ -164,7 +151,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 ### 📱 Aplicaciones y Funcionalidades
 
-- **[🔧 Aplicaciones Django](docs/APPS.md)** - 7 apps especializadas del ecosistema CRM
+- **[🔧 Aplicaciones Django](docs/APPS.md)** - Apps del ecosistema CRM y tracking
 - **[🔗 API Reference](docs/API.md)** - 50+ endpoints REST con filtrado avanzado
 - **[🎯 Casos de Uso](docs/USE_CASES.md)** - Ejemplos prácticos con código Python
 
@@ -187,7 +174,7 @@ La documentación del proyecto está organizada de forma modular para facilitar 
 
 - ✅ **Arquitectura Single-Process**: Django (HTML CRM + API REST) + PostgreSQL
 - ✅ **Sistema de Autenticación**: JWT (API REST) + sesión Django (`@login_required`) para el CRM
-- ✅ **7 Aplicaciones Django**: World, Entities, Our Institution, Products, Interactions, Offers, Campaigns
+- ✅ **Apps Django**: World, Entities, Our Institution, Products, Interactions, Offers, Campaigns, Websites, Connectors, Dashboard
 - ✅ **API REST Completa**: 50+ endpoints con filtrado avanzado
 - ✅ **Optimización DB**: Índices estratégicos y consultas optimizadas
 - ✅ **Testing Implementado**: Tests unitarios con coverage completo

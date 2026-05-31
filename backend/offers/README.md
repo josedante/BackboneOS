@@ -429,7 +429,13 @@ La aplicación `offers` está **funcionalmente completa y estable**, siguiendo t
 - **✅ Autenticación**: Configuración mejorada de ALLOWED_HOSTS para testing
 - **✅ Relaciones de Productos**: Corregido acceso a relaciones ManyToMany en serializers
 - **✅ Tests de Negocio**: Validaciones de precio y lógica comercial corregidas
-- **📊 Estado de Tests**: 83/93 tests pasando (89% éxito) - mejoras significativas desde 16+ fallos
+- **Tests**: ver [docs/TESTING.md](../../docs/TESTING.md)
+
+## Documentación
+
+- [docs/APPS.md](../../docs/APPS.md)
+- [docs/TESTING.md](../../docs/TESTING.md)
+- [backend/README.md](../README.md)
 
 ---
 

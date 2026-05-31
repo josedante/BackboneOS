@@ -82,7 +82,7 @@ session_id = web_interaction.session_id or f"sess_{uuid.uuid4().hex[:16]}"  # �
 
 **Status:** ✅ Fixed (requires backend restart to apply)
 
-**Documentation:** See `backend/BUG_FIX_SESSION_ID_MISMATCH.md` for details.
+**Documentation:** See [tracking/README.md](README.md) (section Session ID y WebSession) and [backend/websites.md](../backend/websites.md).
 
 ---
 
@@ -206,17 +206,14 @@ Each WebInteraction includes:
 
 ---
 
-## 📚 Documentation Created
+## Documentación (consolidada)
 
 | Document | Purpose |
 |----------|---------|
-| `PAGE_VIEW_TRACKING_TESTING.md` | Complete testing guide |
-| `TRACKING_TEST_QUICK_START.md` | 5-minute quick start |
-| `README_TRACKING_TOOLS.md` | Tool reference |
-| `docs/tracking/TRACKING_IMPLEMENTATION_SUMMARY.md` | Implementation details |
-| `TEST_RUN_ANALYSIS.md` | First test run analysis |
-| `BUG_FIX_SESSION_ID_MISMATCH.md` | Bug fix documentation |
-| `docs/tracking/TRACKING_VALIDATION_COMPLETE.md` | This summary (you are here) |
+| [tracking/README.md](README.md) | Guía canónica de pruebas y troubleshooting |
+| [backend/websites.md](../backend/websites.md) | Arquitectura y eventos web |
+| [TRACKING_IMPLEMENTATION_SUMMARY.md](TRACKING_IMPLEMENTATION_SUMMARY.md) | Resumen histórico de implementación |
+| [TRACKING_VALIDATION_COMPLETE.md](TRACKING_VALIDATION_COMPLETE.md) | Este resumen |
 
 ---
 
@@ -270,10 +267,10 @@ The system is ready for production use after verifying the session ID fix! 🚀
 ## 📞 Support
 
 For questions or issues:
-1. Check the documentation in `backend/PAGE_VIEW_TRACKING_TESTING.md`
-2. Review the test run analysis in `backend/TEST_RUN_ANALYSIS.md`
-3. Use the monitoring tools to debug issues
-4. Check backend logs with `./monitor_logs.sh`
+1. [tracking/README.md](README.md)
+2. [backend/websites.md](../backend/websites.md)
+3. Herramientas en `backend/` (`test_page_view_tracking.py`, `monitor_logs.sh`)
+4. `docker compose logs backend`
 
 Happy tracking! 📊✨
 

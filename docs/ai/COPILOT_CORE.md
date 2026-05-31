@@ -39,8 +39,8 @@ docker-compose exec backend python manage.py makemigrations
 docker-compose exec backend python manage.py shell
 docker-compose exec backend python manage.py createsuperuser
 
-# Tests
-docker-compose exec backend python manage.py test
+# Tests (ver docs/TESTING.md)
+cd backend && ./run_tests_docker.sh --coverage
 ```
 
 ### ⚠️ COMANDOS PROHIBIDOS
@@ -54,14 +54,11 @@ pip install -r requirements.txt
 
 ## 📱 Aplicaciones Django
 
-### Apps Principales (6 aplicaciones completas)
+### Apps principales
 
-1. **`entities`** - Gestión de personas y organizaciones
-2. **`world`** - Datos globales de referencia (países, industrias, etc.)
-3. **`products`** - Catálogo y gestión de productos
-4. **`interactions`** - Customer journey (27 endpoints)
-5. **`offers`** - Ofertas comerciales
-6. **`campaigns`** - Campañas comerciales
+Ver `INSTALLED_APPS` en `backend/backend/settings/base.py` y [docs/APPS.md](../APPS.md). Incluye entre otras: `entities`, `world`, `products`, `interactions`, `offers`, `campaigns`, `websites`, `connectors`, `dashboard`, `core`, `users`.
+
+Punto de entrada: [backend/README.md](../../backend/README.md).
 
 ### Estructura Backend
 

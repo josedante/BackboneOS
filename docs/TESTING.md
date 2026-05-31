@@ -2,15 +2,16 @@
 
 > Tras la [consolidación del frontend](consolidation/FRONTEND_CONSOLIDATION.md), el proyecto es un único proceso Django (API REST + CRM HTML). El testing es **Django/pytest**; la antigua suite de frontend (Vitest/React) se eliminó junto con el paquete Next.js.
 
-## Stack de Testing
+## Stack de testing
 
-- **Django TestCase**: tests de modelos, API y vistas HTML
-- **pytest**: runner de tests de Python
-- **factory_boy**: generación de datos de prueba (`test_factories.py` por app)
-- **Coverage.py**: análisis de cobertura
-- **Configuración de tests**: `backend.test_settings` (SQLite + almacenamiento de estáticos simple)
+- **Django TestCase / pytest**: modelos, API, vistas HTML
+- **pytest-django**: integración con Django
+- **factory_boy**: datos de prueba (`test_factories.py` por app)
+- **Coverage.py**: cobertura (umbral por defecto 80 % en scripts)
+- **Configuración**: `DJANGO_SETTINGS_MODULE=backend.test_settings` (SQLite + estáticos simples)
+- **Docker tests**: `backend.docker_test_settings` vía `docker-compose.test.yml` y `run_tests_docker.sh`
 
-## Organización de Tests
+## Organización de tests
 
 Cada app coloca sus tests junto al código. Las apps con CRM añaden tests de vistas HTML y factories:
 
@@ -19,8 +20,8 @@ backend/
 ├── users/tests.py
 ├── world/tests.py
 ├── entities/tests.py
-├── entities/tests_template_views.py     # vistas HTML del CRM
-├── entities/test_factories.py           # factory_boy
+├── entities/tests_template_views.py
+├── entities/test_factories.py
 ├── our_institution/tests.py
 ├── products/tests.py
 ├── products/tests_template_views.py
@@ -33,18 +34,47 @@ backend/
 ├── offers/tests.py
 ├── offers/tests_template_views.py
 ├── offers/test_factories.py
-└── dashboard/tests.py
+├── dashboard/tests.py
+├── websites/tests/
+└── connectors/tests/
 ```
 
 | Tipo | Archivo | Cubre |
 |------|---------|-------|
 | API | `tests.py` | ViewSets DRF, serializers, permisos |
-| CRM HTML | `tests_template_views.py` | vistas de plantilla: login requerido, render, POST de formularios, redirecciones |
-| Datos | `test_factories.py` | factories `factory_boy` reutilizables |
+| CRM HTML | `tests_template_views.py` | login, render, POST, redirects |
+| Datos | `test_factories.py` | factories reutilizables |
+| Integración | `tests/` (p. ej. connectors) | flujos end-to-end |
 
-## Ejecutar Tests
+## Ejecutar tests
 
-### Todos los tests
+### Recomendado: Docker aislado
+
+Desde `backend/`:
+
+```bash
+./run_tests_docker.sh --coverage --html-report
+./run_tests_docker.sh --type unit --coverage
+./run_tests_docker.sh --app users --coverage
+./run_tests_docker.sh --parallel --workers 8
+./run_tests_docker.sh --interactive
+```
+
+Opciones principales (`./run_tests_docker.sh --help`):
+
+| Opción | Descripción |
+|--------|-------------|
+| `-t, --type` | `unit`, `integration`, `api`, `performance`, `smoke`, `all` |
+| `-c, --coverage` | Cobertura |
+| `-p, --parallel` | Paralelo |
+| `-a, --app` | App concreta |
+| `-m, --markers` | Marcadores pytest |
+| `-h, --html-report` | Informe HTML de cobertura |
+| `-f, --fail-under` | Umbral mínimo (default 80) |
+
+Usa `docker-compose.test.yml` (PostgreSQL y Redis de test en puertos dedicados).
+
+### Compose de desarrollo (rápido)
 
 ```bash
 docker compose run --rm \
@@ -52,28 +82,57 @@ docker compose run --rm \
   python manage.py test
 ```
 
-### App específica / subconjunto
+App o módulo concreto:
 
 ```bash
-# App completa
 docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
   python manage.py test campaigns
 
-# Solo las vistas HTML de una app
 docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
   python manage.py test products.tests_template_views
 ```
 
-### Cobertura
+### Runner local (`backend/`)
+
+Con dependencias instaladas en el host:
 
 ```bash
+./run_tests.sh --coverage --html-report
+./run_tests.sh --type api --parallel --workers 8
+./run_tests.sh --app users --coverage
+```
+
+### Comando de gestión Django
+
+```bash
+docker compose exec backend python manage.py run_tests --type=unit
+docker compose exec backend python manage.py run_tests --coverage --html-report
+docker compose exec backend python manage.py test_coverage
+```
+
+### pytest directo
+
+```bash
+cd backend
+DJANGO_SETTINGS_MODULE=backend.test_settings pytest
+DJANGO_SETTINGS_MODULE=backend.test_settings pytest --cov=. --cov-report=html
+```
+
+## Cobertura
+
+```bash
+cd backend
+./run_tests_docker.sh --coverage --html-report --xml-report
+# o
 docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
   sh -c "coverage run manage.py test && coverage report"
 ```
 
+Los informes HTML/XML se generan según flags del script; revisar salida del comando para la ruta exacta.
+
 ## Gate consolidado (CRM)
 
-El gate de regresión usado durante la consolidación cubre dashboard + las vistas HTML de interactions, entities, campaigns y offers (más subconjuntos de API). Reporta **67 tests, OK**:
+Subconjunto usado durante la consolidación del frontend (dashboard + CRM HTML + APIs clave):
 
 ```bash
 docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend \
@@ -91,28 +150,41 @@ docker compose run --rm -e DJANGO_SETTINGS_MODULE=backend.test_settings backend 
 
 `python manage.py check` no debe reportar incidencias.
 
-## Qué verifican los tests de vistas HTML
+## Contrato de tests HTML del CRM
 
-Los `tests_template_views.py` cubren, por app, el contrato del CRM:
+Los `tests_template_views.py` verifican por app:
 
-- **Autenticación**: las páginas requieren login (`@login_required`).
-- **Render**: la vista responde 200 y usa la plantilla correcta que extiende `base_dashboard.html`.
-- **Escritura**: los POST válidos invocan `services.py`, persisten FK/M2M y muestran flash + redirect.
-- **Substrato (interactions)**: no hay rutas de create/edit/delete de interacciones (solo lectura); sí existen para touchpoints.
-- **API intacta**: los subconjuntos de `tests.py` confirman que `/api/...` no cambió.
+- **Autenticación**: `@login_required` en páginas del CRM.
+- **Render**: 200 y plantilla que extiende `base_dashboard.html`.
+- **Escritura**: POST válidos llaman `services.py`, persisten relaciones y redirigen.
+- **Substrato (interactions)**: interacciones solo lectura; touchpoints con CRUD donde aplique.
+- **API**: subconjuntos de `tests.py` confirman que `/api/...` no regresó.
 
-## Deuda de tests conocida (no bloqueante)
+## Datos de prueba (desarrollo)
+
+Scripts en la raíz de `backend/` para poblar datos de demo (usuarios, productos, entidades, campañas, ofertas). Ejemplos:
+
+```bash
+docker compose exec backend python manage.py create_organization_structure
+docker compose exec backend python create_offers_data.py
+docker compose exec backend python create_campaigns_data.py
+```
+
+Usuarios de prueba típicos (si los crea el script de setup): `admin`, `manager`, `sales`, `marketing` con contraseña documentada en el script correspondiente.
+
+## Deuda conocida (no bloqueante)
 
 - Suite completa de `products`: fixtures de Division y drift de JSON de analytics.
-- Los tests HTML usan `backend.test_settings` (SQLite + staticfiles simple).
+- Cobertura global: ejecutar `./run_tests_docker.sh --coverage` para métricas actuales (no mantener cifras fijas en documentación).
+- Gaps de `websites`: ver [backend/websites.md](backend/websites.md#deuda-viva-de-pruebas).
 
-## Documentación de testing del backend
+## Troubleshooting Docker
 
-Guías operativas más detalladas viven junto al backend:
-
-- [`backend/TESTING.md`](../backend/TESTING.md) - guía de testing del backend
-- [`backend/DOCKER_TESTING.md`](../backend/DOCKER_TESTING.md) - testing dentro de Docker
-- [`backend/TESTING_STATUS.md`](../backend/TESTING_STATUS.md) - estado/resultados
+| Problema | Acción |
+|----------|--------|
+| Servicios test no listos | Reintentar; revisar `docker compose -f docker-compose.test.yml ps` |
+| Puerto en uso | Ajustar puertos en `docker-compose.test.yml` |
+| BD de test corrupta | Ejecutar sin `--keep-db` o limpiar volúmenes de test |
 
 ## CI (planificado)
 
@@ -131,6 +203,14 @@ jobs:
           DJANGO_SETTINGS_MODULE=backend.test_settings python manage.py test
 ```
 
+## Estado de la suite
+
+No se publican contadores fijos en esta guía. Para el estado actual:
+
+```bash
+cd backend && ./run_tests_docker.sh --coverage
+```
+
 ---
 
-> Relacionado: [BACKEND.md](BACKEND.md) (capa selectors/services), [FRONTEND_COMPONENTS.md](FRONTEND_COMPONENTS.md) (CRM), [FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md) (historial).
+> Relacionado: [BACKEND.md](BACKEND.md), [backend/README.md](../backend/README.md), [FRONTEND_COMPONENTS.md](FRONTEND_COMPONENTS.md), [tracking/README.md](tracking/README.md).

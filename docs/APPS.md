@@ -115,8 +115,7 @@
 - **Analytics Empresariales**: Dashboard completo con métricas de performance
 - **Duplicación Inteligente**: Copiar ofertas con todas las relaciones
 - **Validación Temporal**: Control automático de vigencia de ofertas
-- **🔧 Fixes Recientes**: Serialización UUID, validación de fechas, autenticación
-- **📊 Estado de Tests**: 89% éxito (83/93 tests pasando) - mejoras significativas
+- **Tests**: `offers/tests.py`, `offers/tests_template_views.py` — ver [TESTING.md](TESTING.md)
 
 ### ✅ Campaigns App - Sistema de Gestión de Campañas Comerciales
 
@@ -142,11 +141,37 @@
 - **API REST Completa**: 11 endpoints con filtrado avanzado y analytics
 - **Duplicación Inteligente**: Copia de campañas con todas las relaciones
 - **Touchpoints Ponderados**: Asignación de peso y prioridad por punto de contacto
-- **🔧 Fixes Recientes**: Corrección de imports, campos de modelo y validaciones
-- **📈 Índices Optimizados**: Índices compuestos para consultas frecuentes
+- **Tests**: `campaigns/tests.py`, `campaigns/tests_template_views.py` — ver [TESTING.md](TESTING.md)
+
+### ✅ Websites App - Tracking web
+
+**Captura e interacciones desde sitios propios**
+
+- Modelos `Website`, `WebInteraction`, `WebSession`, `WebAgent`
+- API de eventos (`/api/websites/events/...`)
+- Clasificación tridimensional (canal / medio / tipo de touchpoint)
+- Documentación: [backend/websites.md](backend/websites.md), [tracking/README.md](tracking/README.md)
+
+### ✅ Connectors App - Resolución de touchpoints
+
+**Framework de creación automática de touchpoints multi-canal**
+
+- Resolvers, reglas de mapeo, fallback con reintentos
+- Admin y métricas
+- Documentación: [backend/connectors.md](backend/connectors.md)
+
+### ✅ Dashboard y Core
+
+- **dashboard**: home del CRM (`base_dashboard.html`)
+- **core**: comandos de gestión (`run_tests`, `wait_for_db`, etc.)
 
 ### ✅ Users App
 
 - Gestión de usuarios y autenticación
 - Modelos de usuario extendidos
 - Sistema JWT implementado
+- README: [backend/users/README.md](../backend/users/README.md)
+
+### Planificado: Sales (no instalada)
+
+Código en `backend/sales/` para captura contextual futura. Ver [backend/connectors.md](backend/connectors.md#captura-contextual-planificado).

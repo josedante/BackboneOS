@@ -152,15 +152,19 @@ Esta es la guía de navegación completa para toda la documentación del proyect
 
 ## 📖 Documentación Específica de Apps
 
-### Backend Apps
+### Backend
 
-- **[World App](../backend/world/INDEX_OPTIMIZATION.md)** - Optimización de consultas semánticas
-- **[Entities App](../backend/entities/INDEX_OPTIMIZATION.md)** - Performance de entidades
-- **[Our Institution App](../backend/our_institution/README.md)** - Sistema organizacional completo
-- **[Products App](../backend/products/README.md)** - Gestión de productos
-- **[Interactions App](../backend/interactions/README.md)** - Framework de customer journey
-- **[Offers App](../backend/offers/README.md)** - Sistema de ofertas comerciales
-- **[Campaigns App](../backend/campaigns/README.md)** - Sistema de gestión de campañas comerciales
+- **[backend/README.md](../backend/README.md)** - Punto de entrada (arranque, tests, índice de apps)
+- **[websites.md](backend/websites.md)** - Tracking web y eventos
+- **[connectors.md](backend/connectors.md)** - Resolución de touchpoints
+- **[DATABASE_INDEXES.md](DATABASE_INDEXES.md)** - Política de índices
+
+### Backend Apps (README por app)
+
+- **[World](../backend/world/README.md)** | **[Entities](../backend/entities/README.md)** | **[Our Institution](../backend/our_institution/README.md)**
+- **[Products](../backend/products/README.md)** | **[Interactions](../backend/interactions/README.md)**
+- **[Offers](../backend/offers/README.md)** | **[Campaigns](../backend/campaigns/README.md)**
+- **[Websites](../backend/websites/README.md)** | **[Connectors](../backend/connectors/README.md)** | **[Users](../backend/users/README.md)**
 
 ### Operator UI (Django)
 

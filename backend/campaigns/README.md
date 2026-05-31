@@ -703,4 +703,10 @@ La app está pensada para:
 
 La app `campaigns` está **production-ready** y puede ser utilizada inmediatamente para gestión completa de campañas comerciales en BackboneOS.
 
+## Documentación
+
+- [docs/APPS.md](../../docs/APPS.md)
+- [docs/TESTING.md](../../docs/TESTING.md) — `campaigns/tests.py`, `campaigns/tests_template_views.py`
+- [backend/README.md](../README.md)
+
 ---

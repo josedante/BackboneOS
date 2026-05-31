@@ -63,7 +63,11 @@ backend/
 ├── 📁 interactions/        # ✅ Framework de interacciones (COMPLETO) + CRM HTML (substrato)
 ├── 📁 offers/              # ✅ Sistema de ofertas (COMPLETO) + CRM HTML
 ├── 📁 campaigns/           # ✅ Campañas comerciales (COMPLETO) + CRM HTML
+├── 📁 websites/            # ✅ Tracking e interacciones web
+├── 📁 connectors/          # ✅ Resolución de touchpoints
+├── 📁 core/                # Comandos de gestión compartidos
 ├── 📁 dashboard/           # ✅ Home del CRM y layout compartido (base_dashboard.html)
+├── 📄 README.md            # Punto de entrada del backend
 ├── 📁 templates/           # Plantillas raíz compartidas (base_dashboard, includes/, registration/)
 ├── 📁 static/              # src/input.css (fuente Tailwind) → dist/styles.css (build)
 ├── 📄 package.json         # Toolchain Tailwind (tailwind:build / tailwind:watch)
@@ -488,16 +492,15 @@ def health_check(request):
    - Database optimization
    - Query monitoring
 
-## 📚 Documentación Específica de Apps
+## Documentación específica
 
-- **[World App](../backend/world/INDEX_OPTIMIZATION.md)** - Optimización de consultas semánticas
-- **[Entities App](../backend/entities/INDEX_OPTIMIZATION.md)** - Performance de entidades
-- **[Our Institution App](../backend/our_institution/README.md)** - Estructura organizacional
-- **[Products App](../backend/products/README.md)** - Sistema de productos
-- **[Interactions App](../backend/interactions/README.md)** - Framework de interacciones
-- **[Offers App](../backend/offers/README.md)** - Sistema de ofertas comerciales
-- **[Campaigns App](../backend/campaigns/README.md)** - Sistema de campañas comerciales
-- **[Consolidación del Frontend](consolidation/FRONTEND_CONSOLIDATION.md)** - Migración del CRM a plantillas Django
+- **[backend/README.md](../backend/README.md)** — arranque, tests, índice de apps
+- **[websites.md](backend/websites.md)** — tracking web
+- **[connectors.md](backend/connectors.md)** — touchpoints y fallback
+- **[interactions.md](backend/interactions.md)** — substrato de journey
+- **[DATABASE_INDEXES.md](DATABASE_INDEXES.md)** — política de índices
+- **README por app**: `world`, `entities`, `our_institution`, `products`, `interactions`, `offers`, `campaigns`, `websites`, `connectors`, `users`
+- **[Consolidación del Frontend](consolidation/FRONTEND_CONSOLIDATION.md)** — migración del CRM a plantillas Django
 
 ---
 

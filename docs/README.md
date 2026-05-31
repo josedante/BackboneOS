@@ -19,13 +19,18 @@ Audits and formal reports.
 
 - [SECURITY_AUDIT_REPORT.md](reports/SECURITY_AUDIT_REPORT.md) — Security audit
 
+## Backend (detalle)
+
+Documentación técnica consolidada por dominio.
+
+- [backend/websites.md](backend/websites.md) — Tracking web, eventos, sesiones
+- [backend/connectors.md](backend/connectors.md) — Touchpoints, fallback, admin
+
 ## Tracking
 
-Implementation history and validation for tracking features.
-
-- [TRACKING_IMPLEMENTATION_SUMMARY.md](tracking/TRACKING_IMPLEMENTATION_SUMMARY.md) — Implementation overview
-- [TRACKING_VALIDATION_COMPLETE.md](tracking/TRACKING_VALIDATION_COMPLETE.md) — Validation summary
-- [COPILOT_OPTIMIZATION_SUMMARY.md](tracking/COPILOT_OPTIMIZATION_SUMMARY.md) — Copilot docs optimization
+- [tracking/README.md](tracking/README.md) — Guía canónica de pruebas y troubleshooting
+- [tracking/TRACKING_IMPLEMENTATION_SUMMARY.md](tracking/TRACKING_IMPLEMENTATION_SUMMARY.md) — Resumen histórico
+- [tracking/TRACKING_VALIDATION_COMPLETE.md](tracking/TRACKING_VALIDATION_COMPLETE.md) — Validación histórica
 
 ## AI / Assistant Guides
 
@@ -52,3 +57,4 @@ Architecture, APIs, and application docs (repo root: [README.md](../README.md)).
 - [PROJECT_STATUS.md](PROJECT_STATUS.md)
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
 - [consolidation/FRONTEND_CONSOLIDATION.md](consolidation/FRONTEND_CONSOLIDATION.md) — Frontend consolidation handoff
+- [../backend/README.md](../backend/README.md) — Punto de entrada del backend

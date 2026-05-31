@@ -11,7 +11,8 @@ This is a Django application with a REST API and Django-template operator CRM, u
 - **Backend**: Django 5.2.1 + DRF in `backend/` directory
 
   - Main Django project: `backend/backend/` (settings, urls, wsgi)
-  - Main application: `backend/users/` (models, views, serializers)
+  - Entry point: `backend/README.md`
+- Apps: see `INSTALLED_APPS` in `backend/backend/settings/base.py` and `docs/APPS.md`
   - Uses PostgreSQL with django-cors-headers for CORS
   - JWT authentication with djangorestframework-simplejwt
   - Token-based authentication with DRF is available, too
@@ -58,8 +59,8 @@ docker-compose exec backend python manage.py makemigrations
 # Create superuser
 docker-compose exec backend python manage.py createsuperuser
 
-# Run tests
-docker-compose exec backend python manage.py test
+# Run tests (see docs/TESTING.md)
+cd backend && ./run_tests_docker.sh --coverage
 
 # Django shell
 docker-compose exec backend python manage.py shell

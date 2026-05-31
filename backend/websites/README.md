@@ -1,432 +1,78 @@
-# 🌐 Websites App - BackboneOS
+# App Websites - BackboneOS
 
-## 📋 Overview
+La app `websites` captura interacciones de sitios web y las convierte en touchpoints e interacciones trazables dentro del CRM, usando arquitectura v2.0 con resolución de touchpoints pre-creación.
 
-The `websites` app extends BackboneOS's interaction core to capture and organize interactions from websites using a **modernized v2.0 architecture**. It provides:
+**Documentación completa:** [docs/backend/websites.md](../../docs/backend/websites.md)
 
-- **Anonymous and authenticated web interaction tracking**
-- **Subject-agnostic touchpoint resolution** with pre-creation pattern
-- **Advanced traffic analysis** (UTM, referrer, user agent with ua-parser)
-- **Multi-interaction approach** for comprehensive attribution
-- **Integration** with organizational structure and CRM
+---
 
-## 🎯 Three-Dimensional Classification System
+## Contenido de la documentación
 
-### **Channel (WHERE) - Where the interaction occurred**
-- **Purpose**: Identifies the context/location where the interaction happened
-- **Examples**: `test.com`, `example.org`, `mywebsite.com`
-- **Logic**: Determined from the website domain (normalized)
-- **Source Type**: Automatically set to `'owned'` for websites
+| Sección | Descripción |
+|---------|-------------|
+| [Visión general](../../docs/backend/websites.md#vision-general) | Modelos, estructura y propósito |
+| [Arquitectura v2.0](../../docs/backend/websites.md#arquitectura-v2) | Patrón canónico, procesadores, migración |
+| [Clasificación tridimensional](../../docs/backend/websites.md#clasificacion-tridimensional) | Channel, Medium, TouchpointType |
+| [Enfoque multi-interacción](../../docs/backend/websites.md#enfoque-multi-interaccion) | 1 evento page_view → hasta 3 interacciones |
+| [Flujo page_view](../../docs/backend/websites.md#flujo-page-view) | Pipeline completo cliente → base de datos |
+| [Script de tracking](../../docs/backend/websites.md#script-tracking) | `backbone-tracker.js`, configuración, API |
+| [Catálogo de eventos](../../docs/backend/websites.md#catalogo-eventos) | 8 tipos de evento y payloads |
+| [Guía de integración](../../docs/backend/websites.md#guia-integracion) | Instalación, registro de sitios, ejemplos |
+| [Cross-domain](../../docs/backend/websites.md#cross-domain) | CORS, validación de dominio, seguridad |
+| [Gestión de sesiones](../../docs/backend/websites.md#gestion-sesiones) | Ventana de 30 minutos, `WebSession` |
+| [Deuda de pruebas](../../docs/backend/websites.md#deuda-pruebas) | Cobertura actual y plan de mejora |
 
-### **Medium (HOW) - How it communicates**
-- **Purpose**: Identifies the communication method
-- **Examples**: `organic`, `cpc`, `social`, `email`, `referral`, `direct`
-- **Logic**: UTM parameters take precedence, then referrer analysis, then defaults
-- **Analysis**: Comprehensive referrer analysis with domain mapping
+---
 
-### **TouchpointType (WHAT) - What type of touchpoint**
-- **Purpose**: Identifies the functional type of touchpoint (web-specific)
-- **Examples**: `web_page`, `web_form`, `web_button`, `web_download`, `web_video`
-- **Logic**: Determined from event type mapping
-- **No overlap**: Doesn't overlap with `interactions.Interaction.action` field
+## Inicio rápido
 
-### **Example Classification:**
-```python
-# Event: "Contact form submission on example.com from Google Ads"
-Channel: "example.com" (WHERE: happened on example.com website)
-Medium: "cpc" (HOW: arrived from paid search - utm_medium=cpc)
-TouchpointType: "web_form" (WHAT: web form submission)
-```
-
-## 🔄 Multi-Interaction Approach
-
-For a single **Page View Event**, we create **up to 3 separate WebInteraction instances**:
-
-### **1. Page View Interaction** (Always Created)
-- **Purpose**: Track the page being viewed on our website
-- **Action**: `page_view`
-- **Touchpoint**: Viewed page touchpoint
-- **Created**: Always, for every page view
-
-### **2. Referrer Click Interaction** (Conditional)
-- **Purpose**: Track the click that brought the visitor to our site
-- **Action**: `referrer_click`
-- **Touchpoint**: Referrer page touchpoint
-- **Created**: Only if external referrer exists and differs from website
-
-### **3. Session Start Interaction** (Conditional)
-- **Purpose**: Track the beginning of a new session
-- **Action**: `session_start`
-- **Touchpoint**: Session start touchpoint
-- **Created**: Only if `is_landing_page=True`
-
-## 🏗️ Core Models
-
-### `Website`
-Represents a website managed by the organization.
-- **Fields**: `name`, `base_url`, `channel`, `division`, `active`
-- **Auto-Channel Creation**: Automatically creates/updates `Channel` with `source_type='owned'` on save
-- **Relationship**: Linked to Division for organizational structure
-- **Usage**: Primary source for web interaction tracking
-
-### `WebInteraction`
-Model extending `AbstractConnectorInteraction` with **v2.0 architecture**:
-- **Browser fields**: `session_id`, `visitor_cookie`, `user_agent`, `client_hints`, `ip`
-- **UTM attribution**: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`
-- **Events**: `element`, `payload`, `is_bot`
-- **v2.0 Resolution**: Uses pre-creation touchpoint resolution (no post-save hooks)
-- **Event Processors**: 8 static event processors using canonical v2.0 pattern
-
-### `WebAgent`
-Represents browser/device information parsed from user agent.
-- **Fields**: `user_agent`, `browser_family`, `browser_version`, `os_family`, `os_version`, `device_family`, `is_mobile`, `is_tablet`, `is_pc`, `is_bot`
-- **ua-parser Integration**: Uses `ua-parser-js` for accurate parsing and bot detection
-- **Auto-Creation**: Automatically created from user agent strings
-
-### `WebSession`
-Represents a web session - a continuous period of user activity.
-- **Simple session logic**: Session continues if within 30 minutes, otherwise new session
-- **Session tracking**: Session identity, timing, and attribution
-- **Analytics**: Page count, bounce detection, conversion events
-- **Integration**: Links to Website and Agent models
-
-## 🔒 Domain Validation and Security
-
-### **Overview**
-
-The websites app validates all incoming tracking events to ensure they come from registered, authorized domains. This prevents unauthorized websites from sending tracking data to your BackboneOS instance.
-
-### **How It Works**
-
-1. **Event arrives** at any tracking endpoint (page_view, click, form_submit, etc.)
-2. **Domain extracted** from the `website_base` field in the event payload
-3. **Validation performed** against the `Website` model:
-   - Domain must be registered in the database
-   - Website must have `active=True`
-4. **Decision**:
-   - ✅ **Allowed**: Event is processed normally
-   - ❌ **Rejected**: Event is rejected with HTTP 403, logged to `FailedEvent` for audit
-
-### **Registering Websites for Tracking**
-
-To allow a website to send tracking events:
+### 1. Registrar el sitio
 
 ```python
 from websites.models import Website
 from our_institution.models import Division
 
-# Get or create your division
-division = Division.objects.get(code='YOUR_DIVISION')
-
-# Register the website
-website = Website.objects.create(
-    name="My Client Website",
-    base_url="https://client-website.com",  # Must match exactly
-    division=division,
-    active=True  # Must be True to receive events
+Website.objects.create(
+    name="Mi Sitio",
+    base_url="https://example.com",
+    division=Division.objects.get(code='YOUR_DIVISION'),
+    active=True,
 )
 ```
 
-Or via Django Admin:
-1. Go to **Websites > Websites**
-2. Click **Add Website**
-3. Enter name, base URL, select division
-4. Ensure **Active** is checked
-5. Save
-
-### **Disabling a Website**
-
-To temporarily stop accepting events from a website without deleting it:
-
-```python
-website = Website.objects.get(base_url="https://client-website.com")
-website.active = False
-website.save()
-```
-
-Or via Django Admin: Uncheck the **Active** checkbox.
-
-### **CORS Configuration**
-
-In addition to domain validation, you need to configure CORS to allow browser requests from your tracking websites.
-
-The system uses a two-tier approach:
-1. **Base origins** - Hardcoded in `settings.py` for BackboneOS frontend/admin
-2. **Additional origins** - Configured via environment variable for tracking websites
-
-**Add tracking websites to `.env`:**
+### 2. Configurar CORS
 
 ```bash
-# .env file
-# Add your tracking website domains (comma-separated)
-CORS_ALLOWED_ORIGINS="https://site1.com,https://site2.com,https://site3.com"
+# .env
+CORS_ALLOWED_ORIGINS="https://example.com"
 ```
 
-**Example `.env` configuration:**
-```bash
-# Multiple tracking websites
-CORS_ALLOWED_ORIGINS="https://mycompany.com,https://blog.mycompany.com,https://shop.mycompany.com"
+### 3. Instalar el tracker
 
-# Single website
-CORS_ALLOWED_ORIGINS="https://client-website.com"
+```html
+<script>
+window.BackboneConfig = {
+    apiEndpoint: 'https://your-backboneos-domain.com/api/websites/events/page-view/',
+    sessionTimeout: 30 * 60 * 1000,
+};
+</script>
+<script src="https://your-backboneos-domain.com/static/websites/js/backbone-tracker.min.js"></script>
 ```
 
-**Production Settings** (automatically applied when `DEBUG=False`):
-- `CORS_ALLOW_ALL_ORIGINS=False` - Only listed origins allowed
-- `CORS_ALLOWED_ORIGINS` - Base origins + environment variable origins
-
-**Development Settings** (automatically applied when `DEBUG=True`):
-- `CORS_ALLOW_ALL_ORIGINS=True` - All origins allowed for testing
-- Environment variable still respected for consistency
-
-### **Monitoring Rejected Events**
-
-Rejected events are automatically logged to the `FailedEvent` model for security audit:
-
-```python
-from connectors.models import FailedEvent
-
-# View all rejected domain validation events
-rejected_events = FailedEvent.objects.filter(
-    connector_type='web',
-    error_message__icontains='not registered'
-)
-
-# Check specific domain
-rejected_from_domain = FailedEvent.objects.filter(
-    source_identifier='https://suspicious-site.com'
-)
-```
-
-Or via Django Admin:
-1. Go to **Connectors > Failed Events**
-2. Filter by:
-   - **Connector Type**: web
-   - **Error Message**: contains "not registered" or "inactive"
-
-### **Validation API**
-
-The validation method is exposed as a class method:
-
-```python
-from websites.models import Website
-
-# Validate a domain
-try:
-    website = Website.validate_domain_or_reject("https://example.com")
-    print(f"Domain allowed: {website.name}")
-except PermissionError as e:
-    print(f"Domain rejected: {e}")
-```
-
-### **Security Best Practices**
-
-1. **Register websites explicitly** - Don't auto-register unknown domains in production
-2. **Use HTTPS only** - Set `base_url` with `https://` scheme
-3. **Review rejected events** - Check `FailedEvent` regularly for unauthorized attempts
-4. **Keep websites active** - Use `active=False` to quickly disable compromised sites
-5. **Monitor CORS logs** - Check server logs for CORS errors
-
-### **Endpoints Protected**
-
-All event endpoints validate domains:
-- `/api/websites/events/page-view/` - Page view events
-- `/api/websites/events/page-read/` - Page read events
-- `/api/websites/events/click/` - Click events
-- `/api/websites/events/form-submit/` - Form submission events
-- `/api/websites/events/download/` - Download events
-- `/api/websites/events/video-play/` - Video play events
-- `/api/websites/events/search/` - Search events
-- `/api/websites/events/newsletter-signup/` - Newsletter signup events
-
-## 🔧 v2.0 Touchpoint Resolution System
-
-### **Subject-Agnostic Architecture**
-
-The websites app uses the **modernized v2.0 resolution pattern**:
-
-```python
-# ✅ v2.0 Pattern (Current)
-# Step 1: Build hint from raw event data
-hint = WebInteraction.build_touchpoint_hint_from_event_data(event_data, website)
-
-# Step 2: Resolve touchpoint BEFORE creating interaction
-resolver = DefaultTouchpointResolver(DatabaseMappingProvider())
-touchpoint = resolver.resolve(
-    hint,
-    connector_type='web',
-    source_identifier=cls._extract_domain(website.base_url)
-)
-
-# Step 3: Create Interaction + WebInteraction with touchpoint already assigned
-interaction = Interaction.objects.create(
-    touchpoint=touchpoint,  # Already resolved!
-    action=action,
-    agent=agent
-)
-web_interaction = WebInteraction.objects.create(
-    interaction=interaction,
-    website=website,
-    ...
-)
-```
-
-### **Event Processing Flow**
-
-All 8 event processors follow the canonical `process_click_event` pattern:
-
-1. **Get/Create Website** - From `event_data['website_base']`
-2. **Build TouchpointHint** - From raw `event_data` dict (static method)
-3. **Resolve Touchpoint** - Pre-creation, with explicit parameters
-4. **Get/Create Agent** - From user agent string (with ua-parser)
-5. **Get/Create Action** - Event-specific action code
-6. **Create Atomically** - Interaction + WebInteraction together
-
-### **Available Event Processors**
-
-| Event Type | Processor Method | Action Code | TouchpointType |
-|------------|------------------|-------------|----------------|
-| Page View | `process_page_view_event()` | `page_view` | `web_page` |
-| Page Read | `process_page_read_event()` | `page_read` | `web_page` |
-| Click | `process_click_event()` | `click` | `web_button` |
-| Form Submit | `process_form_submit_event()` | `form_submit` | `web_form` |
-| Download | `process_download_event()` | `download` | `web_download` |
-| Video Play | `process_video_play_event()` | `video_play` | `web_video` |
-| Search | `process_search_event()` | `search` | `web_search` |
-| Newsletter Signup | `process_newsletter_signup_event()` | `newsletter_signup` | `web_signup` |
-
-## 🧪 Testing Coverage
-
-### **Test Suite**
-- **Model tests**: Website, WebInteraction, WebAgent, WebSession
-- **Integration tests**: Complete v2.0 touchpoint resolution flow
-- **Event processing tests**: Multi-interaction approach validation
-- **Mapping rule tests**: Custom touchpoint code application
-
-### **Test Scenarios**
-- ✅ UTM analysis: Different UTM parameter combinations
-- ✅ Referrer analysis: Organic, social, referral traffic
-- ✅ User agent parsing: Browser, OS, device detection with ua-parser
-- ✅ Bot detection: Accurate bot identification
-- ✅ Domain normalization: Source identifier extraction
-- ✅ Pre-creation resolution: Touchpoint resolved before Interaction
-- ✅ Mapping rules: Custom touchpoint codes applied correctly
-- ✅ Multi-interaction: Page view creates 1-3 interactions
-
-## 📁 File Structure
-
-```
-websites/
-├── models.py              # Website, WebInteraction, WebAgent, WebSession (v2.0)
-├── admin.py               # Admin configuration
-├── views.py               # Event view endpoints (individual per event type)
-├── urls.py                # API routes (individual event endpoints)
-├── tests/                 # Test suite
-├── static/
-│   └── websites/
-│       └── js/
-│           ├── backbone-tracker.js      # Client-side tracker (no batching)
-│           └── backbone-config.js       # Tracker configuration
-├── management/
-│   └── commands/
-│       └── ensure_website_channels.py   # Channel management command
-├── README.md              # This documentation (v2.0 updated)
-├── PAGE_VIEW_EVENT_FLOW.md            # ★ Complete flow explanation (NEW)
-├── IMPLEMENTATION_SUMMARY.md           # Implementation status
-├── MULTI_INTERACTION_APPROACH.md       # Multi-interaction details
-├── THREE_DIMENSIONAL_CLASSIFICATION.md # Classification system (v2.0 updated)
-├── EVENT_DIFFERENTIATION_SUMMARY.md    # Event differentiation
-├── WEBSITE_EVENTS_CATALOG.md          # Complete events catalog
-├── TRACKING_SCRIPT_DOCUMENTATION.md   # Client-side tracking docs
-├── TESTING_GAPS.md        # ★ Testing coverage analysis & improvement plan (NEW)
-└── migrations/            # Database migrations
-```
-
-## 📚 Additional Documentation
-
-### **Architecture & Implementation**
-- **[PAGE_VIEW_EVENT_FLOW.md](./PAGE_VIEW_EVENT_FLOW.md)**: **★ COMPREHENSIVE GUIDE** - Complete step-by-step flow explanation
-- **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)**: Current implementation status
-- **[THREE_DIMENSIONAL_CLASSIFICATION.md](./THREE_DIMENSIONAL_CLASSIFICATION.md)**: Technical implementation of classification system
-- **[MULTI_INTERACTION_APPROACH.md](./MULTI_INTERACTION_APPROACH.md)**: Multi-interaction approach for page views
-
-### **Event Processing**
-- **[WEBSITE_EVENTS_CATALOG.md](./WEBSITE_EVENTS_CATALOG.md)**: Complete catalog of website events
-- **[EVENT_DIFFERENTIATION_SUMMARY.md](./EVENT_DIFFERENTIATION_SUMMARY.md)**: Event type differentiation
-
-### **Testing & Quality**
-- **[TESTING_GAPS.md](./TESTING_GAPS.md)**: **★ COVERAGE ANALYSIS** - Comprehensive testing gaps analysis and improvement plan
-- **[TRACKING_SCRIPT_DOCUMENTATION.md](./TRACKING_SCRIPT_DOCUMENTATION.md)**: Client-side tracking implementation
-
-## 🚀 Getting Started
-
-### **Processing Events (v2.0 API)**
+### 4. Procesar eventos (backend)
 
 ```python
 from websites.models import WebInteraction
-from django.utils import timezone
 
-# Event data from client (JavaScript tracker)
-event_data = {
-    'event_type': 'click',
-    'website_base': 'https://example.com',
-    'full_url': 'https://example.com/products',
-    'utm_source': 'google',
-    'utm_medium': 'cpc',
-    'utm_campaign': 'summer_sale',
-    'referrer': 'https://google.com/search',
-    'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)...',
-    'session_id': 'sess_abc123',
-    'visitor_cookie': 'visitor_xyz789',
-    'ip_address': '192.168.1.1',
-    'occurred_at': timezone.now(),
-    'payload': {
-        'clicked_element': 'button',
-        'element_id': 'buy-now',
-        'text_content': 'Buy Now'
-    }
-}
-
-# Process event using v2.0 API (returns list of created interactions)
-interactions = WebInteraction.process_click_event(event_data)
-
-# Access the created interaction
-web_interaction = interactions[0]
-print(web_interaction.interaction.touchpoint.code)  # 'web.click'
-print(web_interaction.interaction.touchpoint.channel.code)  # 'example.com'
-print(web_interaction.interaction.touchpoint.medium.code)  # 'cpc'
-print(web_interaction.interaction.touchpoint.touchpoint_type.code)  # 'web_button'
-```
-
-### **Multi-Interaction Page View**
-
-```python
-# Page view can create 1-3 interactions
-event_data = {
-    'event_type': 'page_view',
-    'website_base': 'https://example.com',
-    'full_url': 'https://example.com/landing',
-    'referrer': 'https://google.com/search',
-    'utm_source': 'google',
-    'utm_medium': 'organic',
-    'user_agent': 'Mozilla/5.0...',
-    'session_id': 'new_session',
-    'occurred_at': timezone.now(),
-    'payload': {
-        'is_landing_page': True,
-        'page_title': 'Welcome to Example'
-    }
-}
-
-# Creates 3 interactions: page_view + referrer_click + session_start
 interactions = WebInteraction.process_page_view_event(event_data)
-print(f"Created {len(interactions)} interactions")  # "Created 3 interactions"
+print(f"Creadas {len(interactions)} interacciones")  # 1-3
 ```
 
-### **API Endpoints**
+---
+
+## Endpoints API
 
 ```
-# Event Processing Endpoints (Individual per event type)
 POST /api/websites/events/page-view/
 POST /api/websites/events/page-read/
 POST /api/websites/events/click/
@@ -436,58 +82,26 @@ POST /api/websites/events/video-play/
 POST /api/websites/events/search/
 POST /api/websites/events/newsletter-signup/
 
-# Data Access Endpoints
-GET /api/websites/interactions/    # List web interactions
-GET /api/websites/websites/         # List websites
+GET  /api/websites/interactions/
+GET  /api/websites/websites/
 ```
 
-## 🎯 Value for BackboneOS
-
-The `websites` app converts **anonymous web activity** into traceable interactions within the CRM:
-
-### **Key Benefits**
-- ✅ **Subject-Agnostic Resolution**: Clean, testable touchpoint resolution
-- ✅ **Pre-Creation Pattern**: Touchpoints resolved before database save
-- ✅ **Accurate User Agent Parsing**: ua-parser for browser/OS/device detection
-- ✅ **Bot Detection**: Automatic bot identification
-- ✅ **Advanced Attribution**: UTM, referrer analysis for traffic understanding
-- ✅ **Auto-Channel Creation**: Websites automatically create owned channels
-- ✅ **Multi-Interaction Support**: Comprehensive page view attribution
-- ✅ **Domain Normalization**: Consistent source identifier handling
-- ✅ **Mapping Rules Support**: Custom touchpoint codes via database rules
-- ✅ **Domain Validation**: Security layer rejecting unauthorized tracking sources
-- ✅ **Audit Logging**: Failed events logged to FailedEvent for security monitoring
-
-## 🔄 Recent Changes - v2.0 Migration (January 2025)
-
-### **Architecture Modernization**
-
-The websites app has been **completely migrated to v2.0 architecture**:
-
-#### **✅ Completed Changes:**
-- **Removed v1.0 code**: 453 lines of obsolete protocol implementations removed (23% code reduction)
-- **Pre-creation resolution**: All 8 event processors use pre-creation touchpoint resolution
-- **Subject-agnostic API**: All resolver calls use explicit parameters, no object passing
-- **Static hint building**: `build_touchpoint_hint_from_event_data()` from raw event data
-- **Atomic creation**: `_create_web_interaction_with_interaction()` helper method
-- **ua-parser integration**: Accurate user agent parsing and bot detection
-- **Domain normalization**: `source_identifier` uses extracted domain for mapping rules
-- **No post-save hooks**: `WebInteraction.save()` no longer auto-resolves touchpoints
-
-#### **Removed v1.0 Components:**
-- ❌ `infer_touchpoint_hint()` - Subject-dependent inference
-- ❌ `infer_multi_touchpoint_hints()` - Multi-interaction protocol
-- ❌ `_ensure_touchpoint()` - Post-creation resolution
-- ❌ 12+ instance-based helper methods
-- ❌ Old multi-interaction helper methods
-
-#### **v2.0 Benefits:**
-- 🎯 **23% smaller codebase**: Cleaner, more maintainable code
-- 🎯 **Faster**: 2 database saves instead of 3+ per interaction
-- 🎯 **Testable**: Direct dict input, no mock objects needed
-- 🎯 **Explicit**: All data flow is visible and traceable
-- 🎯 **Scalable**: Easy to add new event types following template pattern
+Todos los endpoints POST validan que `website_base` corresponda a un `Website` registrado y activo.
 
 ---
 
-👉 The `websites` app is the bridge between **web traffic** and BackboneOS's **CRM ecosystem**, now with a **modernized v2.0 architecture** for clean, fast, and maintainable event processing.
+## Modelos principales
+
+- **`Website`** — sitio gestionado; auto-crea `Channel` owned
+- **`WebInteraction`** — datos web + 8 procesadores estáticos de eventos
+- **`WebAgent`** — browser/OS/device parseado con ua-parser
+- **`WebSession`** — sesión continua (timeout 30 min)
+
+---
+
+## Conceptos clave
+
+- **Clasificación tridimensional:** Channel (dónde), Medium (cómo), TouchpointType (qué) — ver [detalle](../../docs/backend/websites.md#clasificacion-tridimensional)
+- **Multi-interacción:** un `page_view` genera 1-3 interacciones (page_view + referrer_click + session_start) — ver [detalle](../../docs/backend/websites.md#enfoque-multi-interaccion)
+- **Arquitectura v2.0:** resolución pre-creación, 8 procesadores — ver [detalle](../../docs/backend/websites.md#arquitectura-v2)
+- **Cobertura de pruebas:** ~53 % (objetivo 85 %+) — ver [deuda viva](../../docs/backend/websites.md#deuda-pruebas)

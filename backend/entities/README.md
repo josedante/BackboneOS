@@ -90,7 +90,7 @@ La aplicación cuenta con **índices optimizados** para:
 - **Gestión de Contactos**: principal, verificado, activo
 - **Análisis Geográfico**: país-ciudad, región-ciudad
 
-Ver [`INDEX_OPTIMIZATION.md`](./INDEX_OPTIMIZATION.md) para detalles completos.
+Ver [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md) para la política de índices.
 
 ### **Patrones de Consulta Optimizados**
 
@@ -205,3 +205,10 @@ docker-compose exec backend python manage.py dbshell
 - **Auditoría**: Tracking de cambios via `BaseUUIDModelWithActiveStatus`
 - **Integridad**: Constraints de base de datos para validación
 - **Soft Delete**: Sistema de `is_active` para preservar histórico
+
+## Documentación
+
+- [docs/APPS.md](../../docs/APPS.md) — panorama de la app
+- [docs/TESTING.md](../../docs/TESTING.md) — tests (`tests.py`, `tests_template_views.py`)
+- [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md) — índices
+- [backend/README.md](../README.md) — entrada al backend

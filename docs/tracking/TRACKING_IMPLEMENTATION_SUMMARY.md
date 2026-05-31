@@ -80,13 +80,13 @@ docker-compose exec backend python manage.py inspect_tracking --stats-only
 
 ### 5. Documentation
 
-**File:** `backend/PAGE_VIEW_TRACKING_TESTING.md`
+**File:** [tracking/README.md](README.md) (guía canónica; antiguamente `backend/PAGE_VIEW_TRACKING_TESTING.md`)
 - Complete testing guide
 - Expected results and validation checklist
 - Troubleshooting section
 - Advanced usage examples
 
-**File:** `backend/TRACKING_TEST_QUICK_START.md`
+**File:** [tracking/README.md](README.md#inicio-rapido-5-minutos)
 - Quick 5-minute test guide
 - Expected output examples
 - Tool reference table
@@ -277,7 +277,7 @@ Success Rate: 100.0%
 1. Review the specific failure message in the validation output
 2. Check backend logs: `docker-compose logs backend | tail -100`
 3. Run inspection to see actual values: `python inspect_page_view_data.py`
-4. Check the PAGE_VIEW_TRACKING_TESTING.md troubleshooting section
+4. Check [tracking/README.md](README.md) troubleshooting section
 
 ### Incomplete taxonomy
 

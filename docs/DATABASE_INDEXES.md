@@ -1,6 +1,8 @@
-# Database index policy (Django backend)
+# Política de índices de base de datos (backend Django)
 
-This document records the index policy for Django models and a summary of the index audit performed to remove redundant indexes. When adding or changing model indexes, follow the rules below and update the audit summary if needed.
+Este documento registra la política de índices para modelos Django y un resumen de la auditoría de índices redundantes. Al añadir o cambiar índices, sigue las reglas siguientes y actualiza el resumen de auditoría si aplica.
+
+Apps con índices documentados históricamente en `world` y `entities`: la referencia canónica es este archivo (los antiguos `INDEX_OPTIMIZATION.md` por app se consolidaron aquí).
 
 ## Policy
 

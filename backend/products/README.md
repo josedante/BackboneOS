@@ -595,9 +595,18 @@ http://localhost:8000/api/products/analytics/dashboard/
 - **Modelos**: Ver `models.py` para estructura completa
 - **API Docs**: Swagger disponible en `/api/docs/`
 - **Analytics**: Ver `analytics.py` para métricas disponibles
-- **Performance**: Consultar optimizaciones en `INDEX_OPTIMIZATION.md`
+- **Performance**: [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md)
 - **Testing**: Ejemplos en `tests.py`
 
 ---
 
-**🎯 BackboneOS Products App - Transformando catálogos en ventaja competitiva**
+## Documentación
+
+- [docs/APPS.md](../../docs/APPS.md)
+- [docs/TESTING.md](../../docs/TESTING.md) — `products/tests.py`, `products/tests_template_views.py`
+- [docs/DATABASE_INDEXES.md](../../docs/DATABASE_INDEXES.md)
+- [backend/README.md](../README.md)
+
+---
+
+**BackboneOS Products App — catálogo comercial**

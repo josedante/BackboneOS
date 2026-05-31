@@ -164,9 +164,11 @@ AWS_DYNAMODB_ENDPOINT = os.getenv(\"AWS_DYNAMODB_ENDPOINT\", None)  # opcional
 AWS_USER_ACTIVITY_TABLE = \"UserActivityLogs\"
 ```
 
----
+## Documentación
 
-¿Deseas que lo inserte directamente en el canvas del README o prefieres hacerlo tú manualmente?
+- [docs/APPS.md](../../docs/APPS.md)
+- [docs/TESTING.md](../../docs/TESTING.md) — `users/tests.py`
+- [backend/README.md](../README.md)
 
 ---
 
